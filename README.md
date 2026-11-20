@@ -11,6 +11,7 @@ Fresh monorepo for Urban Byte restaurant operations.
 - Order creation, item name/price snapshots, order listing/details, status history and controlled status transitions.
 - Kitchen tickets generated from confirmed orders, kitchen queue, prepare/ready actions and synchronized order status updates.
 - Inventory catalog, supplier directory, branch stock/reorder thresholds, purchase receiving, recipe management and immutable stock movement history.
+- AI conversation intake, customer/staff message history, structured order-draft risk checks and Admin/Supervisor approval queue.
 - Optional branch-level recipe consumption on order completion; missing recipes or insufficient stock block completion atomically.
 - Flutter Stacked login scaffold with secure token storage.
 - Flutter inventory screen with live branch selection, catalog count, low-stock count, stock balances and item creation.
@@ -68,6 +69,16 @@ A kitchen ticket is created when an order is confirmed. Kitchen actions update b
 - `POST /api/v1/menu/deals` — deals.manage
 
 All menu and order data is scoped to the restaurant in the signed access token. Never commit `.env`, secrets, provider keys or customer data. MySQL integration testing requires configured database credentials.
+
+## AI agent endpoints
+- `POST /api/v1/ai/conversations` — ai.view; opens a manual/WhatsApp/phone/web conversation.
+- `GET /api/v1/ai/conversations` — ai.view; lists restaurant-scoped conversations.
+- `GET /api/v1/ai/conversations/:conversationId` — ai.conversations.view; loads conversation and history.
+- `POST /api/v1/ai/conversations/:conversationId/messages` — ai.view; appends a customer, assistant, staff or system message.
+- `POST /api/v1/ai/conversations/:conversationId/order-draft` — ai.view; validates a structured order draft and creates a pending approval request.
+- `GET /api/v1/ai/approvals` and `POST /api/v1/ai/approvals/:requestId/review` — ai.orders.approve; Admin and authorized Supervisor approval workflow.
+
+The current AI milestone is a deterministic intake and approval foundation, not a connected LLM or WhatsApp integration. All submitted drafts enter staff review; automatic low-risk order approval and conversion into a live order are not enabled yet. Customer-provided prices/discounts are never trusted. Provider credentials and webhooks must be configured before connecting external messaging or AI services.
 
 ## Flutter inventory setup
 Run `cd flutter && flutter pub get && flutter test`. Set `API_BASE_URL` with `--dart-define` for a physical device or deployed API. The inventory dashboard reads the active branch list from the backend; it does not assume branch ID 1.
