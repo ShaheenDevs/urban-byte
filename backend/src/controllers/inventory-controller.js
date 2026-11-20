@@ -16,5 +16,6 @@ module.exports={
  createSupplier:wrap((r,id)=>service.createSupplier(id,r.body||{}),'Supplier created.',201),
  listSuppliers:wrap((r,id)=>service.listSuppliers(id),'Suppliers loaded.'),
  setReorderLevel:wrap((r,id)=>service.setReorderLevel(id,r.body||{}),'Reorder threshold saved.'),
- lowStock:wrap((r,id)=>service.lowStock(id,r.query.branchId),'Low-stock items loaded.')
+ lowStock:wrap((r,id)=>service.lowStock(id,r.query.branchId),'Low-stock items loaded.'),
+ setAutoDeduct:wrap((r,id)=>service.setBranchAutoDeduct(id,r.params.branchId,r.body?.enabled),'Branch auto deduction setting updated.')
 };
