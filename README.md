@@ -44,8 +44,9 @@ Order types: `dine_in`, `takeaway`, `delivery`. Status flow: placed → confirme
 - `GET /api/v1/inventory/recipes` — list active recipes.
 - `PUT /api/v1/inventory/stock/reorder-level` — set branchId, inventoryItemId and reorderLevel.
 - `GET /api/v1/inventory/stock/low?branchId=1` — list low-stock items.
+- `PATCH /api/v1/inventory/branches/:branchId/auto-deduction` — settings.manage only; body `{ "enabled": true }` checks that every active prepared product has a recipe before enabling branch-level deductions.
 
-Recipe-based auto-deduction is disabled by default per branch. Enable `branches.inventory_auto_deduct` only after every sellable variant has a correct recipe and opening stock has been reconciled. When enabled, order completion deducts ingredient quantities in the same transaction; missing recipes or insufficient stock block completion. The deduction timestamp and stock movement references prevent repeat deductions.
+Recipe-based auto-deduction is disabled by default per branch. Enable auto deduction through the Admin-only branch endpoint only after recipes and opening stock have been reconciled. When enabled, order completion deducts ingredient quantities in the same transaction; missing recipes or insufficient stock block completion. The deduction timestamp and stock movement references prevent repeat deductions.
 
 ## Kitchen display endpoints
 - `GET /api/v1/kitchen/tickets` — kitchen.orders.view; supports branchId and status filters.
