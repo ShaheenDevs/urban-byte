@@ -1,0 +1,2 @@
+'use strict';
+module.exports={async up(q,S){await q.addColumn('users','restaurant_id',{type:S.BIGINT.UNSIGNED,allowNull:true,references:{model:'restaurants',key:'id'},onUpdate:'CASCADE',onDelete:'RESTRICT'});await q.addIndex('users',['restaurant_id'],{name:'idx_users_restaurant'});},async down(q){await q.removeIndex('users','idx_users_restaurant');await q.removeColumn('users','restaurant_id');}};
