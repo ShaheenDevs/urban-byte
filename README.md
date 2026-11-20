@@ -10,7 +10,8 @@ Fresh monorepo for Urban Byte restaurant operations.
 - Menu categories, products, variants, branch-specific prices and deals API.
 - Order creation, item name/price snapshots, order listing/details, status history and controlled status transitions.
 - Kitchen tickets generated from confirmed orders, kitchen queue, prepare/ready actions and synchronized order status updates.
-- Inventory item catalog, branch stock balances, manual stock adjustments, stock movement audit trail, recipe and purchase schema.
+- Inventory catalog, supplier directory, branch stock/reorder thresholds, purchase receiving, recipe management and immutable stock movement history.
+- Optional branch-level recipe consumption on order completion; missing recipes or insufficient stock block completion atomically.
 - Flutter Stacked login scaffold with secure token storage.
 
 ## Setup
@@ -31,12 +32,20 @@ Order types: `dine_in`, `takeaway`, `delivery`. Status flow: placed → confirme
 
 ## Inventory endpoints
 - `GET /api/v1/inventory/items` — inventory.view.
-- `POST /api/v1/inventory/items` — inventory.manage; body includes name, itemType (`raw_material` or `finished_good`), unit (`g`, `kg`, `ml`, `l`, `piece`, `pack`) and optional SKU.
+- `POST /api/v1/inventory/items` — inventory.manage; body includes name, itemType (`ingredient`, `finished_good`, `packaging`, `other`), unit (e.g. `g`, `kg`, `ml`, `l`, `piece`, `pack`), optional SKU and lowStockThreshold.
 - `GET /api/v1/inventory/stock?branchId=1` — inventory.view.
 - `POST /api/v1/inventory/stock/adjust` — inventory.adjust; body includes branchId, inventoryItemId, quantityChange (positive or negative), optional movementType (`adjustment`, `waste`, `return`) and note. Negative balances are rejected and each change is recorded.
 - `GET /api/v1/inventory/movements?branchId=1&inventoryItemId=1` — inventory.view.
+- `POST /api/v1/inventory/suppliers` and `GET /api/v1/inventory/suppliers` — inventory.manage / inventory.view.
+- `POST /api/v1/inventory/purchases` — create a draft purchase with branchId, optional supplierId and item lines (inventoryItemId, quantity, unitCost).
+- `POST /api/v1/inventory/purchases/:purchaseId/receive` — receive a draft once; stock and purchase movements are committed in one transaction.
+- `GET /api/v1/inventory/purchases` — list purchases.
+- `PUT /api/v1/inventory/recipes` — save recipe for productVariantId with yieldQuantity and ingredient lines (inventoryItemId, quantity).
+- `GET /api/v1/inventory/recipes` — list active recipes.
+- `PUT /api/v1/inventory/stock/reorder-level` — set branchId, inventoryItemId and reorderLevel.
+- `GET /api/v1/inventory/stock/low?branchId=1` — list low-stock items.
 
-Purchase and recipe tables are in the database foundation; purchase receiving and recipe-based automatic deductions are not yet enabled. Do not treat manual stock adjustment as an order-completion deduction.
+Recipe-based auto-deduction is disabled by default per branch. Enable `branches.inventory_auto_deduct` only after every sellable variant has a correct recipe and opening stock has been reconciled. When enabled, order completion deducts ingredient quantities in the same transaction; missing recipes or insufficient stock block completion. The deduction timestamp and stock movement references prevent repeat deductions.
 
 ## Kitchen display endpoints
 - `GET /api/v1/kitchen/tickets` — kitchen.orders.view; supports branchId and status filters.
