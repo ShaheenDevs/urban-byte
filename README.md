@@ -15,6 +15,7 @@ Fresh monorepo for Urban Byte restaurant operations.
 - Optional branch-level recipe consumption on order completion; missing recipes or insufficient stock block completion atomically.
 - Flutter Stacked login scaffold with secure token storage.
 - Flutter inventory screen with live branch selection, catalog count, low-stock count, stock balances and item creation.
+- Flutter AI Agent workspace for conversation monitoring and Admin/Supervisor approval actions.
 
 ## Setup
 1. Install Node.js 20+ and MySQL 8+.
@@ -79,6 +80,9 @@ All menu and order data is scoped to the restaurant in the signed access token. 
 - `GET /api/v1/ai/approvals` and `POST /api/v1/ai/approvals/:requestId/review` — ai.orders.approve; Admin and authorized Supervisor approval workflow.
 
 The current AI milestone provides deterministic intake, backend risk checks, order conversion and staff approvals. A draft is auto-approved only when the customer explicitly confirms it, branch and order type are valid, required delivery/table details are present, quantities are valid, and no discount/custom price is requested. Backend order creation revalidates active products and calculates prices from server-side menu/branch prices. Drafts with any risk reason remain pending for an authorized Admin/Supervisor. Approved drafts create normal orders with source `ai`; payment remains unpaid and is never auto-marked paid. This is not yet a connected LLM or WhatsApp integration. Provider credentials and webhooks are required before connecting external messaging or AI services.
+
+## Flutter AI Agent setup
+The AI workspace is available to users with `ai.view` or `ai.orders.approve`. It lists conversations and, for authorized approvers, pending order requests with risk reasons. Approve & create order creates an AI-source order using server-side menu prices; the order remains unpaid. Customer confirmation is required for deterministic auto-approval. This UI does not connect WhatsApp or an external LLM provider yet.
 
 ## Flutter inventory setup
 Run `cd flutter && flutter pub get && flutter test`. Set `API_BASE_URL` with `--dart-define` for a physical device or deployed API. The inventory dashboard reads the active branch list from the backend; it does not assume branch ID 1.
