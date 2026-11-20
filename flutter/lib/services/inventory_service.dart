@@ -8,6 +8,10 @@ class InventoryService {
       : _client = client ?? http.Client(), _storage = storage ?? const FlutterSecureStorage();
   final http.Client _client;
   final FlutterSecureStorage _storage;
+  Future<List<RestaurantBranch>> branches() async {
+    final data = await _get('/inventory/branches');
+    return (data as List<dynamic>).map((e) => RestaurantBranch.fromJson(e as Map<String, dynamic>)).toList();
+  }
   Future<List<InventoryItem>> items() async {
     final data = await _get('/inventory/items');
     return (data as List<dynamic>).map((e) => InventoryItem.fromJson(e as Map<String, dynamic>)).toList();
