@@ -1,0 +1,2 @@
+'use strict';
+module.exports=(s,D)=>s.define('RecipeItem',{id:{type:D.BIGINT.UNSIGNED,primaryKey:true,autoIncrement:true},recipeId:{type:D.BIGINT.UNSIGNED,allowNull:false,field:'recipe_id'},inventoryItemId:{type:D.BIGINT.UNSIGNED,allowNull:false,field:'inventory_item_id'},quantity:{type:D.DECIMAL(14,3),allowNull:false}},{tableName:'recipe_items',underscored:true});
