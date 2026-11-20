@@ -10,5 +10,9 @@ router.post('/purchases',requirePermission('inventory.manage'),c.createPurchase)
 router.get('/purchases',requirePermission('inventory.view'),c.listPurchases);
 router.post('/purchases/:purchaseId/receive',requirePermission('inventory.manage'),c.receivePurchase);
 router.get('/recipes',requirePermission('inventory.view'),c.listRecipes);
+router.post('/suppliers',requirePermission('inventory.manage'),c.createSupplier);
+router.get('/suppliers',requirePermission('inventory.view'),c.listSuppliers);
+router.put('/stock/reorder-level',requirePermission('inventory.manage'),c.setReorderLevel);
+router.get('/stock/low',requirePermission('inventory.view'),c.lowStock);
 router.put('/recipes',requirePermission('inventory.manage'),c.saveRecipe);
 module.exports=router;
