@@ -3,9 +3,10 @@ import '../inventory/inventory_view.dart';
 
 /// Role-aware starting workspace. Full navigation modules are added incrementally.
 class RoleDashboardPlaceholder extends StatelessWidget {
-  const RoleDashboardPlaceholder({super.key, required this.roleName});
+  const RoleDashboardPlaceholder({super.key, required this.roleName, required this.permissions});
   final String roleName;
-  bool get _canOpenInventory => const {'admin','supervisor'}.contains(roleName.toLowerCase());
+  final Set<String> permissions;
+  bool get _canOpenInventory => permissions.contains('inventory.view');
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: Text('$roleName Dashboard')),
