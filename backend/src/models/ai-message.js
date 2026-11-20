@@ -1,0 +1,2 @@
+'use strict';
+module.exports=(s,D)=>{const M=s.define('AiMessage',{id:{type:D.BIGINT.UNSIGNED,primaryKey:true,autoIncrement:true},conversationId:{type:D.BIGINT.UNSIGNED,allowNull:false,field:'conversation_id'},senderType:{type:D.ENUM('customer','assistant','staff','system'),allowNull:false,field:'sender_type'},content:{type:D.TEXT,allowNull:false},intent:{type:D.STRING(60),allowNull:true},metadata:{type:D.JSON,allowNull:true}},{tableName:'ai_messages',underscored:true});M.associate=m=>M.belongsTo(m.AiConversation,{foreignKey:'conversationId',as:'conversation'});return M;};
