@@ -11,7 +11,8 @@
     "db:migrate:undo": "sequelize-cli db:migrate:undo",
     "db:seed": "sequelize-cli db:seed:all",
     "test": "node --test",
-    "admin:create": "node scripts/create-admin.js"
+    "admin:create": "node scripts/create-admin.js",
+    "test:db": "RUN_DB_INTEGRATION=1 node --test test/database.integration.test.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
