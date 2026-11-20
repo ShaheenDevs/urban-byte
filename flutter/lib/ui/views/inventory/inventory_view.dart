@@ -12,7 +12,12 @@ class InventoryView extends StackedView<InventoryViewModel> {
     body:RefreshIndicator(onRefresh:vm.load,child:ListView(padding:const EdgeInsets.all(16),children:[
       Text('Branch stock overview',style:Theme.of(context).textTheme.titleLarge),
       const SizedBox(height:12),
-      TextFormField(initialValue:vm.branchId,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'Branch ID',border:OutlineInputBorder(),prefixIcon:Icon(Icons.store)),onFieldSubmitted:(value){vm.setBranch(value);vm.load();}),
+      DropdownButtonFormField<String>(
+        value: vm.branchId.isEmpty ? null : vm.branchId,
+        decoration: const InputDecoration(labelText: 'Branch', border: OutlineInputBorder(), prefixIcon: Icon(Icons.store)),
+        items: vm.branches.map((branch) => DropdownMenuItem(value: branch.id, child: Text(branch.name))).toList(),
+        onChanged: vm.isBusy ? null : (value) { if (value != null) vm.setBranch(value); },
+      ),
       const SizedBox(height:16),
       if(vm.isBusy)const LinearProgressIndicator(),
       if(vm.errorMessage!=null) ...[const SizedBox(height:12),Text(vm.errorMessage!,style:TextStyle(color:Theme.of(context).colorScheme.error)),TextButton(onPressed:vm.load,child:const Text('Retry'))],
