@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../inventory/inventory_view.dart';
 import '../orders/restaurant_operations_view.dart';
+import '../ai/ai_agent_view.dart';
 
 /// Role-aware starting workspace. Full navigation modules are added incrementally.
 class RoleDashboardPlaceholder extends StatelessWidget {
@@ -8,6 +9,7 @@ class RoleDashboardPlaceholder extends StatelessWidget {
   final String roleName;
   final Set<String> permissions;
   bool get _canOpenInventory => permissions.contains('inventory.view');
+  bool get _canOpenAI => permissions.contains('ai.view') || permissions.contains('ai.orders.approve');
   bool get _canOpenOrders => permissions.contains('orders.view_own') || permissions.contains('orders.view_all') || permissions.contains('orders.create') || permissions.contains('kitchen.orders.view');
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -25,6 +27,7 @@ class RoleDashboardPlaceholder extends StatelessWidget {
           trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const InventoryView())),
         )),
+      if (_canOpenAI) Card(child: ListTile(leading: const Icon(Icons.smart_toy_outlined), title: const Text('AI Agent'), subtitle: const Text('Customer conversations and order approvals'), trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AiAgentView(permissions: permissions))))),
       if (_canOpenOrders) Card(child: ListTile(leading: const Icon(Icons.receipt_long), title: const Text('Orders & Kitchen'), subtitle: const Text('Waiter orders, order monitoring and kitchen queue'), trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => RestaurantOperationsView(permissions: permissions))))),
     ]),
   );
