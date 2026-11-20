@@ -1,0 +1,10 @@
+'use strict';
+module.exports={async up(q,S){const D=S.DataTypes;
+await q.changeColumn('inventory_items','item_type',{type:D.ENUM('ingredient','finished_good','packaging','other'),allowNull:false,defaultValue:'ingredient'});
+await q.renameColumn('inventory_items','unit','base_unit');
+await q.addColumn('inventory_items','low_stock_threshold',{type:D.DECIMAL(12,3),allowNull:false,defaultValue:0});
+},async down(q,S){const D=S.DataTypes;
+await q.removeColumn('inventory_items','low_stock_threshold');
+await q.renameColumn('inventory_items','base_unit','unit');
+await q.changeColumn('inventory_items','item_type',{type:D.ENUM('raw_material','finished_good'),allowNull:false,defaultValue:'raw_material'});
+}};
