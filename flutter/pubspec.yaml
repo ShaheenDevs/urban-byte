@@ -1,0 +1,22 @@
+name: urban_byte
+description: Urban Byte restaurant operations app
+publish_to: 'none'
+version: 0.1.0+1
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  stacked: ^3.4.4
+  stacked_services: ^1.6.0
+  http: ^1.2.2
+  flutter_secure_storage: ^9.2.2
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  build_runner: ^2.4.13
+  stacked_generator: ^1.3.3
+flutter:
+  uses-material-design: true
