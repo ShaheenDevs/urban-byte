@@ -6,4 +6,5 @@ router.use('/menu',require('./menu-routes'));
 router.use('/orders',require('./order-routes'));
 router.use('/kitchen',require('./kitchen-routes'));
 router.use('/inventory',require('./inventory-routes'));
+router.use('/ai',require('./ai-routes'));
 module.exports=router;
