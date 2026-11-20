@@ -5,6 +5,7 @@ const wrap=(fn,message,status=200)=>(req,res,next)=>Promise.resolve().then(()=>f
 module.exports={
  createItem:wrap((r,id)=>service.createItem(id,r.body||{}),'Inventory item created.',201),
  listItems:wrap((r,id)=>service.listItems(id),'Inventory items loaded.'),
+ branches:wrap((r,id)=>service.listBranches(id),'Branches loaded.'),
  stock:wrap((r,id)=>service.listStock(id,r.query.branchId),'Branch stock loaded.'),
  adjust:wrap((r,id)=>service.adjustStock(id,{id:r.auth.sub},r.body||{}),'Stock adjusted.'),
  movements:wrap((r,id)=>service.movements(id,r.query),'Stock movements loaded.'),
