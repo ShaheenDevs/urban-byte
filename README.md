@@ -10,6 +10,7 @@ Fresh monorepo for Urban Byte restaurant operations.
 - Menu categories, products, variants, branch-specific prices and deals API.
 - Order creation, item name/price snapshots, order listing/details, status history and controlled status transitions.
 - Kitchen tickets generated from confirmed orders, kitchen queue, prepare/ready actions and synchronized order status updates.
+- Inventory item catalog, branch stock balances, manual stock adjustments, stock movement audit trail, recipe and purchase schema.
 - Flutter Stacked login scaffold with secure token storage.
 
 ## Setup
@@ -27,6 +28,15 @@ Fresh monorepo for Urban Byte restaurant operations.
 - `PATCH /api/v1/orders/:orderId/status` — orders.status.update.
 
 Order types: `dine_in`, `takeaway`, `delivery`. Status flow: placed → confirmed → preparing → ready → (out_for_delivery) → completed. Cancellation is only allowed before preparation. Server calculates item prices from active variants and branch prices; client-supplied totals/discounts are ignored. Taxes and delivery charges currently remain zero pending configured policies. Order creation cannot mark a payment as paid.
+
+## Inventory endpoints
+- `GET /api/v1/inventory/items` — inventory.view.
+- `POST /api/v1/inventory/items` — inventory.manage; body includes name, itemType (`raw_material` or `finished_good`), unit (`g`, `kg`, `ml`, `l`, `piece`, `pack`) and optional SKU.
+- `GET /api/v1/inventory/stock?branchId=1` — inventory.view.
+- `POST /api/v1/inventory/stock/adjust` — inventory.adjust; body includes branchId, inventoryItemId, quantityChange (positive or negative), optional movementType (`adjustment`, `waste`, `return`) and note. Negative balances are rejected and each change is recorded.
+- `GET /api/v1/inventory/movements?branchId=1&inventoryItemId=1` — inventory.view.
+
+Purchase and recipe tables are in the database foundation; purchase receiving and recipe-based automatic deductions are not yet enabled. Do not treat manual stock adjustment as an order-completion deduction.
 
 ## Kitchen display endpoints
 - `GET /api/v1/kitchen/tickets` — kitchen.orders.view; supports branchId and status filters.
