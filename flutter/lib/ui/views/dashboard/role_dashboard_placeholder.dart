@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../inventory/inventory_view.dart';
+import '../orders/restaurant_operations_view.dart';
 
 /// Role-aware starting workspace. Full navigation modules are added incrementally.
 class RoleDashboardPlaceholder extends StatelessWidget {
@@ -7,6 +8,7 @@ class RoleDashboardPlaceholder extends StatelessWidget {
   final String roleName;
   final Set<String> permissions;
   bool get _canOpenInventory => permissions.contains('inventory.view');
+  bool get _canOpenOrders => permissions.contains('orders.view_own') || permissions.contains('orders.view_all') || permissions.contains('orders.create');
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: Text('$roleName Dashboard')),
@@ -23,8 +25,7 @@ class RoleDashboardPlaceholder extends StatelessWidget {
           trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const InventoryView())),
         )),
-      const Card(child: ListTile(leading: Icon(Icons.receipt_long), title: Text('Orders'), subtitle: Text('Order workspace is coming in the next milestone.'))),
-      const Card(child: ListTile(leading: Icon(Icons.restaurant), title: Text('Kitchen'), subtitle: Text('Kitchen display workspace is coming in the next milestone.'))),
+      if (_canOpenOrders) Card(child: ListTile(leading: const Icon(Icons.receipt_long), title: const Text('Orders & Kitchen'), subtitle: const Text('Waiter orders, order monitoring and kitchen queue'), trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => RestaurantOperationsView(permissions: permissions))))),
     ]),
   );
 }
