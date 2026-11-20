@@ -14,9 +14,14 @@ test('MySQL migrations, seeded RBAC and Sequelize models are usable',{skip:!enab
   assert.equal(await Role.count(),5,'system roles should be seeded');
   assert.ok(await Permission.count()>=30,'system permissions should be seeded');
   assert.ok(models.KitchenTicket && models.KitchenTicketItem && models.Order,'Sequelize should load order and kitchen models');
-  assert.ok(models.InventoryItem && models.BranchStock && models.StockMovement && models.Recipe,'Sequelize should load inventory models');
+  assert.ok(models.InventoryItem && models.BranchStock && models.StockMovement && models.Recipe && models.Purchase && models.PurchaseItem,'Sequelize should load inventory and purchase models');
   const orderColumns=await sequelize.getQueryInterface().describeTable('orders');
   assert.ok(orderColumns.grand_total,'orders.grand_total should exist');
   assert.ok(orderColumns.idempotency_key,'orders.idempotency_key should exist');
+  assert.ok(orderColumns.inventory_deducted_at,'orders.inventory_deducted_at should exist');
+  const branchColumns=await sequelize.getQueryInterface().describeTable('branches');
+  assert.ok(branchColumns.inventory_auto_deduct,'branches.inventory_auto_deduct should exist');
+  const itemColumns=await sequelize.getQueryInterface().describeTable('inventory_items');
+  assert.ok(itemColumns.base_unit && itemColumns.low_stock_threshold,'inventory item units and thresholds should exist');
  }finally{await sequelize.close();}
 });
