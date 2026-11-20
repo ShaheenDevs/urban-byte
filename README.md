@@ -9,6 +9,7 @@ Fresh monorepo for Urban Byte restaurant operations.
 - First-admin bootstrap creates Urban Byte restaurant and Shahkot branch.
 - Menu categories, products, variants, branch-specific prices and deals API.
 - Order creation, item name/price snapshots, order listing/details, status history and controlled status transitions.
+- Kitchen tickets generated from confirmed orders, kitchen queue, prepare/ready actions and synchronized order status updates.
 - Flutter Stacked login scaffold with secure token storage.
 
 ## Setup
@@ -26,6 +27,13 @@ Fresh monorepo for Urban Byte restaurant operations.
 - `PATCH /api/v1/orders/:orderId/status` — orders.status.update.
 
 Order types: `dine_in`, `takeaway`, `delivery`. Status flow: placed → confirmed → preparing → ready → (out_for_delivery) → completed. Cancellation is only allowed before preparation. Server calculates item prices from active variants and branch prices; client-supplied totals/discounts are ignored. Taxes and delivery charges currently remain zero pending configured policies. Order creation cannot mark a payment as paid.
+
+## Kitchen display endpoints
+- `GET /api/v1/kitchen/tickets` — kitchen.orders.view; supports branchId and status filters.
+- `PATCH /api/v1/kitchen/tickets/:ticketId/prepare` — kitchen.orders.prepare.
+- `PATCH /api/v1/kitchen/tickets/:ticketId/ready` — kitchen.orders.ready.
+
+A kitchen ticket is created when an order is confirmed. Kitchen actions update both the ticket and the linked order status in one database transaction.
 
 ## Menu endpoints
 - `GET /api/v1/menu/categories` — menu.view
