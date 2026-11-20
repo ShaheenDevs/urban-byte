@@ -1,5 +1,6 @@
 import 'package:stacked/stacked.dart';
+import '../services/auth_service.dart';
 final locator = StackedLocator.instance;
 Future<void> setupLocator() async {
-  // Register app-wide services as their implementation milestones land.
+  locator.registerLazySingleton(() => AuthService());
 }
