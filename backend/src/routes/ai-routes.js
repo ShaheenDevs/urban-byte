@@ -1,0 +1,14 @@
+'use strict';
+const router=require('express').Router();
+const {authenticate}=require('../middleware/auth');
+const {requirePermission}=require('../middleware/require-permission');
+const c=require('../controllers/ai-controller');
+router.use(authenticate);
+router.post('/conversations',requirePermission('ai.view'),c.createConversation);
+router.get('/conversations',requirePermission('ai.view'),c.listConversations);
+router.get('/conversations/:conversationId',requirePermission('ai.conversations.view'),c.getConversation);
+router.post('/conversations/:conversationId/messages',requirePermission('ai.view'),c.addMessage);
+router.post('/conversations/:conversationId/order-draft',requirePermission('ai.view'),c.submitOrderDraft);
+router.get('/approvals',requirePermission('ai.orders.approve'),c.listApprovals);
+router.post('/approvals/:requestId/review',requirePermission('ai.orders.approve'),c.reviewApproval);
+module.exports=router;
