@@ -28,3 +28,13 @@ class BranchStockEntry {
     );
   }
 }
+
+class RestaurantBranch {
+  const RestaurantBranch({required this.id,required this.name,required this.code});
+  final String id;
+  final String name;
+  final String code;
+  factory RestaurantBranch.fromJson(Map<String,dynamic> json)=>RestaurantBranch(
+    id:'${json['id']}',name:json['name'] as String? ?? 'Branch',code:json['code'] as String? ?? '',
+  );
+}
