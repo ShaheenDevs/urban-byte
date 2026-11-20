@@ -12,5 +12,9 @@ module.exports={
  listPurchases:wrap((r,id)=>service.listPurchases(id),'Purchases loaded.'),
  receivePurchase:wrap((r,id)=>service.receivePurchase(id,r.user,r.params.purchaseId),'Purchase received and stock updated.'),
  saveRecipe:wrap((r,id)=>service.saveRecipe(id,r.body||{}),'Recipe saved.'),
- listRecipes:wrap((r,id)=>service.listRecipes(id),'Recipes loaded.')
+ listRecipes:wrap((r,id)=>service.listRecipes(id),'Recipes loaded.'),
+ createSupplier:wrap((r,id)=>service.createSupplier(id,r.body||{}),'Supplier created.',201),
+ listSuppliers:wrap((r,id)=>service.listSuppliers(id),'Suppliers loaded.'),
+ setReorderLevel:wrap((r,id)=>service.setReorderLevel(id,r.body||{}),'Reorder threshold saved.'),
+ lowStock:wrap((r,id)=>service.lowStock(id,r.query.branchId),'Low-stock items loaded.')
 };
