@@ -1,0 +1,2 @@
+'use strict';
+module.exports=(s,D)=>s.define('PurchaseItem',{id:{type:D.BIGINT.UNSIGNED,primaryKey:true,autoIncrement:true},purchaseId:{type:D.BIGINT.UNSIGNED,allowNull:false,field:'purchase_id'},inventoryItemId:{type:D.BIGINT.UNSIGNED,allowNull:false,field:'inventory_item_id'},quantity:{type:D.DECIMAL(14,3),allowNull:false},unitCost:{type:D.DECIMAL(12,2),allowNull:false,field:'unit_cost'},lineTotal:{type:D.DECIMAL(12,2),allowNull:false,field:'line_total'}},{tableName:'purchase_items',underscored:true});
