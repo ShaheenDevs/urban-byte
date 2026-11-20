@@ -1,0 +1,2 @@
+'use strict';
+module.exports=(s,D)=>s.define('DealPrice',{id:{type:D.BIGINT.UNSIGNED,primaryKey:true,autoIncrement:true},dealId:{type:D.BIGINT.UNSIGNED,allowNull:false,field:'deal_id'},branchId:{type:D.BIGINT.UNSIGNED,allowNull:false,field:'branch_id'},salePrice:{type:D.DECIMAL(12,2),allowNull:false,field:'sale_price'},isAvailable:{type:D.BOOLEAN,allowNull:false,defaultValue:true,field:'is_available'}},{tableName:'deal_prices',underscored:true});
