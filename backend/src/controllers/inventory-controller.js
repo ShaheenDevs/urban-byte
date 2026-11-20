@@ -7,5 +7,10 @@ module.exports={
  listItems:wrap((r,id)=>service.listItems(id),'Inventory items loaded.'),
  stock:wrap((r,id)=>service.listStock(id,r.query.branchId),'Branch stock loaded.'),
  adjust:wrap((r,id)=>service.adjustStock(id,r.user,r.body||{}),'Stock adjusted.'),
- movements:wrap((r,id)=>service.movements(id,r.query),'Stock movements loaded.')
+ movements:wrap((r,id)=>service.movements(id,r.query),'Stock movements loaded.'),
+ createPurchase:wrap((r,id)=>service.createPurchase(id,r.user,r.body||{}),'Purchase draft created.',201),
+ listPurchases:wrap((r,id)=>service.listPurchases(id),'Purchases loaded.'),
+ receivePurchase:wrap((r,id)=>service.receivePurchase(id,r.user,r.params.purchaseId),'Purchase received and stock updated.'),
+ saveRecipe:wrap((r,id)=>service.saveRecipe(id,r.body||{}),'Recipe saved.'),
+ listRecipes:wrap((r,id)=>service.listRecipes(id),'Recipes loaded.')
 };
