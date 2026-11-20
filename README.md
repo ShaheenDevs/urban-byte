@@ -13,6 +13,7 @@ Fresh monorepo for Urban Byte restaurant operations.
 - Inventory catalog, supplier directory, branch stock/reorder thresholds, purchase receiving, recipe management and immutable stock movement history.
 - Optional branch-level recipe consumption on order completion; missing recipes or insufficient stock block completion atomically.
 - Flutter Stacked login scaffold with secure token storage.
+- Flutter inventory screen with live branch selection, catalog count, low-stock count, stock balances and item creation.
 
 ## Setup
 1. Install Node.js 20+ and MySQL 8+.
@@ -31,6 +32,7 @@ Fresh monorepo for Urban Byte restaurant operations.
 Order types: `dine_in`, `takeaway`, `delivery`. Status flow: placed → confirmed → preparing → ready → (out_for_delivery) → completed. Cancellation is only allowed before preparation. Server calculates item prices from active variants and branch prices; client-supplied totals/discounts are ignored. Taxes and delivery charges currently remain zero pending configured policies. Order creation cannot mark a payment as paid.
 
 ## Inventory endpoints
+- `GET /api/v1/inventory/branches` — active branches for the authenticated restaurant; inventory.view.
 - `GET /api/v1/inventory/items` — inventory.view.
 - `POST /api/v1/inventory/items` — inventory.manage; body includes name, itemType (`ingredient`, `finished_good`, `packaging`, `other`), unit (e.g. `g`, `kg`, `ml`, `l`, `piece`, `pack`), optional SKU and lowStockThreshold.
 - `GET /api/v1/inventory/stock?branchId=1` — inventory.view.
@@ -66,6 +68,9 @@ A kitchen ticket is created when an order is confirmed. Kitchen actions update b
 - `POST /api/v1/menu/deals` — deals.manage
 
 All menu and order data is scoped to the restaurant in the signed access token. Never commit `.env`, secrets, provider keys or customer data. MySQL integration testing requires configured database credentials.
+
+## Flutter inventory setup
+Run `cd flutter && flutter pub get && flutter test`. Set `API_BASE_URL` with `--dart-define` for a physical device or deployed API. The inventory dashboard reads the active branch list from the backend; it does not assume branch ID 1.
 
 ## Remaining milestones
 Customer records, verified payment workflow, AI order agent and approvals, delivery workflow, thermal printing bridge, reporting and full role-based Flutter dashboards.
