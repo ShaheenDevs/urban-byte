@@ -8,12 +8,13 @@ test('MySQL migrations, seeded RBAC and Sequelize models are usable',{skip:!enab
  try{
   await sequelize.authenticate();
   const tables=(await sequelize.getQueryInterface().showAllTables()).map(String);
-  for(const table of ['restaurants','branches','users','roles','permissions','user_roles','role_permissions','user_permissions','refresh_tokens','menu_categories','products','product_variants','branch_product_prices','deals','deal_items','deal_prices','orders','order_items','order_status_history','kitchen_tickets','kitchen_ticket_items','SequelizeMeta']){
+  for(const table of ['restaurants','branches','users','roles','permissions','user_roles','role_permissions','user_permissions','refresh_tokens','menu_categories','products','product_variants','branch_product_prices','deals','deal_items','deal_prices','orders','order_items','order_status_history','kitchen_tickets','kitchen_ticket_items','inventory_items','branch_stock','recipes','recipe_items','suppliers','purchases','purchase_items','stock_movements','SequelizeMeta']){
    assert.ok(tables.includes(table),`Expected migrated table: ${table}`);
   }
   assert.equal(await Role.count(),5,'system roles should be seeded');
   assert.ok(await Permission.count()>=30,'system permissions should be seeded');
   assert.ok(models.KitchenTicket && models.KitchenTicketItem && models.Order,'Sequelize should load order and kitchen models');
+  assert.ok(models.InventoryItem && models.BranchStock && models.StockMovement && models.Recipe,'Sequelize should load inventory models');
   const orderColumns=await sequelize.getQueryInterface().describeTable('orders');
   assert.ok(orderColumns.grand_total,'orders.grand_total should exist');
   assert.ok(orderColumns.idempotency_key,'orders.idempotency_key should exist');
