@@ -1,0 +1,2 @@
+'use strict';
+module.exports=(s,D)=>s.define('BranchStock',{id:{type:D.BIGINT.UNSIGNED,primaryKey:true,autoIncrement:true},branchId:{type:D.BIGINT.UNSIGNED,allowNull:false,field:'branch_id'},inventoryItemId:{type:D.BIGINT.UNSIGNED,allowNull:false,field:'inventory_item_id'},quantity:{type:D.DECIMAL(14,3),allowNull:false,defaultValue:0},reorderLevel:{type:D.DECIMAL(14,3),allowNull:false,defaultValue:0,field:'reorder_level'}},{tableName:'branch_stock',underscored:true});
