@@ -1,0 +1,4 @@
+'use strict';
+const service=require('../services/kitchen-service'),{success}=require('../utils/api-response');
+function tenant(req){const n=Number(req.auth?.restaurantId);if(!Number.isSafeInteger(n)||n<1){const e=new Error('Staff account is not assigned to a restaurant.');e.statusCode=403;e.code='RESTAURANT_NOT_ASSIGNED';throw e;}return n;}
+module.exports={queue(req,res,next){Promise.resolve().then(()=>service.queue(tenant(req),req.query)).then(data=>success(res,data,'Kitchen queue loaded.')).catch(next);},prepare(req,res,next){Promise.resolve().then(()=>service.setTicketStatus(tenant(req),req.params.ticketId,req.user,'preparing')).then(data=>success(res,data,'Ticket marked as preparing.')).catch(next);},ready(req,res,next){Promise.resolve().then(()=>service.setTicketStatus(tenant(req),req.params.ticketId,req.user,'ready')).then(data=>success(res,data,'Ticket marked as ready.')).catch(next);}};
