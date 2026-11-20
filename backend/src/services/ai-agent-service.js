@@ -1,5 +1,6 @@
 'use strict';
 const {AiConversation,AiMessage,AiApprovalRequest,Branch}=require('../models');
+const orderService=require('./order-service');
 const {Op}=require('sequelize');
 function fail(message,status=400,code='VALIDATION_ERROR'){const e=new Error(message);e.statusCode=status;e.code=code;return e;}
 function id(v){const n=Number(v);if(!Number.isSafeInteger(n)||n<1)throw fail('A valid positive ID is required.');return n;}
@@ -8,8 +9,44 @@ async function createConversation(restaurantId,input={}){const channel=input.cha
 async function addMessage(restaurantId,conversationId,input={}){const c=await scopedConversation(restaurantId,conversationId);if(!c)throw fail('Conversation not found.',404,'CONVERSATION_NOT_FOUND');if(c.status==='closed'||c.status==='converted')throw fail('Conversation is no longer active.',409,'CONVERSATION_CLOSED');const content=typeof input.content==='string'?input.content.trim():'';if(!content||content.length>5000)throw fail('Message must contain 1 to 5000 characters.');const senderType=input.senderType||'customer';if(!['customer','assistant','staff','system'].includes(senderType))throw fail('Invalid sender type.');const message=await AiMessage.create({conversationId:c.id,senderType,content,intent:input.intent?String(input.intent).slice(0,60):null,metadata:input.metadata&&typeof input.metadata==='object'?input.metadata:null});return message;}
 async function listConversations(restaurantId,filters={}){const where={restaurantId};if(filters.status){if(!['open','waiting_approval','converted','closed'].includes(filters.status))throw fail('Invalid conversation status.');where.status=filters.status;}return AiConversation.findAll({where,include:[{model:AiMessage,as:'messages',separate:true,limit:5,order:[['createdAt','DESC']]},{model:AiApprovalRequest,as:'approvalRequests'}],order:[['updatedAt','DESC']],limit:Math.min(Math.max(Number(filters.limit)||30,1),100)});}
 async function getConversation(restaurantId,conversationId){const c=await AiConversation.findOne({where:{id:id(conversationId),restaurantId},include:[{model:AiMessage,as:'messages',order:[['createdAt','ASC']]},{model:AiApprovalRequest,as:'approvalRequests'}]});if(!c)throw fail('Conversation not found.',404,'CONVERSATION_NOT_FOUND');return c;}
-function assessOrderDraft(input){const reasons=[];if(!input||!Array.isArray(input.items)||input.items.length===0||input.items.length>30)reasons.push('Invalid or missing order items');if(!input?.branchId)reasons.push('Branch is missing');if(!['dine_in','takeaway','delivery'].includes(input?.orderType))reasons.push('Unsupported order type');if(input?.orderType==='delivery'&&!String(input.deliveryAddress||'').trim())reasons.push('Delivery address is missing');if(input?.orderType==='dine_in'&&!String(input.tableLabel||'').trim())reasons.push('Dine-in table is missing');if(input?.discount||input?.discountAmount||input?.customPrice)reasons.push('Discount or custom pricing requires staff review');if((input?.items||[]).some(x=>!Number.isInteger(Number(x.variantId))||Number(x.variantId)<1||!Number.isFinite(Number(x.quantity))||Number(x.quantity)<=0||Number(x.quantity)>10))reasons.push('Item quantity or variant needs verification');if((input?.items||[]).some(x=>Object.hasOwn(x,'unitPrice')||Object.hasOwn(x,'price')))reasons.push('Customer-supplied price fields are not accepted');return reasons;}
-async function submitOrderDraft(restaurantId,conversationId,input={}){const c=await scopedConversation(restaurantId,conversationId);if(!c)throw fail('Conversation not found.',404,'CONVERSATION_NOT_FOUND');if(c.status!=='open')throw fail('Conversation must be open to submit an order draft.',409,'CONVERSATION_NOT_OPEN');const branchId=id(input.branchId);const branch=await Branch.findOne({where:{id:branchId,restaurantId,isActive:true}});if(!branch)throw fail('Branch not found.',404,'BRANCH_NOT_FOUND');const reasons=assessOrderDraft(input);if(!Array.isArray(input.items)||input.items.length===0||input.items.length>30)throw fail('Provide between 1 and 30 order items.');const payload={branchId,orderType:input.orderType,tableLabel:input.tableLabel?String(input.tableLabel).slice(0,40):null,deliveryAddress:input.deliveryAddress?String(input.deliveryAddress).slice(0,1000):null,customerName:c.customerName,customerPhone:c.customerPhone,items:input.items.map(x=>({variantId:Number(x.variantId),quantity:Number(x.quantity),notes:x.notes?String(x.notes).slice(0,300):null}))};const request=await AiApprovalRequest.create({restaurantId,branchId,conversationId:c.id,requestType:'order',riskReasons:reasons,payload,status:'pending'});await c.update({status:'waiting_approval'});return {approvalRequest:request,decision:'requires_staff_review',riskReasons:reasons};}
+function assessOrderDraft(input){const reasons=[];if(!input||!Array.isArray(input.items)||input.items.length===0||input.items.length>30)reasons.push('Invalid or missing order items');if(!input?.branchId)reasons.push('Branch is missing');if(!['dine_in','takeaway','delivery'].includes(input?.orderType))reasons.push('Unsupported order type');if(input?.orderType==='delivery'&&!String(input.deliveryAddress||'').trim())reasons.push('Delivery address is missing');if(input?.orderType==='dine_in'&&!String(input.tableLabel||'').trim())reasons.push('Dine-in table is missing');if(input?.discount||input?.discountAmount||input?.customPrice)reasons.push('Discount or custom pricing requires staff review');if(input?.customerConfirmed!==true)reasons.push('Customer confirmation is required before automatic approval');if((input?.items||[]).some(x=>!Number.isInteger(Number(x.variantId))||Number(x.variantId)<1||!Number.isFinite(Number(x.quantity))||Number(x.quantity)<=0||Number(x.quantity)>10))reasons.push('Item quantity or variant needs verification');if((input?.items||[]).some(x=>Object.hasOwn(x,'unitPrice')||Object.hasOwn(x,'price')))reasons.push('Customer-supplied price fields are not accepted');return reasons;}
+async function submitOrderDraft(restaurantId,conversationId,input={}){
+ const c=await scopedConversation(restaurantId,conversationId);
+ if(!c)throw fail('Conversation not found.',404,'CONVERSATION_NOT_FOUND');
+ if(c.status!=='open')throw fail('Conversation must be open to submit an order draft.',409,'CONVERSATION_NOT_OPEN');
+ const branchId=id(input.branchId);
+ const branch=await Branch.findOne({where:{id:branchId,restaurantId,isActive:true}});
+ if(!branch)throw fail('Branch not found.',404,'BRANCH_NOT_FOUND');
+ const reasons=assessOrderDraft(input);
+ if(!Array.isArray(input.items)||input.items.length===0||input.items.length>30)throw fail('Provide between 1 and 30 order items.');
+ const payload={branchId,orderType:input.orderType,tableLabel:input.tableLabel?String(input.tableLabel).slice(0,40):null,deliveryAddress:input.deliveryAddress?String(input.deliveryAddress).slice(0,1000):null,customerName:c.customerName,customerPhone:c.customerPhone,items:input.items.map(x=>({variantId:Number(x.variantId),quantity:Number(x.quantity),notes:x.notes?String(x.notes).slice(0,300):null}))};
+ if(reasons.length===0){
+  const order=await orderService.createOrder(restaurantId,{id:null,permissions:['orders.view_all']},{...payload,source:'ai'},'ai-conversation-'+c.id,{source:'ai'});
+  const request=await AiApprovalRequest.create({restaurantId,branchId,conversationId:c.id,requestType:'order',riskReasons:[],payload,status:'approved',orderId:order.id,reviewNote:'Automatically approved by deterministic backend rules after explicit customer confirmation.',reviewedAt:new Date()});
+  await c.update({status:'converted'});
+  return {approvalRequest:request,decision:'auto_approved',order,riskReasons:[]};
+ }
+ const request=await AiApprovalRequest.create({restaurantId,branchId,conversationId:c.id,requestType:'order',riskReasons:reasons,payload,status:'pending'});
+ await c.update({status:'waiting_approval'});
+ return {approvalRequest:request,decision:'requires_staff_review',riskReasons:reasons};
+}
 async function listApprovals(restaurantId){return AiApprovalRequest.findAll({where:{restaurantId,status:'pending'},include:[{model:AiConversation,as:'conversation'}],order:[['createdAt','ASC']]});}
-async function reviewApproval(restaurantId,requestId,user,decision,note){if(!['approved','rejected'].includes(decision))throw fail('Decision must be approved or rejected.');return require('../models').sequelize.transaction(async transaction=>{const request=await AiApprovalRequest.findOne({where:{id:id(requestId),restaurantId},transaction,lock:transaction.LOCK.UPDATE});if(!request)throw fail('Approval request not found.',404,'APPROVAL_NOT_FOUND');if(request.status!=='pending')throw fail('Approval request has already been reviewed.',409,'ALREADY_REVIEWED');await request.update({status:decision,reviewedByUserId:user.id,reviewNote:note?String(note).slice(0,500):null,reviewedAt:new Date()},{transaction});const c=await AiConversation.findByPk(request.conversationId,{transaction,lock:transaction.LOCK.UPDATE});if(c)await c.update({status:decision==='approved'?'open':'closed'},{transaction});return request;});}
+async function reviewApproval(restaurantId,requestId,user,decision,note){
+ if(!['approved','rejected'].includes(decision))throw fail('Decision must be approved or rejected.');
+ const request=await AiApprovalRequest.findOne({where:{id:id(requestId),restaurantId}});
+ if(!request)throw fail('Approval request not found.',404,'APPROVAL_NOT_FOUND');
+ if(request.status!=='pending')throw fail('Approval request has already been reviewed.',409,'ALREADY_REVIEWED');
+ if(decision==='rejected'){
+  await request.update({status:'rejected',reviewedByUserId:user.id,reviewNote:note?String(note).slice(0,500):null,reviewedAt:new Date()});
+  const conversation=await AiConversation.findByPk(request.conversationId);
+  if(conversation)await conversation.update({status:'closed'});
+  return request;
+ }
+ const payload=request.payload;
+ const order=await orderService.createOrder(restaurantId,user,{...payload,source:'ai'},'ai-approval-'+request.id,{source:'ai'});
+ await request.update({status:'approved',reviewedByUserId:user.id,reviewNote:note?String(note).slice(0,500):'Approved by authorized staff.',reviewedAt:new Date(),orderId:order.id});
+ const conversation=await AiConversation.findByPk(request.conversationId);
+ if(conversation)await conversation.update({status:'converted'});
+ return {...request.toJSON(),order};
+}
 module.exports={createConversation,addMessage,listConversations,getConversation,submitOrderDraft,listApprovals,reviewApproval};
