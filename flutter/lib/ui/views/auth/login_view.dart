@@ -43,7 +43,7 @@ class LoginView extends StackedView<LoginViewModel> {
     if (!context.mounted || session == null) return;
     final role = session.roles.isEmpty ? 'Staff' : session.roles.first;
     Navigator.of(context).pushReplacement(MaterialPageRoute(
-      builder: (_) => RoleDashboardPlaceholder(roleName: role),
+      builder: (_) => RoleDashboardPlaceholder(roleName: role, permissions: session.permissions.toSet()),
     ));
   }
 
