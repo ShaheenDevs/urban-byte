@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:stacked/stacked.dart';
 import '../../../app/app.locator.dart';
 import '../../../services/inventory_service.dart';
+import 'stock_operations_view.dart';
 import 'inventory_viewmodel.dart';
 class InventoryView extends StackedView<InventoryViewModel> {
   const InventoryView({super.key});
@@ -10,7 +11,7 @@ class InventoryView extends StackedView<InventoryViewModel> {
     appBar:AppBar(title:const Text('Inventory')),
     floatingActionButton:FloatingActionButton.extended(onPressed:vm.isBusy?null:()=>_addItem(context,vm),icon:const Icon(Icons.add),label:const Text('Add item')),
     body:RefreshIndicator(onRefresh:vm.load,child:ListView(padding:const EdgeInsets.all(16),children:[
-      Text('Branch stock overview',style:Theme.of(context).textTheme.titleLarge),
+      Row(children:[Expanded(child:Text('Branch stock overview',style:Theme.of(context).textTheme.titleLarge)),TextButton.icon(onPressed:()=>Navigator.of(context).push(MaterialPageRoute(builder:(_)=>const StockOperationsView())),icon:const Icon(Icons.tune),label:const Text('Operations'))]),
       const SizedBox(height:12),
       DropdownButtonFormField<String>(
         value: vm.branchId.isEmpty ? null : vm.branchId,
