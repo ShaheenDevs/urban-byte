@@ -1,0 +1,2 @@
+'use strict';
+module.exports=(s,D)=>{const M=s.define('Restaurant',{id:{type:D.BIGINT.UNSIGNED,primaryKey:true,autoIncrement:true},name:{type:D.STRING(150),allowNull:false},slug:{type:D.STRING(160),allowNull:false,unique:true},currency:{type:D.STRING(3),allowNull:false,defaultValue:'PKR'},timezone:{type:D.STRING(64),allowNull:false,defaultValue:'Asia/Karachi'}},{tableName:'restaurants',underscored:true});M.associate=m=>{M.hasMany(m.User,{foreignKey:'restaurantId',as:'users'});M.hasMany(m.MenuCategory,{foreignKey:'restaurantId',as:'categories'});};return M;};
