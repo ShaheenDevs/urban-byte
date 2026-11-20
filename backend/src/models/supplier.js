@@ -1,0 +1,2 @@
+'use strict';
+module.exports=(s,D)=>s.define('Supplier',{id:{type:D.BIGINT.UNSIGNED,primaryKey:true,autoIncrement:true},restaurantId:{type:D.BIGINT.UNSIGNED,allowNull:false,field:'restaurant_id'},name:{type:D.STRING(160),allowNull:false},phone:{type:D.STRING(30),allowNull:true},notes:{type:D.STRING(500),allowNull:true},isActive:{type:D.BOOLEAN,allowNull:false,defaultValue:true,field:'is_active'}},{tableName:'suppliers',underscored:true});
