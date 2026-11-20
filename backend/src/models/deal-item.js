@@ -1,0 +1,2 @@
+'use strict';
+module.exports=(s,D)=>{const M=s.define('DealItem',{id:{type:D.BIGINT.UNSIGNED,primaryKey:true,autoIncrement:true},dealId:{type:D.BIGINT.UNSIGNED,allowNull:false,field:'deal_id'},variantId:{type:D.BIGINT.UNSIGNED,allowNull:false,field:'variant_id'},quantity:{type:D.DECIMAL(10,3),allowNull:false,defaultValue:1}},{tableName:'deal_items',underscored:true});M.associate=m=>M.belongsTo(m.ProductVariant,{foreignKey:'variantId',as:'variant'});return M;};
