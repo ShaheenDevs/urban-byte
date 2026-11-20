@@ -8,7 +8,7 @@ class RoleDashboardPlaceholder extends StatelessWidget {
   final String roleName;
   final Set<String> permissions;
   bool get _canOpenInventory => permissions.contains('inventory.view');
-  bool get _canOpenOrders => permissions.contains('orders.view_own') || permissions.contains('orders.view_all') || permissions.contains('orders.create');
+  bool get _canOpenOrders => permissions.contains('orders.view_own') || permissions.contains('orders.view_all') || permissions.contains('orders.create') || permissions.contains('kitchen.orders.view');
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: Text('$roleName Dashboard')),
