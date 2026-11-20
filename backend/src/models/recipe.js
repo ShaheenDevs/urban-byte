@@ -1,0 +1,2 @@
+'use strict';
+module.exports=(s,D)=>s.define('Recipe',{id:{type:D.BIGINT.UNSIGNED,primaryKey:true,autoIncrement:true},restaurantId:{type:D.BIGINT.UNSIGNED,allowNull:false,field:'restaurant_id'},productVariantId:{type:D.BIGINT.UNSIGNED,allowNull:false,field:'product_variant_id'},yieldQuantity:{type:D.DECIMAL(10,3),allowNull:false,defaultValue:1,field:'yield_quantity'},isActive:{type:D.BOOLEAN,allowNull:false,defaultValue:true,field:'is_active'}},{tableName:'recipes',underscored:true});
