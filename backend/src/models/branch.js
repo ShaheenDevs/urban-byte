@@ -1,0 +1,2 @@
+'use strict';
+module.exports=(s,D)=>{const M=s.define('Branch',{id:{type:D.BIGINT.UNSIGNED,primaryKey:true,autoIncrement:true},restaurantId:{type:D.BIGINT.UNSIGNED,allowNull:false,field:'restaurant_id'},name:{type:D.STRING(150),allowNull:false},code:{type:D.STRING(40),allowNull:false},address:{type:D.TEXT,allowNull:true},phone:{type:D.STRING(30),allowNull:true},isActive:{type:D.BOOLEAN,allowNull:false,defaultValue:true,field:'is_active'}},{tableName:'branches',underscored:true});M.associate=m=>M.belongsTo(m.Restaurant,{foreignKey:'restaurantId',as:'restaurant'});return M;};
