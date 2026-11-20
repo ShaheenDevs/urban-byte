@@ -1,92 +1,39 @@
 'use strict';
-
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const { Op } = require('sequelize');
-const crypto = require('node:crypto');
-const { User, Role, Permission, RefreshToken, sequelize } = require('../models');
-const { resolvePermissions } = require('./permission-resolver');
-
-function buildSession(user) {
-  const roleSlugs = user.roles.map((role) => role.slug);
-  const rolePermissionKeys = user.roles.flatMap((role) => role.permissions.map((permission) => permission.permissionKey));
-  const overrides = user.permissionOverrides.map((entry) => ({ permissionKey: entry.permissionKey, effect: entry.UserPermission.effect }));
-  const permissions = resolvePermissions([...new Set(rolePermissionKeys)], overrides);
-  const accessToken = jwt.sign({ sub: String(user.id), roles: roleSlugs }, process.env.JWT_ACCESS_SECRET, {
-    algorithm: 'HS256', expiresIn: process.env.JWT_ACCESS_TTL || '15m', issuer: 'urban-byte-api', audience: 'urban-byte-app',
-  });
-  return { accessToken, tokenType: 'Bearer', expiresIn: process.env.JWT_ACCESS_TTL || '15m',
-    user: { id: String(user.id), name: user.name, email: user.email, phone: user.phone, roles: roleSlugs, permissions } };
+const bcrypt=require('bcryptjs'),jwt=require('jsonwebtoken'),{Op}=require('sequelize'),crypto=require('node:crypto');
+const {User,Role,Permission,RefreshToken,sequelize}=require('../models');
+const {resolvePermissions}=require('./permission-resolver');
+function buildSession(user){
+ const roles=user.roles.map(r=>r.slug), roleKeys=user.roles.flatMap(r=>r.permissions.map(p=>p.permissionKey));
+ const overrides=user.permissionOverrides.map(e=>({permissionKey:e.permissionKey,effect:e.UserPermission.effect}));
+ const permissions=resolvePermissions([...new Set(roleKeys)],overrides);
+ const accessToken=jwt.sign({sub:String(user.id),restaurantId:String(user.restaurantId),roles},process.env.JWT_ACCESS_SECRET,{algorithm:'HS256',expiresIn:process.env.JWT_ACCESS_TTL||'15m',issuer:'urban-byte-api',audience:'urban-byte-app'});
+ return {accessToken,tokenType:'Bearer',expiresIn:process.env.JWT_ACCESS_TTL||'15m',user:{id:String(user.id),restaurantId:String(user.restaurantId),name:user.name,email:user.email,phone:user.phone,roles,permissions}};
 }
-
-async function loadUser(identifier) {
-  return User.findOne({ where: { [Op.or]: [{ email: identifier.toLowerCase() }, { phone: identifier }] },
-    include: [
-      { model: Role, as: 'roles', through: { attributes: [] }, include: [{ model: Permission, as: 'permissions', through: { attributes: [] } }] },
-      { model: Permission, as: 'permissionOverrides', through: { attributes: ['effect'] } },
-    ] });
+const includes=[{model:Role,as:'roles',through:{attributes:[]},include:[{model:Permission,as:'permissions',through:{attributes:[]}}]},{model:Permission,as:'permissionOverrides',through:{attributes:['effect']}}];
+async function loadUser(identifier){return User.findOne({where:{[Op.or]:[{email:identifier.toLowerCase()},{phone:identifier}]},include:includes});}
+const hash=t=>crypto.createHash('sha256').update(t).digest('hex');
+async function issueRefreshToken(userId,transaction){const token=crypto.randomBytes(48).toString('base64url');await RefreshToken.create({userId,tokenHash:hash(token),expiresAt:new Date(Date.now()+30*86400000)},{transaction});return token;}
+async function login(identifier,password){
+ const user=await loadUser(identifier);
+ if(!user||!user.isActive||!user.restaurantId||!(await bcrypt.compare(password,user.passwordHash))){const e=new Error('Invalid login credentials.');e.statusCode=401;e.code='INVALID_CREDENTIALS';throw e;}
+ return sequelize.transaction(async transaction=>{await user.update({lastLoginAt:new Date()},{transaction});const s=buildSession(user);s.refreshToken=await issueRefreshToken(user.id,transaction);s.refreshExpiresIn='30d';return s;});
 }
-
-function hashRefreshToken(token) { return crypto.createHash('sha256').update(token).digest('hex'); }
-async function issueRefreshToken(userId, transaction) {
-  const rawToken = crypto.randomBytes(48).toString('base64url');
-  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-  await RefreshToken.create({ userId, tokenHash: hashRefreshToken(rawToken), expiresAt }, { transaction });
-  return rawToken;
+async function getCurrentUser(userId){
+ const user=await User.findByPk(userId,{attributes:{exclude:['passwordHash']},include:includes});
+ if(!user||!user.isActive)return null;
+ const keys=user.roles.flatMap(r=>r.permissions.map(p=>p.permissionKey));
+ const overrides=user.permissionOverrides.map(e=>({permissionKey:e.permissionKey,effect:e.UserPermission.effect}));
+ return {id:String(user.id),restaurantId:String(user.restaurantId),name:user.name,email:user.email,phone:user.phone,roles:user.roles.map(r=>r.slug),permissions:resolvePermissions([...new Set(keys)],overrides)};
 }
-
-async function login(identifier, password) {
-  const user = await loadUser(identifier);
-  if (!user || !user.isActive || !(await bcrypt.compare(password, user.passwordHash))) {
-    const error = new Error('Invalid login credentials.'); error.statusCode = 401; error.code = 'INVALID_CREDENTIALS'; throw error;
-  }
-  return sequelize.transaction(async (transaction) => {
-    await user.update({ lastLoginAt: new Date() }, { transaction });
-    const session = buildSession(user);
-    session.refreshToken = await issueRefreshToken(user.id, transaction);
-    session.refreshExpiresIn = '30d';
-    return session;
-  });
+async function refresh(raw){
+ if(typeof raw!=='string'||raw.length<40){const e=new Error('Invalid refresh token.');e.statusCode=401;e.code='INVALID_REFRESH_TOKEN';throw e;}
+ return sequelize.transaction(async transaction=>{
+  const current=await RefreshToken.findOne({where:{tokenHash:hash(raw),revokedAt:null},transaction,lock:transaction.LOCK.UPDATE});
+  if(!current||current.expiresAt<=new Date()){if(current)await current.update({revokedAt:new Date()},{transaction});const e=new Error('Refresh token is invalid or expired.');e.statusCode=401;e.code='INVALID_REFRESH_TOKEN';throw e;}
+  const user=await User.findByPk(current.userId,{transaction,include:includes});await current.update({revokedAt:new Date()},{transaction});
+  if(!user||!user.isActive||!user.restaurantId){const e=new Error('User account is unavailable.');e.statusCode=401;e.code='ACCOUNT_UNAVAILABLE';throw e;}
+  const s=buildSession(user);s.refreshToken=await issueRefreshToken(user.id,transaction);s.refreshExpiresIn='30d';return s;
+ });
 }
-
-async function getCurrentUser(userId) {
-  const user = await User.findByPk(userId, { attributes: { exclude: ['passwordHash'] }, include: [
-    { model: Role, as: 'roles', through: { attributes: [] }, include: [{ model: Permission, as: 'permissions', through: { attributes: [] } }] },
-    { model: Permission, as: 'permissionOverrides', through: { attributes: ['effect'] } },
-  ] });
-  if (!user || !user.isActive) return null;
-  const rolePermissionKeys = user.roles.flatMap((role) => role.permissions.map((permission) => permission.permissionKey));
-  const overrides = user.permissionOverrides.map((entry) => ({ permissionKey: entry.permissionKey, effect: entry.UserPermission.effect }));
-  return { id: String(user.id), name: user.name, email: user.email, phone: user.phone,
-    roles: user.roles.map((role) => role.slug), permissions: resolvePermissions([...new Set(rolePermissionKeys)], overrides) };
-}
-
-async function refresh(rawToken) {
-  if (typeof rawToken !== 'string' || rawToken.length < 40) {
-    const error = new Error('Invalid refresh token.'); error.statusCode = 401; error.code = 'INVALID_REFRESH_TOKEN'; throw error;
-  }
-  return sequelize.transaction(async (transaction) => {
-    const current = await RefreshToken.findOne({ where: { tokenHash: hashRefreshToken(rawToken), revokedAt: null }, transaction, lock: transaction.LOCK.UPDATE });
-    if (!current || current.expiresAt <= new Date()) {
-      if (current) await current.update({ revokedAt: new Date() }, { transaction });
-      const error = new Error('Refresh token is invalid or expired.'); error.statusCode = 401; error.code = 'INVALID_REFRESH_TOKEN'; throw error;
-    }
-    const user = await User.findByPk(current.userId, { transaction, include: [
-      { model: Role, as: 'roles', through: { attributes: [] }, include: [{ model: Permission, as: 'permissions', through: { attributes: [] } }] },
-      { model: Permission, as: 'permissionOverrides', through: { attributes: ['effect'] } },
-    ] });
-    await current.update({ revokedAt: new Date() }, { transaction });
-    if (!user || !user.isActive) { const error = new Error('User account is unavailable.'); error.statusCode = 401; error.code = 'ACCOUNT_UNAVAILABLE'; throw error; }
-    const session = buildSession(user);
-    session.refreshToken = await issueRefreshToken(user.id, transaction);
-    session.refreshExpiresIn = '30d';
-    return session;
-  });
-}
-
-async function logout(rawToken) {
-  if (!rawToken) return;
-  await RefreshToken.update({ revokedAt: new Date() }, { where: { tokenHash: hashRefreshToken(rawToken), revokedAt: null } });
-}
-
-module.exports = { login, refresh, logout, getCurrentUser };
+async function logout(raw){if(raw)await RefreshToken.update({revokedAt:new Date()},{where:{tokenHash:hash(raw),revokedAt:null}});}
+module.exports={login,refresh,logout,getCurrentUser};
