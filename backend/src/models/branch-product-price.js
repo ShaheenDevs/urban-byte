@@ -1,0 +1,2 @@
+'use strict';
+module.exports=(s,D)=>{const M=s.define('BranchProductPrice',{id:{type:D.BIGINT.UNSIGNED,primaryKey:true,autoIncrement:true},branchId:{type:D.BIGINT.UNSIGNED,allowNull:false,field:'branch_id'},variantId:{type:D.BIGINT.UNSIGNED,allowNull:false,field:'variant_id'},salePrice:{type:D.DECIMAL(12,2),allowNull:false,field:'sale_price'},isAvailable:{type:D.BOOLEAN,allowNull:false,defaultValue:true,field:'is_available'}},{tableName:'branch_product_prices',underscored:true});M.associate=m=>M.belongsTo(m.ProductVariant,{foreignKey:'variantId',as:'variant'});return M;};
