@@ -1,40 +1,36 @@
 # Urban Byte Restaurant Automation
 
-Fresh monorepo for the Urban Byte restaurant operations platform.
+Fresh monorepo for Urban Byte operations.
 
-## Repository layout
-- `backend/` — Node.js, Express 4, JavaScript CommonJS, MySQL and Sequelize v6 REST API.
-- `flutter/` — Flutter application using Stacked and role-based navigation.
-- `docs/` — architecture and implementation notes.
+## Implemented
+- Node.js/Express API with MySQL and Sequelize v6.
+- Restaurant/branch-aware users, RBAC roles and permission overrides.
+- JWT access authentication with rotating opaque refresh tokens.
+- First-admin bootstrap creates Urban Byte restaurant and Shahkot branch.
+- Menu categories, products, variants, branch-specific prices and deals API.
+- Flutter Stacked login scaffold with secure token storage.
 
-## Implemented foundation
-- Express server, environment validation, CORS allow-list, Helmet security headers, API rate limiting and centralized error handling.
-- MySQL/Sequelize connection and initial restaurant, branch, user and RBAC migrations.
-- Admin, Supervisor, Waiter, Kitchen and Delivery roles with permission grants.
-- Multi-role permission resolution and explicit user deny overrides.
-- JWT access-token authentication, opaque refresh-token rotation (SHA-256 hashes stored in DB), logout/revocation and current-user endpoint.
-- First-admin bootstrap script; credentials are supplied locally and are not committed.
-- Initial Flutter Stacked scaffold.
-
-## Backend setup
+## Setup
 1. Install Node.js 20+ and MySQL 8+.
-2. Run `cd backend && npm install`.
-3. Copy `.env.example` to `.env`; configure DB credentials, a unique `JWT_ACCESS_SECRET` (32+ characters) and `APP_ORIGIN`.
+2. `cd backend && npm install`.
+3. Copy `.env.example` to `.env`, configure DB settings and unique 32+ character `JWT_ACCESS_SECRET`.
 4. Run `npm run db:migrate` then `npm run db:seed`.
-5. Temporarily set `ADMIN_NAME`, `ADMIN_EMAIL` (or `ADMIN_PHONE`) and `ADMIN_PASSWORD` (12+ characters) in `.env`; run `npm run admin:create`, then remove those bootstrap values.
-6. Start with `npm run dev`. API prefix: `/api/v1`; health endpoint: `/api/v1/health`.
+5. Set `ADMIN_NAME`, `ADMIN_EMAIL` or `ADMIN_PHONE`, and `ADMIN_PASSWORD` (12+ characters); run `npm run admin:create`; remove bootstrap values afterwards.
+6. Run `npm run dev`. API prefix: `/api/v1`.
 
-## Authentication endpoints
-- `POST /api/v1/auth/login` — identifier and password.
-- `POST /api/v1/auth/refresh` — rotates the refresh token; old token is revoked.
-- `POST /api/v1/auth/logout` — revokes the supplied refresh token.
-- `GET /api/v1/auth/me` — authenticated profile and resolved permissions.
+## Menu endpoints
+- `GET /api/v1/menu/categories` — menu.view
+- `POST /api/v1/menu/categories` — menu.manage
+- `PATCH /api/v1/menu/categories/:categoryId` — menu.manage
+- `GET /api/v1/menu/products?branchId=1&categoryId=1&search=pizza` — menu.view
+- `POST /api/v1/menu/products` — menu.manage; variants require exactly one default.
+- `PUT /api/v1/menu/branches/:branchId/variants/:variantId/price` — menu.manage
+- `GET /api/v1/menu/deals?branchId=1` — menu.view
+- `POST /api/v1/menu/deals` — deals.manage
 
-## Pending business modules
-Orders, menu, customers, kitchen tickets, inventory and recipes, payment verification, AI order tools and approvals, delivery dispatch, thermal printing bridge, reporting and complete role dashboards.
+All menu data is scoped to the restaurant in the signed access token. Branch prices are separate from base prices. Monetary values use DECIMAL and PKR.
 
-## Security
-Never commit `.env`, database credentials, JWT secrets, provider API keys, customer data or production exports. Payment SMS notifications are not proof of payment.
+## Next milestones
+Orders, customer records, kitchen tickets/KDS, recipe-based inventory, payment verification, AI order agent and approvals, delivery, thermal printing bridge, reports and role dashboards.
 
-## Verification
-Permission resolver unit tests and JavaScript syntax checks run without MySQL. Migrations and auth endpoints still require integration tests against a configured MySQL database.
+Never commit `.env`, secrets, provider keys or customer data. Payment SMS is not proof of payment. MySQL integration testing requires configured database credentials.
