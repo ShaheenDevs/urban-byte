@@ -9,6 +9,8 @@ router.post('/stock/adjust',requirePermission('inventory.adjust'),c.adjust);
 router.get('/movements',requirePermission('inventory.view'),c.movements);
 router.post('/purchases/:purchaseId/payments',requirePermission('inventory.manage'),c.recordPurchasePayment);
 router.get('/suppliers/:supplierId/ledger',requirePermission('inventory.view'),c.supplierLedger);
+router.get('/suppliers/:supplierId/ledger/export.csv',requirePermission('inventory.view'),c.supplierLedgerCsv);
+router.get('/suppliers/:supplierId/ledger/export.pdf',requirePermission('inventory.view'),c.supplierLedgerPdf);
 router.post('/purchases',requirePermission('inventory.manage'),c.createPurchase);
 router.get('/purchases',requirePermission('inventory.view'),c.listPurchases);
 router.post('/purchases/:purchaseId/receive',requirePermission('inventory.manage'),c.receivePurchase);
