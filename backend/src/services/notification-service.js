@@ -3,19 +3,25 @@ const {Op}=require('sequelize');
 const {Notification,Permission,Role,UserRole,User,UserPermission}=require('../models');
 function fail(message,status=400,code='VALIDATION_ERROR'){const e=new Error(message);e.statusCode=status;e.code=code;throw e;}
 async function recipientIds(restaurantId,permissionKeys,transaction){
- const permissions=await Permission.findAll({where:{permissionKey:{[Op.in]:permissionKeys}},attributes:['id'],transaction});
- if(!permissions.length)return [];
- const roleGrants=await require('../models').RolePermission.findAll({where:{permissionId:{[Op.in]:permissions.map(p=>p.id)}},attributes:['roleId'],transaction});
- const roleIds=[...new Set(roleGrants.map(x=>String(x.roleId)))];if(!roleIds.length)return [];
- const links=await UserRole.findAll({where:{roleId:{[Op.in]:roleIds}},attributes:['userId'],transaction});
- const userIds=[...new Set(links.map(x=>String(x.userId)))];if(!userIds.length)return [];
- const users=await User.findAll({where:{id:{[Op.in]:userIds},restaurantId,isActive:true},attributes:['id'],transaction});
- if(!users.length)return [];
- const overrides=await UserPermission.findAll({where:{userId:{[Op.in]:users.map(u=>u.id)},permissionId:{[Op.in]:permissions.map(p=>p.id)},effect:'deny'},attributes:['userId','permissionId'],transaction});
- const denied=new Set(overrides.map(x=>String(x.userId)+':'+String(x.permissionId)));
- const allowed=[];
- for(const user of users){let granted=false;for(const permission of permissions){const roleHas=roleGrants.some(r=>String(r.roleId)===String(links.find(l=>String(l.userId)===String(user.id))?.roleId));if(roleHas&&!denied.has(String(user.id)+':'+String(permission.id))){granted=true;break;}}if(granted)allowed.push(user.id);}
- return allowed;
+ const [permissions,users]=await Promise.all([
+  Permission.findAll({where:{permissionKey:{[Op.in]:permissionKeys}},attributes:['id'],transaction}),
+  User.findAll({where:{restaurantId,isActive:true},attributes:['id'],transaction})
+ ]);
+ if(!permissions.length||!users.length)return [];
+ const permissionIds=permissions.map(p=>String(p.id)),userIds=users.map(u=>String(u.id));
+ const [roleLinks,roleGrants,overrides]=await Promise.all([
+  UserRole.findAll({where:{userId:{[Op.in]:userIds}},attributes:['userId','roleId'],transaction}),
+  require('../models').RolePermission.findAll({where:{permissionId:{[Op.in]:permissionIds}},attributes:['roleId','permissionId'],transaction}),
+  UserPermission.findAll({where:{userId:{[Op.in]:userIds},permissionId:{[Op.in]:permissionIds}},attributes:['userId','permissionId','effect'],transaction})
+ ]);
+ const grantedByRole=new Set();
+ for(const link of roleLinks){for(const grant of roleGrants){if(String(link.roleId)===String(grant.roleId))grantedByRole.add(String(link.userId)+':'+String(grant.permissionId));}}
+ const explicit=new Map(overrides.map(x=>[String(x.userId)+':'+String(x.permissionId),x.effect]));
+ return users.filter(user=>permissions.some(permission=>{
+  const key=String(user.id)+':'+String(permission.id),effect=explicit.get(key);
+  if(effect==='deny')return false;
+  return effect==='allow'||grantedByRole.has(key);
+ })).map(user=>user.id);
 }
 async function notifyPermissions(restaurantId,permissionKeys,payload,transaction){
  const ids=await recipientIds(restaurantId,permissionKeys,transaction);
