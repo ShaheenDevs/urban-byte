@@ -9,5 +9,4 @@ router.post('/',c.create);
 router.get('/roles',c.roles);
 router.get('/permissions',c.permissions);
 router.patch('/:userId',c.update);
-router.put('/:userId/permission-overrides',c.override);
 module.exports=router;
