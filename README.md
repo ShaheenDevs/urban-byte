@@ -188,3 +188,11 @@ All export routes require authentication and `reports.view`; they reuse the same
 - CSV output uses UTF-8 BOM for Excel compatibility, quotes cell values and neutralizes spreadsheet formula prefixes in text fields. PDF output uses built-in Helvetica and substitutes unsupported non-ASCII glyphs; it is a basic printable summary, not a branded template.
 - These are CSV files (openable in Excel), not native XLSX workbooks. Dedicated supplier ledger exports and Flutter in-app save/share controls are not included yet.
 - Run `npm test` in `backend/` to execute report export utility tests.
+
+
+## Flutter report export center
+- The Financial Dashboard provides four export actions: financial PDF, financial CSV (Excel-compatible), analytics PDF and analytics CSV.
+- Exports reuse the selected date range and optional branch filter and send the stored access token to the authenticated report endpoints.
+- Generated files are written to the app's temporary directory and opened in the native share sheet so staff can save or share them with an installed destination. Files are temporary and may be removed by the operating system.
+- Additions require `path_provider` and `share_plus`; run `flutter pub get`, `dart run build_runner build --delete-conflicting-outputs`, `dart format lib`, `flutter analyze` and `flutter test` from `flutter/`.
+- CSV remains Excel-compatible CSV, not a native XLSX workbook. The native share sheet behavior must be verified on Android/iOS devices.
