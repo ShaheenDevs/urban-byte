@@ -12,4 +12,5 @@ router.use('/inventory',require('./inventory-routes'));
 router.use('/ai',require('./ai-routes'));
 router.use('/notifications',require('./notification-routes'));
 router.use('/dashboard',require('./dashboard-routes'));
+router.use('/reports',require('./report-routes'));
 module.exports=router;
