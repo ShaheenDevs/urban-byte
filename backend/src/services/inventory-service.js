@@ -41,10 +41,12 @@ async function deductOrderStock(order,transaction){
    const amountNeeded=calculateRecipeConsumption(ingredient.quantity,line.quantity,recipe.yieldQuantity);
    const itemId=String(ingredient.inventoryItemId);
    needed.set(itemId,(needed.get(itemId)||0)+amountNeeded);
-   const purchases=await StockMovement.findAll({where:{restaurantId:order.restaurantId,branchId:order.branchId,inventoryItemId:ingredient.inventoryItemId,movementType:'purchase',unitCost:{[require('sequelize').Op.ne]:null}},attributes:['quantityChange','unitCost'],raw:true,transaction});
-   const costQty=purchases.reduce((sum,m)=>sum+Math.max(0,Number(m.quantityChange)),0);
-   const weightedCost=costQty>0?purchases.reduce((sum,m)=>sum+Math.max(0,Number(m.quantityChange))*Number(m.unitCost),0)/costQty:null;
-   if(weightedCost===null||!Number.isFinite(weightedCost)){lineHasMissingCost=true;}else lineCost+=amountNeeded*weightedCost;
+   const purchases=await StockMovement.findAll({where:{restaurantId:order.restaurantId,branchId:order.branchId,inventoryItemId:ingredient.inventoryItemId,movementType:'purchase'},attributes:['quantityChange','unitCost'],raw:true,transaction});
+   const totalPurchaseQty=purchases.reduce((sum,m)=>sum+Math.max(0,Number(m.quantityChange)),0);
+   const pricedPurchases=purchases.filter(m=>m.unitCost!==null&&m.unitCost!==undefined);
+   const pricedQty=pricedPurchases.reduce((sum,m)=>sum+Math.max(0,Number(m.quantityChange)),0);
+   const weightedCost=pricedQty>0?pricedPurchases.reduce((sum,m)=>sum+Math.max(0,Number(m.quantityChange))*Number(m.unitCost),0)/pricedQty:null;
+   if(weightedCost===null||!Number.isFinite(weightedCost)||Math.abs(totalPurchaseQty-pricedQty)>0.0005){lineHasMissingCost=true;}else lineCost+=amountNeeded*weightedCost;
   }
   lineCosts.set(String(line.id),lineHasMissingCost?null:Math.round(lineCost*100)/100);
  }
