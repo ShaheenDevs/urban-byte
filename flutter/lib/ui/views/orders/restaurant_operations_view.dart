@@ -134,7 +134,9 @@ class _Orders extends StatelessWidget {
   const _Orders(this.vm);
   final RestaurantOperationsViewModel vm;
   @override
-  Widget build(BuildContext context) => RefreshIndicator(
+  Widget build(BuildContext context) => !vm.permissions.contains('orders.view_all') && !vm.permissions.contains('orders.view_own')
+      ? const Center(child: Text('You do not have permission to view orders.'))
+      : RefreshIndicator(
       onRefresh: vm.load,
       child: ListView(padding: const EdgeInsets.all(12), children: [
         if (vm.loadError != null)
@@ -177,7 +179,9 @@ class _Kitchen extends StatelessWidget {
   const _Kitchen(this.vm);
   final RestaurantOperationsViewModel vm;
   @override
-  Widget build(BuildContext context) => RefreshIndicator(
+  Widget build(BuildContext context) => !vm.canKitchen
+      ? const Center(child: Text('You do not have permission to view kitchen tickets.'))
+      : RefreshIndicator(
       onRefresh: vm.load,
       child: ListView(padding: const EdgeInsets.all(12), children: [
         if (vm.branches.isNotEmpty) DropdownButtonFormField<String>(
