@@ -1,0 +1,11 @@
+'use strict';
+const router=require('express').Router();
+const {authenticate}=require('../middleware/auth');
+const {getCurrentUser}=require('../services/auth-service');
+const c=require('../controllers/notification-controller');
+router.use(authenticate,async(req,res,next)=>{try{req.user=await getCurrentUser(req.auth.sub);if(!req.user)return res.status(401).json({success:false,message:'User account is unavailable.',code:'ACCOUNT_UNAVAILABLE',data:null});next();}catch(e){next(e);}});
+router.get('/',c.list);
+router.get('/unread-count',c.unread);
+router.patch('/read-all',c.readAll);
+router.patch('/:notificationId/read',c.read);
+module.exports=router;
