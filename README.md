@@ -177,3 +177,14 @@ Customer records, verified payment workflow, delivery workflow, thermal printing
 - Product/branch margin figures are withheld when any included order line has incomplete COGS. Wastage cost is an estimate only when the stock movement has a recorded unit cost.
 - Flutter Financial Dashboard now loads financial and analytics data together, with daily sales/product bar summaries, wastage and branch comparison. Changing the date/branch filters and generating the report refreshes both datasets.
 - PDF/Excel export is not part of this milestone.
+
+
+## Downloadable reports
+All export routes require authentication and `reports.view`; they reuse the same restaurant/branch/date-scoped report services as the dashboard.
+- `GET /api/v1/reports/financial/export.csv?from=YYYY-MM-DD&to=YYYY-MM-DD&branchId=1` — Excel-compatible UTF-8 CSV with financial totals, cash flow, profitability and product margins.
+- `GET /api/v1/reports/financial/export.pdf?from=YYYY-MM-DD&to=YYYY-MM-DD&branchId=1` — print-ready A4 PDF financial summary and product profitability.
+- `GET /api/v1/reports/analytics/export.csv?from=YYYY-MM-DD&to=YYYY-MM-DD&branchId=1` — daily sales, product performance, lowest margins, wastage and branch comparison.
+- `GET /api/v1/reports/analytics/export.pdf?from=YYYY-MM-DD&to=YYYY-MM-DD&branchId=1` — printable analytics summary.
+- CSV output uses UTF-8 BOM for Excel compatibility, quotes cell values and neutralizes spreadsheet formula prefixes in text fields. PDF output uses built-in Helvetica and substitutes unsupported non-ASCII glyphs; it is a basic printable summary, not a branded template.
+- These are CSV files (openable in Excel), not native XLSX workbooks. Dedicated supplier ledger exports and Flutter in-app save/share controls are not included yet.
+- Run `npm test` in `backend/` to execute report export utility tests.
