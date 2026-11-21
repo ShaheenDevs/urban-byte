@@ -8,8 +8,7 @@ function pkr(v){return 'Rs. '+Number(v).toLocaleString('en-PK',{maximumFractionD
 function isGreeting(t){return /^(hi|hello|hey|salam|assalam|assalam o alaikum|aoa)[!.\s]*$/i.test(String(t||'').trim());}
 function isConfirm(t){return /^(confirm|confirmed|yes confirm|haan confirm|han confirm|ji confirm|yes|haan|han|ji|ok confirm|place order|order confirm|confirm order|finalize|finalise)$/i.test(normalize(t));}
 function isCart(t){return /\b(cart|summary|total|checkout|my order|mera order|order details)\b/.test(normalize(t))||/cart|total|order dikhao|order batao|hisab|khulasa/.test(normalize(t));}
-function parseQuantity(t){const s=normalize(t);const m=s.match(/\b(\d{1,2})\b/);if(m)return Math.min(10,Math.max(1,Number(m[1])));const map={ek:1,aik:1,one:1,two:2,do:2,three:3,teen:3,four:4,chaar:4,five:5,paanch:5};for(const [k,v] of Object.entries(map))if(s.split(' ').includes(k))return v;return 1;}
-function variantSize(t,variants){const s=normalize(t);const aliases=[['large',['large','family','jumbo','bara','bari']],['medium',['medium','regular','darmiyana']],['small',['small','personal','chota','choti']]];for(const [size,keys] of aliases){if(keys.some(k=>s.includes(k))){const v=variants.find(x=>normalize(x.name).includes(size)||keys.some(k=>normalize(x.name).includes(k)));if(v)return v;}}return variants.find(x=>x.isDefault)||variants[0];}
+
 async function getProducts(restaurantId,branchId,query){
  const tokens=words(query);const where={restaurantId,isActive:true,isAvailable:true};
  if(tokens.length)where[Op.and]=tokens.map(token=>({name:{[Op.like]:'%'+token+'%'}}));
