@@ -24,6 +24,24 @@ class OperationsService {
     final path = query.isEmpty ? '/kitchen/tickets' : '/kitchen/tickets?' + Uri(queryParameters: query).query;
     return _list(await _request('GET', path));
   }
+  Future<List<Map<String, dynamic>>> notifications({bool unreadOnly = false}) async {
+    final path = unreadOnly ? '/notifications?unread=true' : '/notifications';
+    return _list(await _request('GET', path));
+  }
+
+  Future<int> unreadNotificationCount() async {
+    final data = await _request('GET', '/notifications/unread-count');
+    return (data as Map)['count'] as int? ?? 0;
+  }
+
+  Future<void> markNotificationRead(String id) async {
+    await _request('PATCH', '/notifications/$id/read');
+  }
+
+  Future<void> markAllNotificationsRead() async {
+    await _request('PATCH', '/notifications/read-all');
+  }
+
   Future<Map<String, dynamic>> createOrder(
       {required String branchId,
       required String orderType,
