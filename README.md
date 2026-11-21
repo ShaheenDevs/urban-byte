@@ -123,3 +123,11 @@ Customer records, verified payment workflow, delivery workflow, thermal printing
 - Role assignment is restricted to supervisor, waiter, kitchen, cashier and delivery; owner/admin/system roles cannot be granted through this endpoint. Permission override writes are intentionally not exposed until a dedicated privilege-escalation-safe policy is implemented.
 - Passwords are hashed with bcrypt cost 12. Deactivated users are rejected by authentication/session refresh. Last login is maintained by the authentication service.
 - Branch-specific staff membership and activity audit events are not yet implemented; current user records are restaurant-scoped.
+
+
+## Flutter staff management
+- Added a Stacked staff directory with search, refresh, role display and an Add Staff form.
+- Staff API calls read the access token from Flutter Secure Storage; no token is hardcoded.
+- The StaffView and StaffService are registered in `flutter/lib/app/app.dart`; the service locator registration is updated.
+- From `flutter/`, run `flutter pub get`, then `dart run build_runner build --delete-conflicting-outputs` to regenerate Stacked routes/locator after annotation changes, then `dart format lib`, `flutter analyze` and `flutter test`.
+- The current UI provides listing and creation. Editing/deactivation controls, branch membership, audit history and individual permission overrides remain follow-up work. Verify API response envelope compatibility against the deployed backend before production use.
