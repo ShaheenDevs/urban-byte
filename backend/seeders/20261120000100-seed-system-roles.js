@@ -8,7 +8,7 @@ const roles = [
 ];
 const permissionKeys = [
   'dashboard.view', 'orders.view_all', 'orders.view_own', 'orders.create', 'orders.edit', 'orders.cancel', 'orders.status.update',
-  'menu.view', 'menu.manage', 'deals.manage', 'customers.view', 'customers.manage', 'customers.history.view',
+  'menu.view', 'menu.manage', 'deals.manage', 'customers.view', 'customers.manage', 'customers.history.view', 'payments.record',
   'inventory.view', 'inventory.manage', 'inventory.adjust', 'payments.view', 'payments.verify', 'payments.refund', 'payments.cod.collect',
   'ai.view', 'ai.conversations.view', 'ai.orders.approve', 'ai.settings.manage',
   'kitchen.orders.view', 'kitchen.orders.prepare', 'kitchen.orders.ready',
