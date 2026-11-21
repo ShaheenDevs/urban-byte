@@ -221,7 +221,9 @@ class _Suppliers extends StatelessWidget {
             child: ListTile(
                 leading: const Icon(Icons.local_shipping),
                 title: Text('${s['name']}'),
-                subtitle: Text('${s['phone'] ?? 'No phone'}'))))
+                subtitle: Text('${s['phone'] ?? 'No phone'}'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _showLedger(context,s))))
       ]);
   Future<void> _newSupplier(BuildContext context) async {
     final name = TextEditingController(),
