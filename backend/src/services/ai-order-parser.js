@@ -4,4 +4,5 @@ function normalize(v){return String(v||'').toLowerCase().normalize('NFKD').repla
 function words(v){return normalize(v).split(' ').filter(x=>x.length>2&&!STOP.has(x));}
 function parseQuantity(t){const s=normalize(t);const m=s.match(/\b(\d{1,2})\b/);if(m)return Math.min(10,Math.max(1,Number(m[1])));const map={ek:1,aik:1,one:1,two:2,do:2,three:3,teen:3,four:4,chaar:4,five:5,paanch:5};for(const [k,v] of Object.entries(map))if(s.split(' ').includes(k))return v;return 1;}
 function variantSize(t,variants){const s=normalize(t);const aliases=[['large',['large','family','jumbo','bara','bari']],['medium',['medium','regular','darmiyana']],['small',['small','personal','chota','choti']]];for(const [size,keys] of aliases){if(keys.some(k=>s.includes(k))){const v=variants.find(x=>normalize(x.name).includes(size)||keys.some(k=>normalize(x.name).includes(k)));if(v)return v;}}return variants.find(x=>x.isDefault)||variants[0];}
-module.exports={normalize,words,parseQuantity,variantSize};
+function isExplicitConfirmation(value){return /^(confirm|confirmed|yes confirm|haan confirm|han confirm|ji confirm|ok confirm|place order|order confirm|confirm order|finalize|finalise)$/i.test(normalize(value));}
+module.exports={normalize,words,parseQuantity,variantSize,isExplicitConfirmation};
