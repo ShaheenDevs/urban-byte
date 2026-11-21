@@ -2,39 +2,55 @@
 const {Op}=require('sequelize');
 const {Product,ProductVariant,MenuCategory,BranchProductPrice,Deal,DealItem,DealPrice,AiMessage}=require('../models');
 const whatsapp=require('./whatsapp-outbound-service');
-function normalize(value){return String(value||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();}
-function isMenuRequest(text){const q=normalize(text);return /\b(menu|price|prices|deal|deals|offer|offers|available|pizza|burger|shawarma|fries|pasta|mojito|rate|menu card)\b/.test(q)||/menu|rate|qeemat|keemat|deal|offer|pizza|burger|shawarma|fries|pasta|kya available|kia available/.test(q);}
-function greeting(text){return /^(hi|hello|hey|salam|assalam|assalam o alaikum|aoa|aoa urban byte|salam urban byte)[!.\s]*$/i.test(String(text||'').trim());}
-function pkr(value){return 'Rs. '+Number(value).toLocaleString('en-PK',{maximumFractionDigits:2});}
+const aiOrders=require('./ai-agent-service');
+const STOP=new Set(['please','mujhe','mujhy','chahiye','chaiye','chahye','price','rate','menu','show','batao','btao','kya','kia','available','hai','hy','the','with','and','for','urban','byte','large','medium','regular','small','family','personal','big','jumbo','single','double','ka','ki','ke','mein','ma','one','two','three','four','five','add','order','want','need','i','would','like','get','give','send','please','ek','aik','do','teen','kar','do','kardo','krdo','mujy','mujhey','plz','kindly','make','it','my','cart','remove','delete','cancel','change','update','quantity','qty','piece','pieces','x','confirm','yes','haan','han','ji','ok','okay','done','final','summary','total','mera','meri','ka','ki','ke','to','tak','address','delivery','takeaway','take','away','dine','in','table','number','no','ghar','home','bhej','bhejdo','bhejden']);
+function normalize(v){return String(v||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();}
+function words(v){return normalize(v).split(' ').filter(x=>x.length>2&&!STOP.has(x));}
+function pkr(v){return 'Rs. '+Number(v).toLocaleString('en-PK',{maximumFractionDigits:2});}
+function isGreeting(t){return /^(hi|hello|hey|salam|assalam|assalam o alaikum|aoa)[!.\s]*$/i.test(String(t||'').trim());}
+function isConfirm(t){return /^(confirm|confirmed|yes confirm|haan confirm|han confirm|ji confirm|yes|haan|han|ji|ok confirm|place order|order confirm|confirm order|finalize|finalise)$/i.test(normalize(t));}
+function isCart(t){return /\b(cart|summary|total|checkout|my order|mera order|order details)\b/.test(normalize(t))||/cart|total|order dikhao|order batao|hisab|khulasa/.test(normalize(t));}
+function parseQuantity(t){const s=normalize(t);const m=s.match(/\b(\d{1,2})\b/);if(m)return Math.min(10,Math.max(1,Number(m[1])));const map={ek:1,aik:1,one:1,two:2,do:2,three:3,teen:3,four:4,chaar:4,five:5,paanch:5};for(const [k,v] of Object.entries(map))if(s.split(' ').includes(k))return v;return 1;}
+function variantSize(t,variants){const s=normalize(t);const aliases=[['large',['large','family','jumbo','bara','bari']],['medium',['medium','regular','darmiyana']],['small',['small','personal','chota','choti']]];for(const [size,keys] of aliases){if(keys.some(k=>s.includes(k))){const v=variants.find(x=>normalize(x.name).includes(size)||keys.some(k=>normalize(x.name).includes(k)));if(v)return v;}}return variants.find(x=>x.isDefault)||variants[0];}
 async function getProducts(restaurantId,branchId,query){
- const stop=new Set(['please','mujhe','mujhy','chahiye','chaiye','price','rate','menu','show','batao','btao','kya','kia','available','hai','hy','the','with','and','for','urban','byte','large','medium','regular','small','family','personal','big','jumbo','single','double','ka','ki','ke','mein','ma','mujhe','mujhy','chahye','chahiye']);
- const tokens=normalize(query).split(' ').filter(x=>x.length>2&&!stop.has(x)).slice(0,5);
- const where={restaurantId,isActive:true,isAvailable:true};
+ const tokens=words(query);const where={restaurantId,isActive:true,isAvailable:true};
  if(tokens.length)where[Op.and]=tokens.map(token=>({name:{[Op.like]:'%'+token+'%'}}));
- const rows=await Product.findAll({where,include:[{model:MenuCategory,as:'category',where:{isActive:true},required:true,attributes:['name']},{model:ProductVariant,as:'variants',where:{isActive:true},required:true,attributes:['id','name','basePrice','isDefault'],include:branchId?[{model:BranchProductPrice,as:'branchPrices',where:{branchId},required:false,attributes:['salePrice','isAvailable']}]:[]}],order:[['name','ASC']],limit:8});
- return rows.map(product=>({name:product.name,category:product.category?.name,variants:product.variants.filter(v=>!v.branchPrices?.length||v.branchPrices.some(p=>p.isAvailable)).map(v=>({id:v.id,name:v.name,price:v.branchPrices?.[0]?.salePrice??v.basePrice,isDefault:v.isDefault}))})).filter(p=>p.variants.length);
+ const rows=await Product.findAll({where,include:[{model:MenuCategory,as:'category',where:{isActive:true},required:true,attributes:['name']},{model:ProductVariant,as:'variants',where:{isActive:true},required:true,attributes:['id','name','basePrice','isDefault'],include:branchId?[{model:BranchProductPrice,as:'branchPrices',where:{branchId},required:false,attributes:['salePrice','isAvailable']}]:[]}],order:[['name','ASC']],limit:30});
+ return rows.map(p=>({id:p.id,name:p.name,category:p.category?.name,variants:p.variants.filter(v=>!v.branchPrices?.length||v.branchPrices.some(x=>x.isAvailable)).map(v=>({id:v.id,name:v.name,price:Number(v.branchPrices?.find(x=>x.isAvailable)?.salePrice??v.basePrice),isDefault:v.isDefault}))})).filter(p=>p.variants.length);
 }
-async function getDeals(restaurantId,branchId){
- const now=new Date();const where={restaurantId,isActive:true,[Op.and]:[{[Op.or]:[{startsAt:null},{startsAt:{[Op.lte]:now}}]},{[Op.or]:[{endsAt:null},{endsAt:{[Op.gte]:now}}]}]};
- const include=[{model:DealItem,as:'items',include:[{model:require('../models').ProductVariant,as:'variant',include:[{model:require('../models').Product,as:'product',attributes:['name']}]}]}];
- if(branchId)include.push({model:DealPrice,as:'branchPrices',where:{branchId,isAvailable:true},required:false});
- const deals=await Deal.findAll({where,include,order:[['name','ASC']],limit:8});
- return deals.map(d=>({name:d.name,description:d.description,price:d.branchPrices?.[0]?.salePrice??null,items:d.items.map(i=>({name:i.variant?.product?.name,variant:i.variant?.name,quantity:i.quantity}))}));
-}
-function renderMenu(products,deals){
- const lines=['Urban Byte ka menu'];
- for(const p of products)lines.push(p.name+': '+p.variants.map(v=>v.name+' '+pkr(v.price)).join(' | '));
- if(deals.length){lines.push('','Available deals:');for(const d of deals)lines.push('- '+d.name+(d.price!==null?' — '+pkr(d.price):'')+(d.description?' ('+d.description+')':''));}
- lines.push('','Order ke liye item, size aur quantity bata dein.');
- return lines.join('\n').slice(0,3500);
-}
+async function getDeals(restaurantId,branchId){const now=new Date();const where={restaurantId,isActive:true,[Op.and]:[{[Op.or]:[{startsAt:null},{startsAt:{[Op.lte]:now}}]},{[Op.or]:[{endsAt:null},{endsAt:{[Op.gte]:now}}]}]};const include=[{model:DealItem,as:'items',include:[{model:ProductVariant,as:'variant',include:[{model:Product,as:'product',attributes:['name']}]}]}];if(branchId)include.push({model:DealPrice,as:'branchPrices',where:{branchId,isAvailable:true},required:false});const rows=await Deal.findAll({where,include,order:[['name','ASC']],limit:8});return rows.map(d=>({name:d.name,description:d.description,price:d.branchPrices?.[0]?.salePrice??null,items:d.items.map(i=>({name:i.variant?.product?.name,variant:i.variant?.name,quantity:i.quantity}))}));}
+function cartSummary(cart){if(!cart.items?.length)return 'Aapka cart abhi empty hai. Kya add karna pasand karein?';const lines=['*Urban Byte — Order Summary*'];let total=0;for(const item of cart.items){const line=item.unitPrice*item.quantity;total+=line;lines.push(item.quantity+' × '+item.productName+' ('+item.variantName+') — '+pkr(line));}lines.push('','Subtotal: '+pkr(total));if(cart.orderType)lines.push('Order type: '+cart.orderType.replace('_',' '));if(cart.deliveryAddress)lines.push('Address: '+cart.deliveryAddress);if(cart.tableLabel)lines.push('Table: '+cart.tableLabel);lines.push('','Order confirm karne ke liye *CONFIRM* bhejein, ya items change karne ke liye batayein.');return lines.join('\n');}
+async function sendReply(restaurantId,conversation,reply){if(conversation.channel==='whatsapp'&&conversation.customerPhone)return whatsapp.sendText(restaurantId,conversation.id,{text:reply,senderType:'assistant'});return AiMessage.create({conversationId:conversation.id,senderType:'assistant',content:reply,metadata:{agent:'urban-byte-order-agent',version:2}});}
 async function respond(restaurantId,conversation,text){
- const branchId=conversation.branchId||undefined;const q=String(text||'').trim();let reply;
- if(greeting(q))reply='Assalam-o-Alaikum! Urban Byte mein khush aamdeed. Aap menu, pizza, burger ya available deals ke rates pooch sakte hain. Order ke liye item aur quantity bata dein.';
- else if(isMenuRequest(q)){const products=await getProducts(restaurantId,branchId,q);const deals=await getDeals(restaurantId,branchId);if(products.length||deals.length)reply=renderMenu(products.length?products:await getProducts(restaurantId,branchId,''),deals);else{const categories=await MenuCategory.findAll({where:{restaurantId,isActive:true},order:[['sortOrder','ASC']],limit:12});reply='Is naam ka item abhi menu mein nahi mila. Available categories: '+categories.map(c=>c.name).join(', ')+'. Aap kis item ka rate dekhna chahenge?';}}
- else reply='Ji zaroor! Aap Urban Byte ke menu ya deals ke rates pooch sakte hain. Order shuru karne ke liye item ka naam, size aur quantity bhejein.';
- if(conversation.channel==='whatsapp'&&conversation.customerPhone)await whatsapp.sendText(restaurantId,conversation.id,{text:reply,senderType:'assistant'});
- else await AiMessage.create({conversationId:conversation.id,senderType:'assistant',content:reply,metadata:{agent:'deterministic-menu-agent',version:1}});
- return reply;
+ const q=String(text||'').trim();const context={...(conversation.context||{})};const cart={items:Array.isArray(context.cart?.items)?context.cart.items:[],orderType:context.cart?.orderType||null,deliveryAddress:context.cart?.deliveryAddress||null,tableLabel:context.cart?.tableLabel||null};
+ let reply;
+ if(isGreeting(q)){reply='Assalam-o-Alaikum! Urban Byte mein khush aamdeed. Aap pizza, burger ya deals ka menu pooch sakte hain. Order ke liye item aur quantity likhein.';}
+ else if(isCart(q)){reply=cartSummary(cart);}
+ else if(/^(clear cart|empty cart|cart clear|order cancel|cancel cart)$/i.test(normalize(q))){cart.items=[];context.cart=cart;await conversation.update({context});reply='Aapka cart clear kar diya hai. Naya order add kar sakte hain.';}
+ else if(/^(delivery|home delivery|deliver)$/i.test(normalize(q))||/home delivery|delivery chahiye|ghar deliver/.test(normalize(q))){cart.orderType='delivery';context.cart=cart;await conversation.update({context});reply='Delivery ke liye apna complete address aur area bhej dein.';}
+ else if(/^(takeaway|take away|pickup|pick up)$/i.test(normalize(q))){cart.orderType='takeaway';context.cart=cart;await conversation.update({context});reply='Theek hai, takeaway select kar liya. Aur koi item add karna hai ya cart summary dekhein?';}
+ else if(/^(dine in|dine-in|restaurant mein|table)$/i.test(normalize(q))){cart.orderType='dine_in';context.cart=cart;await conversation.update({context});reply='Dine-in select kar liya. Apna table number/label bhej dein.';}
+ else if(cart.orderType==='delivery'&&!cart.deliveryAddress&&q.length>8&&!isConfirm(q)&&!isCart(q)){cart.deliveryAddress=q.slice(0,1000);context.cart=cart;await conversation.update({context});reply='Delivery address save kar liya. '+cartSummary(cart);}
+ else if(cart.orderType==='dine_in'&&!cart.tableLabel&&q.length<50&&!isConfirm(q)){cart.tableLabel=q;context.cart=cart;await conversation.update({context});reply='Table '+q+' save kar liya. '+cartSummary(cart);}
+ else if(isConfirm(q)){
+  if(!cart.items.length)reply='Aapka cart empty hai. Pehle menu se items add karein.';
+  else if(!conversation.branchId)reply='Order branch configured nahi hai. Staff se branch select karwayein.';
+  else if(!cart.orderType)reply='Order type select karein: Delivery, Takeaway ya Dine-in.';
+  else if(cart.orderType==='delivery'&&!cart.deliveryAddress)reply='Please delivery address share karein.';
+  else if(cart.orderType==='dine_in'&&!cart.tableLabel)reply='Please table number share karein.';
+  else{const result=await aiOrders.submitOrderDraft(restaurantId,conversation.id,{branchId:conversation.branchId,orderType:cart.orderType,deliveryAddress:cart.deliveryAddress,tableLabel:cart.tableLabel,customerConfirmed:true,items:cart.items.map(x=>({variantId:x.variantId,quantity:x.quantity,notes:x.notes}))});context.cart={items:[],orderType:null,deliveryAddress:null,tableLabel:null};await conversation.update({context});reply=result.decision==='auto_approved'?'Shukriya! Aapka order confirm ho gaya hai. Order #'+result.order.orderNumber+' — Total '+pkr(result.order.grandTotal)+'. Payment abhi pending hai.':'Aapka order staff approval ke liye bhej diya gaya hai. Approval ke baad aapko update mil jayegi.';}
+ }
+ else if(/^(remove|delete|hatao|nikalo)\b/.test(normalize(q))){const tokens=words(q);const before=cart.items.length;cart.items=cart.items.filter(x=>!tokens.some(t=>normalize(x.productName).includes(t)));context.cart=cart;await conversation.update({context});reply=before===cart.items.length?'Cart mein matching item nahi mila.':'Item cart se remove kar diya. '+cartSummary(cart);}
+ else{
+  const products=await getProducts(restaurantId,conversation.branchId, q);
+  const all=products.length?products:await getProducts(restaurantId,conversation.branchId,'');
+  const tokens=words(q);
+  const matches=all.filter(p=>tokens.length===0||tokens.some(t=>normalize(p.name+' '+p.category).includes(t)));
+  if(matches.length===1){const p=matches[0];const v=variantSize(q,p.variants);const qty=parseQuantity(q);const existing=cart.items.find(x=>x.variantId===v.id);if(existing)existing.quantity=Math.min(10,existing.quantity+qty);else cart.items.push({variantId:v.id,productName:p.name,variantName:v.name,unitPrice:v.price,quantity:qty});context.cart=cart;await conversation.update({context});reply=qty+' × '+p.name+' ('+v.name+') cart mein add kar diya. '+cartSummary(cart);}
+  else if(matches.length>1){reply='Ye items available hain:\n'+matches.slice(0,8).map(p=>'- '+p.name+' — '+p.variants.map(v=>v.name+' '+pkr(v.price)).join(' / ')).join('\n')+'\nKonsa item add karna hai?';}
+  else if(/menu|price|rate|deal|offer|pizza|burger|shawarma|fries|pasta|mojito|qeemat|keemat/i.test(q)){const deals=await getDeals(restaurantId,conversation.branchId);reply=all.length?all.slice(0,10).map(p=>p.name+': '+p.variants.map(v=>v.name+' '+pkr(v.price)).join(' | ')).join('\n')+(deals.length?'\n\nDeals:\n'+deals.map(d=>'- '+d.name+(d.price!==null?' '+pkr(d.price):'')).join('\n'):''):'Abhi menu items available nahi hain.';}
+  else reply='Aap item ka naam batayein, jaise "1 large pizza" ya "2 zinger burger". Cart dekhne ke liye "cart" likhein.';
+ }
+ await sendReply(restaurantId,conversation,reply);return reply;
 }
-module.exports={respond,getProducts,getDeals,isMenuRequest};
+module.exports={respond,getProducts,getDeals};
