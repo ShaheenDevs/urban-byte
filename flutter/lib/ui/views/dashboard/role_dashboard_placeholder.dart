@@ -6,6 +6,7 @@ import '../inventory/inventory_view.dart';
 import '../orders/restaurant_operations_view.dart';
 import '../ai/ai_agent_view.dart';
 import '../printing/printing_view.dart';
+import '../delivery/delivery_view.dart';
 
 /// Role-aware starting workspace. Full navigation modules are added incrementally.
 class RoleDashboardPlaceholder extends StatelessWidget {
@@ -135,6 +136,15 @@ class RoleDashboardPlaceholder extends StatelessWidget {
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.of(context).push(MaterialPageRoute(
                 builder: (_) => PrintingView(permissions: permissions))),
+            )),
+          if (permissions.contains('delivery.view_assigned') || permissions.contains('delivery.assignments.view_all'))
+            Card(child: ListTile(
+              leading: const CircleAvatar(child: Icon(Icons.delivery_dining)),
+              title: const Text('Delivery management'),
+              subtitle: const Text('Assigned orders, delivery status and COD collection'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => DeliveryView(permissions: permissions))),
             )),
           if (_canOpenOrders)
             Card(
