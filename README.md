@@ -159,3 +159,13 @@ Customer records, verified payment workflow, delivery workflow, thermal printing
 - Financial reporting deliberately does not label revenue minus purchases as profit: purchases increase inventory and are not necessarily cost of goods sold. Gross/net profit remains unavailable until stock-consumption/recipe costing and other accounting adjustments are reconciled.
 - Cash-flow summary is limited to recorded cash collections, approved cash expenses and cash supplier payments. Non-cash methods are excluded. Supplier payments and expenses are separate categories and are not automatically posted into cash-shift entries.
 - Flutter Financial Dashboard is available at the generated `Routes.financialReportView` route; it supports date range and optional branch ID filters.
+
+
+## Recipe-based COGS and profitability
+- Migration `20261121000800-add-order-item-cogs` adds `cogs_total` and `cogs_status` to order items. Apply it before deploying this costing change.
+- When a completed order triggers branch inventory auto-deduction, the backend snapshots recipe ingredient cost per order line using the weighted average of that branch's recorded purchase stock movements.
+- Any ingredient with missing or partially unpriced purchase receipts marks the affected order line `missing_cost`; incomplete costs are never silently treated as zero.
+- `GET /api/v1/reports/financial` now reports completed-order sales revenue, estimated recipe COGS, gross profit and net profit (approved expenses deducted) only when every completed order line in the selected period has a complete cost snapshot.
+- Profit uses completed-order revenue, not verified payment collections. Supplier payments and received purchase totals are excluded from profit to avoid double-counting inventory acquisition and supplier settlement.
+- For reliable costs, receive ingredient purchases with correct unit costs, configure recipes and enable inventory auto-deduction for the relevant branch before completing orders. Historical orders are not retroactively costed by this migration.
+- This is an operational estimate based on weighted-average purchase costs; it does not yet account for labor, utilities allocation, tax accounting, spoilage adjustments or opening stock valuation.
