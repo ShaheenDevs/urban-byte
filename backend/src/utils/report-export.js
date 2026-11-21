@@ -5,7 +5,8 @@ function csvCell(value){
  return '"'+safe.replace(/"/g,'""')+'"';
 }
 function toCsv(headers,rows){
- return '\uFEFF'+[headers,...rows.map(row=>headers.map(key=>row[key]??''))].map(row=>row.map(csvCell).join(',')).join('\r\n');
+ return '\uFEFF'+[headers,...rows.map(row=>headers.map(key=>row[key]??''))].map(row=>row.map(csvCell).join(',')).join('\r
+');
 }
 function ascii(value){
  return String(value??'').normalize('NFKD').replace(/[^\x20-\x7E]/g,'?');
@@ -23,20 +24,37 @@ function createPdf(title,lines){
  const pageIds=[];
  for(let index=0;index<pages.length;index++){
   const pageLines=[title,'Urban Byte Restaurant | Generated report','',...pages[index]];
-  const stream=['BT','/F1 10 Tf','48 790 Td','14 TL',...pageLines.flatMap((line,i)=>i===0?[`/F1 16 Tf (${pdfEscape(line)}) Tj`,'/F1 10 Tf','T*']:[`(${pdfEscape(line).slice(0,150)}) Tj`,'T*']),`(Page ${index+1} of ${pages.length}) Tj`,'ET'].join('\n');
-  const contentId=add(`<< /Length ${Buffer.byteLength(stream,'ascii')} >>\nstream\n${stream}\nendstream`);
+  const stream=['BT','/F1 10 Tf','48 790 Td','14 TL',...pageLines.flatMap((line,i)=>i===0?[`/F1 16 Tf (${pdfEscape(line)}) Tj`,'/F1 10 Tf','T*']:[`(${pdfEscape(line).slice(0,150)}) Tj`,'T*']),`(Page ${index+1} of ${pages.length}) Tj`,'ET'].join('
+');
+  const contentId=add(`<< /Length ${Buffer.byteLength(stream,'ascii')} >>
+stream
+${stream}
+endstream`);
   const pageId=add(`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 ${fontId} 0 R >> >> /Contents ${contentId} 0 R >>`);
   pageIds.push(pageId);
  }
  objects[catalogId-1]=`<< /Type /Catalog /Pages ${pagesId} 0 R >>`;
  objects[pagesId-1]=`<< /Type /Pages /Kids [${pageIds.map(id=>id+' 0 R').join(' ')}] /Count ${pageIds.length} >>`;
- let output='%PDF-1.4\n%UBREPORT\n';
+ let output='%PDF-1.4
+%UBREPORT
+';
  const offsets=[0];
- objects.forEach((obj,index)=>{offsets.push(Buffer.byteLength(output,'ascii'));output+=`${index+1} 0 obj\n${obj}\nendobj\n`;});
+ objects.forEach((obj,index)=>{offsets.push(Buffer.byteLength(output,'ascii'));output+=`${index+1} 0 obj
+${obj}
+endobj
+`;});
  const xref=Buffer.byteLength(output,'ascii');
- output+=`xref\n0 ${objects.length+1}\n0000000000 65535 f \n`;
- for(let i=1;i<offsets.length;i++)output+=String(offsets[i]).padStart(10,'0')+' 00000 n \n';
- output+=`trailer\n<< /Size ${objects.length+1} /Root ${catalogId} 0 R >>\nstartxref\n${xref}\n%%EOF`;
+ output+=`xref
+0 ${objects.length+1}
+0000000000 65535 f 
+`;
+ for(let i=1;i<offsets.length;i++)output+=String(offsets[i]).padStart(10,'0')+' 00000 n 
+';
+ output+=`trailer
+<< /Size ${objects.length+1} /Root ${catalogId} 0 R >>
+startxref
+${xref}
+%%EOF`;
  return Buffer.from(output,'ascii');
 }
 function financialLines(data){
