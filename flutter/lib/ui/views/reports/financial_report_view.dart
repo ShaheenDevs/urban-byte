@@ -65,7 +65,8 @@ class FinancialReportView extends StackedView<FinancialReportViewModel> {
           _Bars(title:'Best-selling products (quantity)',items:(vm.analytics!['bestSellingProducts'] as List? ?? []).map((e)=>{'label':e['productName'].toString(),'value':double.tryParse(e['quantity'].toString())??0}).toList()),
           _Bars(title:'Highest revenue products',items:(vm.analytics!['highestRevenueProducts'] as List? ?? []).map((e)=>{'label':e['productName'].toString(),'value':double.tryParse(e['revenue'].toString())??0}).toList()),
           Card(child:ListTile(title:const Text('Recorded wastage'),subtitle:Text('Quantity: ${vm.analytics!['wastage']?['totalQuantity']}'),trailing:Text('PKR ${vm.analytics!['wastage']?['estimatedCost']}'))),
-          _Bars(title:'Lowest-margin products (%)',items:(vm.analytics!['lowestMarginProducts'] as List? ?? []).map((e)=>{'label':e['productName'].toString(),'value':double.tryParse(e['marginPercent'].toString())??0}).toList()),\n          Text('Branch comparison',style:Theme.of(context).textTheme.titleMedium),
+          _Bars(title:'Lowest-margin products (%)',items:(vm.analytics!['lowestMarginProducts'] as List? ?? []).map((e)=>{'label':e['productName'].toString(),'value':double.tryParse(e['marginPercent'].toString())??0}).toList()),
+          Text('Branch comparison',style:Theme.of(context).textTheme.titleMedium),
           ...((vm.analytics!['branchComparison'] as List? ?? []).map((b)=>Card(child:ListTile(
             title:Text(b['branchName']?.toString()??'Branch'),
             subtitle:Text('Orders: ${b['orders']} • Revenue: PKR ${b['revenue']}'),
@@ -92,6 +93,7 @@ class FinancialReportViewModel extends BaseViewModel {
   final FinancialReportService _service;late String from,to;String? branchId,error,analyticsError;Map<String,dynamic>? data,analytics;bool analyticsBusy=false;
   static String _date(DateTime d)=>'${d.year.toString().padLeft(4,'0')}-${d.month.toString().padLeft(2,'0')}-${d.day.toString().padLeft(2,'0')}';
   void setFrom(String v){from=v;}void setTo(String v){to=v;}void setBranch(String v){branchId=v;}
-  Future<void> loadAll()async{await Future.wait([load(),loadAnalytics()]);}\n  Future<void> load()async{setBusy(true);error=null;try{data=await _service.load(from:from,to:to,branchId:branchId);}catch(e){error=e.toString();}setBusy(false);notifyListeners();}
+  Future<void> loadAll()async{await Future.wait([load(),loadAnalytics()]);}
+  Future<void> load()async{setBusy(true);error=null;try{data=await _service.load(from:from,to:to,branchId:branchId);}catch(e){error=e.toString();}setBusy(false);notifyListeners();}
   Future<void> loadAnalytics()async{analyticsBusy=true;analyticsError=null;notifyListeners();try{analytics=await _service.loadAnalytics(from:from,to:to,branchId:branchId);}catch(e){analyticsError=e.toString();}analyticsBusy=false;notifyListeners();}
 }
