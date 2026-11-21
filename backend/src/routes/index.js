@@ -14,4 +14,5 @@ router.use('/notifications',require('./notification-routes'));
 router.use('/dashboard',require('./dashboard-routes'));
 router.use('/reports',require('./report-routes'));
 router.use('/printing',require('./printing-routes'));
+router.use('/delivery',require('./delivery-routes'));
 module.exports=router;
