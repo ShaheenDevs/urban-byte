@@ -67,11 +67,6 @@ class RoleDashboardPlaceholder extends StatelessWidget {
                       leading: const Icon(Icons.cloud_off),
                       title: const Text('Dashboard data unavailable'),
                       subtitle: Text(snapshot.error.toString()),
-                      trailing: IconButton(
-                        tooltip: 'Retry',
-                        icon: const Icon(Icons.refresh),
-                        onPressed: () => (context as Element).markNeedsBuild(),
-                      ),
                     ),
                   );
                 }
