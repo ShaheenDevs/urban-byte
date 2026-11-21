@@ -5,8 +5,11 @@ void main() {
   group('InventoryItem', () {
     test('parses API item fields including decimal-safe base unit', () {
       final item = InventoryItem.fromJson({
-        'id': 12, 'name': 'Chicken Breast', 'itemType': 'ingredient',
-        'baseUnit': 'g', 'sku': 'CHK-01',
+        'id': 12,
+        'name': 'Chicken Breast',
+        'itemType': 'ingredient',
+        'baseUnit': 'g',
+        'sku': 'CHK-01',
       });
       expect(item.id, '12');
       expect(item.name, 'Chicken Breast');
@@ -19,7 +22,12 @@ void main() {
   group('BranchStockEntry', () {
     test('parses nested stock and low stock flag', () {
       final entry = BranchStockEntry.fromJson({
-        'item': {'id': 5, 'name': 'Cheese', 'itemType': 'ingredient', 'baseUnit': 'g'},
+        'item': {
+          'id': 5,
+          'name': 'Cheese',
+          'itemType': 'ingredient',
+          'baseUnit': 'g'
+        },
         'stock': {'quantity': '250.500', 'reorderLevel': '300.000'},
         'lowStock': true,
       });
@@ -38,7 +46,8 @@ void main() {
   });
 
   test('parses branch identifiers returned as integers', () {
-    final branch = RestaurantBranch.fromJson({'id': 3, 'name': 'Shahkot', 'code': 'SHK'});
+    final branch =
+        RestaurantBranch.fromJson({'id': 3, 'name': 'Shahkot', 'code': 'SHK'});
     expect(branch.id, '3');
     expect(branch.name, 'Shahkot');
   });

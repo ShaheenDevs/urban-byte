@@ -1,18 +1,30 @@
 class InventoryItem {
-  const InventoryItem({required this.id, required this.name, required this.itemType, required this.unit, this.sku});
+  const InventoryItem(
+      {required this.id,
+      required this.name,
+      required this.itemType,
+      required this.unit,
+      this.sku});
   final String id;
   final String name;
   final String itemType;
   final String unit;
   final String? sku;
   factory InventoryItem.fromJson(Map<String, dynamic> json) => InventoryItem(
-    id: '${json['id']}', name: json['name'] as String? ?? 'Unnamed item',
-    itemType: json['itemType'] as String? ?? 'ingredient',
-    unit: json['baseUnit'] as String? ?? '', sku: json['sku'] as String?,
-  );
+        id: '${json['id']}',
+        name: json['name'] as String? ?? 'Unnamed item',
+        itemType: json['itemType'] as String? ?? 'ingredient',
+        unit: json['baseUnit'] as String? ?? '',
+        sku: json['sku'] as String?,
+      );
 }
+
 class BranchStockEntry {
-  const BranchStockEntry({required this.item, required this.quantity, required this.reorderLevel, required this.lowStock});
+  const BranchStockEntry(
+      {required this.item,
+      required this.quantity,
+      required this.reorderLevel,
+      required this.lowStock});
   final InventoryItem item;
   final double quantity;
   final double reorderLevel;
@@ -30,11 +42,15 @@ class BranchStockEntry {
 }
 
 class RestaurantBranch {
-  const RestaurantBranch({required this.id,required this.name,required this.code});
+  const RestaurantBranch(
+      {required this.id, required this.name, required this.code});
   final String id;
   final String name;
   final String code;
-  factory RestaurantBranch.fromJson(Map<String,dynamic> json)=>RestaurantBranch(
-    id:'${json['id']}',name:json['name'] as String? ?? 'Branch',code:json['code'] as String? ?? '',
-  );
+  factory RestaurantBranch.fromJson(Map<String, dynamic> json) =>
+      RestaurantBranch(
+        id: '${json['id']}',
+        name: json['name'] as String? ?? 'Branch',
+        code: json['code'] as String? ?? '',
+      );
 }

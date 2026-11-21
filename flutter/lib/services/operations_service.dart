@@ -2,16 +2,96 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import '../app/api_config.dart';
+
 class OperationsService {
- OperationsService({http.Client? client,FlutterSecureStorage? storage}):_client=client??http.Client(),_storage=storage??const FlutterSecureStorage();
- final http.Client _client;final FlutterSecureStorage _storage;
- Future<List<Map<String,dynamic>>> menu() async => _list(await _request('GET','/menu/products'));
- Future<List<Map<String,dynamic>>> orders({String? status}) async {final q=status==null?'':'?status='+Uri.encodeQueryComponent(status);final data=await _request('GET','/orders$q');if(data is Map&&data['items'] is List)return _list(data['items']);return _list(data);}
- Future<List<Map<String,dynamic>>> kitchenQueue() async => _list(await _request('GET','/kitchen/tickets'));
- Future<Map<String,dynamic>> createOrder({required String branchId,required String orderType,required List<Map<String,dynamic>> items,String? tableLabel,String? customerName,String? customerPhone,String? deliveryAddress,String? paymentMethod}) async {final key='ub-'+DateTime.now().microsecondsSinceEpoch.toString();final data=await _request('POST','/orders',body:{'branchId':int.parse(branchId),'orderType':orderType,'items':items,if(tableLabel!=null)'tableLabel':tableLabel,if(customerName!=null)'customerName':customerName,if(customerPhone!=null)'customerPhone':customerPhone,if(deliveryAddress!=null)'deliveryAddress':deliveryAddress,if(paymentMethod!=null)'paymentMethod':paymentMethod},extraHeaders:{'Idempotency-Key':key});return Map<String,dynamic>.from(data as Map);}
- Future<void> updateOrder(String id,String status) async {await _request('PATCH','/orders/$id/status',body:{'status':status});}
- Future<void> kitchenAction(String id,String action) async {await _request('PATCH','/kitchen/tickets/$id/$action');}
- List<Map<String,dynamic>> _list(dynamic d)=>(d as List).map((e)=>Map<String,dynamic>.from(e as Map)).toList();
- Future<dynamic> _request(String method,String path,{Map<String,dynamic>? body,Map<String,String>? extraHeaders}) async {final token=await _storage.read(key:'access_token');if(token==null||token.isEmpty)throw const OperationsException('Please sign in again.');final headers={'Authorization':'Bearer $token','Content-Type':'application/json',...?extraHeaders};final uri=Uri.parse(apiBaseUrl+path);final encoded=body==null?null:jsonEncode(body);final response=switch(method){'GET'=>await _client.get(uri,headers:headers),'POST'=>await _client.post(uri,headers:headers,body:encoded),'PATCH'=>await _client.patch(uri,headers:headers,body:encoded),_=>throw const OperationsException('Unsupported operation.')};Map<String,dynamic> payload;try{payload=jsonDecode(response.body) as Map<String,dynamic>;}catch(_){throw const OperationsException('Unable to read server response.');}if(response.statusCode<200||response.statusCode>=300||payload['success']!=true)throw OperationsException(payload['message'] as String? ?? 'Request failed.');return payload['data'];}
+  OperationsService({http.Client? client, FlutterSecureStorage? storage})
+      : _client = client ?? http.Client(),
+        _storage = storage ?? const FlutterSecureStorage();
+  final http.Client _client;
+  final FlutterSecureStorage _storage;
+  Future<List<Map<String, dynamic>>> menu() async =>
+      _list(await _request('GET', '/menu/products'));
+  Future<List<Map<String, dynamic>>> orders({String? status}) async {
+    final q =
+        status == null ? '' : '?status=' + Uri.encodeQueryComponent(status);
+    final data = await _request('GET', '/orders$q');
+    if (data is Map && data['items'] is List) return _list(data['items']);
+    return _list(data);
+  }
+
+  Future<List<Map<String, dynamic>>> kitchenQueue() async =>
+      _list(await _request('GET', '/kitchen/tickets'));
+  Future<Map<String, dynamic>> createOrder(
+      {required String branchId,
+      required String orderType,
+      required List<Map<String, dynamic>> items,
+      String? tableLabel,
+      String? customerName,
+      String? customerPhone,
+      String? deliveryAddress,
+      String? paymentMethod}) async {
+    final key = 'ub-' + DateTime.now().microsecondsSinceEpoch.toString();
+    final data = await _request('POST', '/orders', body: {
+      'branchId': int.parse(branchId),
+      'orderType': orderType,
+      'items': items,
+      if (tableLabel != null) 'tableLabel': tableLabel,
+      if (customerName != null) 'customerName': customerName,
+      if (customerPhone != null) 'customerPhone': customerPhone,
+      if (deliveryAddress != null) 'deliveryAddress': deliveryAddress,
+      if (paymentMethod != null) 'paymentMethod': paymentMethod
+    }, extraHeaders: {
+      'Idempotency-Key': key
+    });
+    return Map<String, dynamic>.from(data as Map);
+  }
+
+  Future<void> updateOrder(String id, String status) async {
+    await _request('PATCH', '/orders/$id/status', body: {'status': status});
+  }
+
+  Future<void> kitchenAction(String id, String action) async {
+    await _request('PATCH', '/kitchen/tickets/$id/$action');
+  }
+
+  List<Map<String, dynamic>> _list(dynamic d) =>
+      (d as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  Future<dynamic> _request(String method, String path,
+      {Map<String, dynamic>? body, Map<String, String>? extraHeaders}) async {
+    final token = await _storage.read(key: 'access_token');
+    if (token == null || token.isEmpty)
+      throw const OperationsException('Please sign in again.');
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+      ...?extraHeaders
+    };
+    final uri = Uri.parse(apiBaseUrl + path);
+    final encoded = body == null ? null : jsonEncode(body);
+    final response = switch (method) {
+      'GET' => await _client.get(uri, headers: headers),
+      'POST' => await _client.post(uri, headers: headers, body: encoded),
+      'PATCH' => await _client.patch(uri, headers: headers, body: encoded),
+      _ => throw const OperationsException('Unsupported operation.')
+    };
+    Map<String, dynamic> payload;
+    try {
+      payload = jsonDecode(response.body) as Map<String, dynamic>;
+    } catch (_) {
+      throw const OperationsException('Unable to read server response.');
+    }
+    if (response.statusCode < 200 ||
+        response.statusCode >= 300 ||
+        payload['success'] != true)
+      throw OperationsException(
+          payload['message'] as String? ?? 'Request failed.');
+    return payload['data'];
+  }
 }
-class OperationsException implements Exception{const OperationsException(this.message);final String message;@override String toString()=>message;}
+
+class OperationsException implements Exception {
+  const OperationsException(this.message);
+  final String message;
+  @override
+  String toString() => message;
+}

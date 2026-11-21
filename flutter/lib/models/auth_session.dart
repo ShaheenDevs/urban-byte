@@ -1,5 +1,10 @@
 class AuthSession {
-  const AuthSession({required this.accessToken, required this.refreshToken, required this.roles, required this.permissions, required this.name});
+  const AuthSession(
+      {required this.accessToken,
+      required this.refreshToken,
+      required this.roles,
+      required this.permissions,
+      required this.name});
   final String accessToken;
   final String refreshToken;
   final List<String> roles;
@@ -11,7 +16,8 @@ class AuthSession {
       accessToken: json['accessToken'] as String? ?? '',
       refreshToken: json['refreshToken'] as String? ?? '',
       roles: (user['roles'] as List<dynamic>? ?? const []).cast<String>(),
-      permissions: (user['permissions'] as List<dynamic>? ?? const []).cast<String>(),
+      permissions:
+          (user['permissions'] as List<dynamic>? ?? const []).cast<String>(),
       name: user['name'] as String? ?? 'Staff',
     );
   }

@@ -22,11 +22,13 @@ class LoginViewModel extends BaseViewModel {
     message = null;
     notifyListeners();
     try {
-      return await _authService.login(identifier: identifier, password: password);
+      return await _authService.login(
+          identifier: identifier, password: password);
     } on AuthException catch (error) {
       message = error.message;
     } catch (_) {
-      message = 'Server se connection nahi ho saka. API URL aur network check karein.';
+      message =
+          'Server se connection nahi ho saka. API URL aur network check karein.';
     } finally {
       setBusy(false);
       notifyListeners();
