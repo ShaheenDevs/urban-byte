@@ -3,9 +3,7 @@ const {Op}=require('sequelize');
 const {Product,ProductVariant,MenuCategory,BranchProductPrice,Deal,DealItem,DealPrice,AiMessage}=require('../models');
 const whatsapp=require('./whatsapp-outbound-service');
 const aiOrders=require('./ai-agent-service');
-const STOP=new Set(['please','mujhe','mujhy','chahiye','chaiye','chahye','price','rate','menu','show','batao','btao','kya','kia','available','hai','hy','the','with','and','for','urban','byte','large','medium','regular','small','family','personal','big','jumbo','single','double','ka','ki','ke','mein','ma','one','two','three','four','five','add','order','want','need','i','would','like','get','give','send','please','ek','aik','do','teen','kar','do','kardo','krdo','mujy','mujhey','plz','kindly','make','it','my','cart','remove','delete','cancel','change','update','quantity','qty','piece','pieces','x','confirm','yes','haan','han','ji','ok','okay','done','final','summary','total','mera','meri','ka','ki','ke','to','tak','address','delivery','takeaway','take','away','dine','in','table','number','no','ghar','home','bhej','bhejdo','bhejden']);
-function normalize(v){return String(v||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();}
-function words(v){return normalize(v).split(' ').filter(x=>x.length>2&&!STOP.has(x));}
+const {normalize,words,parseQuantity,variantSize}=require('./ai-order-parser');
 function pkr(v){return 'Rs. '+Number(v).toLocaleString('en-PK',{maximumFractionDigits:2});}
 function isGreeting(t){return /^(hi|hello|hey|salam|assalam|assalam o alaikum|aoa)[!.\s]*$/i.test(String(t||'').trim());}
 function isConfirm(t){return /^(confirm|confirmed|yes confirm|haan confirm|han confirm|ji confirm|yes|haan|han|ji|ok confirm|place order|order confirm|confirm order|finalize|finalise)$/i.test(normalize(t));}
