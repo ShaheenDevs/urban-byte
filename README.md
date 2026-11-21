@@ -9,7 +9,8 @@ Fresh monorepo for Urban Byte restaurant operations.
 - First-admin bootstrap creates Urban Byte restaurant and Shahkot branch.
 - Menu categories, products, variants, branch-specific prices and deals API.
 - Order creation, item name/price snapshots, order listing/details, status history and controlled status transitions.
-- Kitchen tickets generated from confirmed orders, kitchen queue, prepare/ready actions and synchronized order status updates.
+- Kitchen tickets generated from confirmed orders, branch-filtered kitchen queue, prepare/ready actions, kitchen notes and synchronized order status updates.
+- Flutter restaurant operations workspace with orders, Kitchen Display System, branch filtering and manual order creation.
 - Inventory catalog, supplier directory, branch stock/reorder thresholds, purchase receiving, recipe management and immutable stock movement history.
 - AI conversation intake, customer/staff message history, structured order-draft risk checks, Admin/Supervisor approval queue and deterministic menu/deal replies.
 - Optional branch-level recipe consumption on order completion; missing recipes or insufficient stock block completion atomically.
@@ -57,7 +58,7 @@ Recipe-based auto-deduction is disabled by default per branch. Enable auto deduc
 - `PATCH /api/v1/kitchen/tickets/:ticketId/prepare` — kitchen.orders.prepare.
 - `PATCH /api/v1/kitchen/tickets/:ticketId/ready` — kitchen.orders.ready.
 
-A kitchen ticket is created when an order is confirmed. Kitchen actions update both the ticket and the linked order status in one database transaction.
+A kitchen ticket is created when an order is confirmed. Kitchen actions update both the ticket and the linked order status in one database transaction. The Flutter KDS supports branch filtering (when branch access is available), pull-to-refresh, order/customer details, kitchen notes, item quantities and permission-aware prepare/ready actions. Order and kitchen data are loaded independently according to the signed-in user's permissions.
 
 ## Menu endpoints
 - `GET /api/v1/menu/categories` — menu.view
@@ -100,4 +101,4 @@ The AI workspace is available to users with `ai.view` or `ai.orders.approve`. It
 Run `cd flutter && flutter pub get && flutter test`. Set `API_BASE_URL` with `--dart-define` for a physical device or deployed API. The inventory dashboard reads the active branch list from the backend; it does not assume branch ID 1.
 
 ## Remaining milestones
-Customer records, verified payment workflow, delivery workflow, thermal printing bridge, reporting and full role-based Flutter dashboards.
+Customer records, verified payment workflow, delivery workflow, thermal printing bridge, reporting, role-based home dashboards and live push notifications.
