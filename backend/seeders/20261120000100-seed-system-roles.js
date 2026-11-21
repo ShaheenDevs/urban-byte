@@ -8,7 +8,7 @@ const roles = [
 ];
 const permissionKeys = [
   'dashboard.view', 'orders.view_all', 'orders.view_own', 'orders.create', 'orders.edit', 'orders.cancel', 'orders.status.update',
-  'menu.view', 'menu.manage', 'deals.manage', 'customers.view', 'customers.history.view',
+  'menu.view', 'menu.manage', 'deals.manage', 'customers.view', 'customers.manage', 'customers.history.view',
   'inventory.view', 'inventory.manage', 'inventory.adjust', 'payments.view', 'payments.verify', 'payments.refund', 'payments.cod.collect',
   'ai.view', 'ai.conversations.view', 'ai.orders.approve', 'ai.settings.manage',
   'kitchen.orders.view', 'kitchen.orders.prepare', 'kitchen.orders.ready',
@@ -28,8 +28,8 @@ module.exports = {
     const permissionIdByKey = Object.fromEntries(permissionRows.map((row) => [row.permission_key, row.id]));
     const grants = {
       admin: permissionKeys,
-      supervisor: ['dashboard.view','orders.view_all','orders.create','orders.edit','orders.cancel','orders.status.update','menu.view','customers.view','customers.history.view','inventory.view','inventory.adjust','payments.view','payments.verify','payments.cod.collect','ai.view','ai.conversations.view','ai.orders.approve','kitchen.orders.view','delivery.view_assigned','delivery.status.update','reports.view'],
-      waiter: ['dashboard.view','orders.view_own','orders.create','orders.edit','orders.status.update','menu.view','customers.view'],
+      supervisor: ['dashboard.view','orders.view_all','orders.create','orders.edit','orders.cancel','orders.status.update','menu.view','customers.view','customers.manage','customers.history.view','inventory.view','inventory.adjust','payments.view','payments.verify','payments.cod.collect','ai.view','ai.conversations.view','ai.orders.approve','kitchen.orders.view','delivery.view_assigned','delivery.status.update','reports.view'],
+      waiter: ['dashboard.view','orders.view_own','orders.create','orders.edit','orders.status.update','menu.view','customers.view','customers.manage','customers.history.view'],
       kitchen: ['dashboard.view','kitchen.orders.view','kitchen.orders.prepare','kitchen.orders.ready'],
       delivery: ['dashboard.view','delivery.view_assigned','delivery.status.update','payments.cod.collect'],
     };
