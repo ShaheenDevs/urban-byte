@@ -86,7 +86,8 @@ async function financial(restaurantId,query={}){
   purchases:{receivedTotal:receivedPurchaseCost.toFixed(2),receivedCount:purchases.length,supplierPaidForReceived:Number(supplierPaidForReceived).toFixed(2),supplierOutstanding:Number(supplierDue).toFixed(2)},
   supplierPayments:{total:sum(supplierPayments,'amount').toFixed(2),count:supplierPayments.length},
   cashFlow:{cashCollections:cashIn.toFixed(2),cashExpenses:cashExpense.toFixed(2),cashSupplierPayments:cashSupplierPayments.toFixed(2),netCashMovement:(cashIn-cashExpense-cashSupplierPayments).toFixed(2)},
-  productProfitability,\n  profitability:{completedOrders:completedOrders.length,salesRevenue:completedRevenue.toFixed(2),estimatedCogs:estimatedCogs.toFixed(2),missingCostLines:missingCostLines.length,cogsComplete,grossProfit:grossProfit===null?null:grossProfit.toFixed(2),approvedOperatingExpenses:approvedExpenseTotal.toFixed(2),netProfit:netProfit===null?null:netProfit.toFixed(2),status:cogsComplete?'complete':'incomplete'},
+  productProfitability,
+  profitability:{completedOrders:completedOrders.length,salesRevenue:completedRevenue.toFixed(2),estimatedCogs:estimatedCogs.toFixed(2),missingCostLines:missingCostLines.length,cogsComplete,grossProfit:grossProfit===null?null:grossProfit.toFixed(2),approvedOperatingExpenses:approvedExpenseTotal.toFixed(2),netProfit:netProfit===null?null:netProfit.toFixed(2),status:cogsComplete?'complete':'incomplete'},
   accountingNotes:{profitBasis:'Completed orders within selected period, recipe consumption COGS snapshots and approved expenses.',cogsMethod:'Weighted average of recorded purchase stock movements for each ingredient at the order branch.',supplierPaymentsExcludedFromProfit:true,purchasesExcludedFromProfit:true,warning:cogsComplete?null:'Profit is withheld until every completed order line has an estimated recipe cost. Configure recipes and receive purchases with unit costs, then complete orders with inventory auto-deduction enabled.'}
  };
 }
