@@ -131,3 +131,13 @@ Customer records, verified payment workflow, delivery workflow, thermal printing
 - The StaffView and StaffService are registered in `flutter/lib/app/app.dart`; the service locator registration is updated.
 - From `flutter/`, run `flutter pub get`, then `dart run build_runner build --delete-conflicting-outputs` to regenerate Stacked routes/locator after annotation changes, then `dart format lib`, `flutter analyze` and `flutter test`.
 - The current UI provides listing and creation. Editing/deactivation controls, branch membership, audit history and individual permission overrides remain follow-up work. Verify API response envelope compatibility against the deployed backend before production use.
+
+
+## Expense management
+- All expense endpoints require an authenticated user with the matching expense permission.
+- `GET /api/v1/expenses` supports `branchId`, `status`, `from`, `to` and `limit` filters.
+- `POST /api/v1/expenses` creates a pending expense using `branchId`, `category`, `description`, `amount`, `paymentMethod`, `expenseDate` and optional `reference`.
+- `POST /api/v1/expenses/:expenseId/approve` and `POST /api/v1/expenses/:expenseId/reject` review pending expenses. Rejection requires a reason.
+- `GET /api/v1/expenses/reports/summary` returns approved totals grouped by payment method.
+- Admin and Supervisor receive expense permissions in the system role seeder. Run database migrations and reseed only in a controlled development environment; the role seeder resets role/permission data in its down migration.
+- Only approved expenses are included in the expense summary. Expense records are not automatically posted as cash-shift movements, preventing double-counting; cash reconciliation integration remains a separate accounting task.
