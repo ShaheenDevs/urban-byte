@@ -108,6 +108,21 @@ class FinancialReportService {
     return response.bodyBytes;
   }
 
+
+  Future<Uint8List> exportSupplierLedgerPdf(String supplierId) async {
+    final token = await _authService.getAccessToken();
+    if (token == null || token.isEmpty) {
+      throw Exception('Please sign in again.');
+    }
+    final uri = Uri.parse(
+        '$apiBaseUrl/inventory/suppliers/${Uri.encodeComponent(supplierId)}/ledger/export.pdf');
+    final response = await _client.get(uri, headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode < 200 || response.statusCode >= 300 || response.bodyBytes.isEmpty) {
+      throw Exception('Supplier PDF export failed (${response.statusCode}).');
+    }
+    return response.bodyBytes;
+  }
+
   Future<Uint8List> buildSupplierLedgerWorkbook({
     required Map<String, dynamic> ledger,
   }) async {
