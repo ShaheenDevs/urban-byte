@@ -12,6 +12,7 @@ module.exports = (sequelize, DataTypes) => {
   User.belongsToMany(models.Role,{through:models.UserRole,as:'roles',foreignKey:'userId',otherKey:'roleId'});
   User.belongsToMany(models.Permission,{through:models.UserPermission,as:'permissionOverrides',foreignKey:'userId',otherKey:'permissionId'});
   User.hasMany(models.RefreshToken,{foreignKey:'userId',as:'refreshTokens'});
+  User.hasMany(models.Notification,{foreignKey:'userId',as:'notifications'});
  };
  return User;
 };
