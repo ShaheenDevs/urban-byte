@@ -37,7 +37,7 @@ class RoleDashboardPlaceholder extends StatelessWidget {
                 ),
                 icon: Badge(
                   isLabelVisible: (snapshot.data ?? 0) > 0,
-                  label: Text('\${snapshot.data ?? 0}'),
+                  label: Text('${snapshot.data ?? 0}'),
                   child: const Icon(Icons.notifications_outlined),
                 ),
               ),
