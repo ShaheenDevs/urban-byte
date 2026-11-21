@@ -9,6 +9,14 @@ class OperationsService {
         _storage = storage ?? const FlutterSecureStorage();
   final http.Client _client;
   final FlutterSecureStorage _storage;
+  Future<Map<String, dynamic>> dashboardSummary({String? branchId}) async {
+    final suffix = branchId == null || branchId.isEmpty
+        ? ''
+        : '?branchId=${Uri.encodeQueryComponent(branchId)}';
+    final data = await _request('GET', '/dashboard/summary$suffix');
+    return Map<String, dynamic>.from(data as Map);
+  }
+
   Future<List<Map<String, dynamic>>> menu() async =>
       _list(await _request('GET', '/menu/products'));
   Future<List<Map<String, dynamic>>> orders({String? status, String? branchId}) async {
