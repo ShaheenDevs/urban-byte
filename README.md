@@ -112,3 +112,14 @@ Run `cd flutter && flutter pub get && flutter test`. Set `API_BASE_URL` with `--
 
 ## Remaining milestones
 Customer records, verified payment workflow, delivery workflow, thermal printing bridge, reporting, full role-specific dashboard KPIs and live push notifications (FCM/APNs).
+
+## Staff management
+- All staff endpoints require a valid access token and `settings.manage` permission.
+- `GET /api/v1/staff?search=ali&active=true` — list restaurant-scoped staff; password hashes are never returned.
+- `POST /api/v1/staff` — create a staff account with name, email or phone, a temporary password (minimum 12 characters), and roleIds.
+- `GET /api/v1/staff/roles` — list assignable role catalog.
+- `GET /api/v1/staff/permissions` — list permission catalog for administrative review.
+- `PATCH /api/v1/staff/:userId` — update profile, active state, password or roleIds.
+- Role assignment is restricted to supervisor, waiter, kitchen, cashier and delivery; owner/admin/system roles cannot be granted through this endpoint. Permission override writes are intentionally not exposed until a dedicated privilege-escalation-safe policy is implemented.
+- Passwords are hashed with bcrypt cost 12. Deactivated users are rejected by authentication/session refresh. Last login is maintained by the authentication service.
+- Branch-specific staff membership and activity audit events are not yet implemented; current user records are restaurant-scoped.
