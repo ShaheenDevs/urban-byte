@@ -1,0 +1,11 @@
+'use strict';
+const router = require('express').Router();
+const { authenticate } = require('../middleware/auth');
+const { requirePermission } = require('../middleware/require-permission');
+const controller = require('../controllers/customer-controller');
+router.use(authenticate);
+router.get('/', requirePermission('customers.view'), controller.list);
+router.post('/', requirePermission('customers.manage'), controller.create);
+router.patch('/:customerId', requirePermission('customers.manage'), controller.update);
+router.get('/:customerId/orders', requirePermission('customers.history.view'), controller.history);
+module.exports = router;
