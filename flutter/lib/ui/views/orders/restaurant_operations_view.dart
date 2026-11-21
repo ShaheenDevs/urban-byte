@@ -68,7 +68,7 @@ class RestaurantOperationsViewModel extends BaseViewModel {
     setBusy(true);
     loadError = null;
     try {
-      if (permissions.contains('inventory.view')) {
+      if (permissions.contains('branches.view')) {
         branches = await inventory.branches();
         if (branches.isNotEmpty && !branches.any((b) => '${b.id}' == branchId)) {
           branchId = '${branches.first.id}';
@@ -124,14 +124,14 @@ class RestaurantOperationsViewModel extends BaseViewModel {
 
   Future<void> create(String type, List<Map<String, dynamic>> lines,
       {String? table, String? name, String? phone, String? address}) async {
-    await _run(() => api.createOrder(
+    await _run(() async { await api.createOrder(
         branchId: branchId,
         orderType: type,
         items: lines,
         tableLabel: table,
         customerName: name,
         customerPhone: phone,
-        deliveryAddress: address));
+        deliveryAddress: address); });
   }
 
   Future<void> _run(Future<void> Function() action) async {
@@ -264,12 +264,16 @@ class _NewOrderState extends State<_NewOrder> {
       phone = TextEditingController(),
       address = TextEditingController();
   final Map<String, int> cart = {};
+  final search = TextEditingController();
+  @override
+  void initState() { super.initState(); search.addListener(() => setState(() {})); }
   @override
   void dispose() {
     table.dispose();
     name.dispose();
     phone.dispose();
     address.dispose();
+    search.dispose();
     super.dispose();
   }
 
@@ -290,7 +294,9 @@ class _NewOrderState extends State<_NewOrder> {
   @override
   Widget build(BuildContext context) {
     final vm = widget.vm;
-    final available = variants;
+    final available = variants.where((v) => ('${v['_productName']} ${v['name'] ?? v['variantName'] ?? ''}').toLowerCase().contains(search.text.toLowerCase())).toList();
+    final allVariants = variants;
+    final total = allVariants.fold<double>(0, (sum, v) => sum + ((cart['${v['id']}'] ?? 0) * (double.tryParse('${v['salePrice'] ?? v['basePrice'] ?? 0}') ?? 0)));
     return ListView(padding: const EdgeInsets.all(16), children: [
       if (!vm.canCreate)
         const Text('Your account does not have order creation permission.')
@@ -332,6 +338,7 @@ class _NewOrderState extends State<_NewOrder> {
                 const InputDecoration(labelText: 'Customer phone (optional)')),
         const SizedBox(height: 12),
         Text('Menu products', style: Theme.of(context).textTheme.titleMedium),
+        TextField(controller: search, decoration: const InputDecoration(prefixIcon: Icon(Icons.search), labelText: 'Search products')),
         if (available.isEmpty)
           const Text('No active product variants returned by the menu API.'),
         ...available.map((v) {
@@ -356,6 +363,7 @@ class _NewOrderState extends State<_NewOrder> {
                   ])));
         }),
         const SizedBox(height: 12),
+        Card(child: ListTile(title: const Text('Cart total'), trailing: Text('PKR ${total.toStringAsFixed(2)}', style: Theme.of(context).textTheme.titleLarge))),
         FilledButton(
             onPressed: vm.isBusy ||
                     cart.values.every((q) => q == 0) ||
