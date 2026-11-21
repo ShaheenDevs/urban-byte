@@ -41,7 +41,7 @@ class DeliveryView extends StackedView<DeliveryViewModel> {
             Wrap(spacing: 8, runSpacing: 8, children: [
               if (status == 'assigned') FilledButton(onPressed: vm.isBusy ? null : () => vm.update('${a['id']}', 'picked_up'), child: const Text('Picked up')),
               if (status == 'picked_up') FilledButton(onPressed: vm.isBusy ? null : () => vm.update('${a['id']}', 'out_for_delivery'), child: const Text('Start delivery')),
-              if (status == 'out_for_delivery' || status == 'picked_up' || status == 'assigned') FilledButton.tonal(onPressed: vm.isBusy ? null : () => vm.complete(context, '${a['id']}', cod > 0 && !collected), child: const Text('Mark delivered')),
+              if (status == 'out_for_delivery') FilledButton.tonal(onPressed: vm.isBusy ? null : () => vm.complete(context, '${a['id']}', cod > 0 && !collected), child: const Text('Mark delivered')),
             ])
           ])));
         }),
