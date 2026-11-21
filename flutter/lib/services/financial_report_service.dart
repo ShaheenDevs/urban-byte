@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:excel/excel.dart';
 import 'package:http/http.dart' as http;
 import 'package:urban_byte/app/app.locator.dart';
 import '../app/api_config.dart';
@@ -106,4 +107,74 @@ class FinancialReportService {
     }
     return response.bodyBytes;
   }
+
+  Future<Uint8List> buildSupplierLedgerWorkbook({
+    required Map<String, dynamic> ledger,
+  }) async {
+    final excel = Excel.createExcel();
+    final sheet = excel['Supplier Ledger'];
+    final supplier = ledger['supplier'];
+    final supplierName = supplier is Map
+        ? (supplier['name']?.toString() ?? 'Supplier')
+        : 'Supplier';
+    sheet.appendRow([
+      TextCellValue('Urban Byte - Supplier Ledger'),
+    ]);
+    sheet.appendRow([TextCellValue('Supplier'), TextCellValue(supplierName)]);
+    sheet.appendRow([
+      TextCellValue('Purchase total'),
+      DoubleCellValue(_number(ledger['purchaseTotal'])),
+    ]);
+    sheet.appendRow([
+      TextCellValue('Paid total'),
+      DoubleCellValue(_number(ledger['paidTotal'])),
+    ]);
+    sheet.appendRow([
+      TextCellValue('Outstanding'),
+      DoubleCellValue(_number(ledger['outstanding'])),
+    ]);
+    sheet.appendRow([]);
+    sheet.appendRow([
+      TextCellValue('Purchase #'),
+      TextCellValue('Date'),
+      TextCellValue('Total (PKR)'),
+      TextCellValue('Paid (PKR)'),
+      TextCellValue('Due (PKR)'),
+    ]);
+    for (final row in (ledger['purchases'] as List? ?? const [])) {
+      if (row is! Map) continue;
+      sheet.appendRow([
+        TextCellValue(row['purchaseNumber']?.toString() ?? ''),
+        TextCellValue(row['date']?.toString() ?? ''),
+        DoubleCellValue(_number(row['total'])),
+        DoubleCellValue(_number(row['paid'])),
+        DoubleCellValue(_number(row['due'])),
+      ]);
+    }
+    sheet.appendRow([]);
+    sheet.appendRow([
+      TextCellValue('Payment date'),
+      TextCellValue('Method'),
+      TextCellValue('Reference'),
+      TextCellValue('Amount (PKR)'),
+    ]);
+    for (final payment in (ledger['payments'] as List? ?? const [])) {
+      if (payment is! Map) continue;
+      sheet.appendRow([
+        TextCellValue(payment['createdAt']?.toString() ?? ''),
+        TextCellValue(payment['method']?.toString() ?? ''),
+        TextCellValue(payment['reference']?.toString() ?? ''),
+        DoubleCellValue(_number(payment['amount'])),
+      ]);
+    }
+    final bytes = excel.encode();
+    if (bytes == null || bytes.isEmpty) {
+      throw Exception('Could not generate supplier XLSX workbook.');
+    }
+    return Uint8List.fromList(bytes);
+  }
+
+  double _number(dynamic value) =>
+      double.tryParse(value?.toString() ?? '') ?? 0;
+
 }
