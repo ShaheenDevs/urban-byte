@@ -150,3 +150,12 @@ Customer records, verified payment workflow, delivery workflow, thermal printing
 - Payments are limited to the outstanding balance of that received purchase and are saved transactionally. This does not automatically create a cash-shift entry or expense; cash reconciliation/accounting posting needs a separate explicit workflow.
 - Run the new `20261121000700-create-purchase-payments` migration before using supplier payment endpoints.
 - Flutter Stock Operations now opens a supplier ledger from the supplier list and supports recording a payment against an outstanding received purchase.
+
+
+## Financial reporting
+- `GET /api/v1/reports/financial?from=YYYY-MM-DD&to=YYYY-MM-DD&branchId=1` — requires `reports.view`; dates are interpreted in Asia/Karachi.
+- Returns verified payment collections, approved expenses, received purchase totals, supplier payments and outstanding balances, plus cash-only movement summary.
+- Supplier payment totals are scoped through purchase IDs belonging to the selected restaurant/branch. Received purchase outstanding is calculated from payments already recorded against those received purchases.
+- Financial reporting deliberately does not label revenue minus purchases as profit: purchases increase inventory and are not necessarily cost of goods sold. Gross/net profit remains unavailable until stock-consumption/recipe costing and other accounting adjustments are reconciled.
+- Cash-flow summary is limited to recorded cash collections, approved cash expenses and cash supplier payments. Non-cash methods are excluded. Supplier payments and expenses are separate categories and are not automatically posted into cash-shift entries.
+- Flutter Financial Dashboard is available at the generated `Routes.financialReportView` route; it supports date range and optional branch ID filters.
