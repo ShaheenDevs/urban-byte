@@ -41,7 +41,7 @@ async function financial(restaurantId,query={}){
  if(branchId!==null&&(!Number.isSafeInteger(branchId)||branchId<1))throw invalid('Invalid branchId.');
  if(branchId){const branch=await Branch.findOne({where:{id:branchId,restaurantId},attributes:['id']});if(!branch){const e=invalid('Branch not found for this restaurant.');e.statusCode=404;throw e;}}
  const base={restaurantId,...(branchId?{branchId}:{})};
- const [payments,expenses,purchases,branchPurchases]=await Promise.all([
+ const [payments,expenses,purchases,branchPurchases,completedOrders]=await Promise.all([
   Payment.findAll({where:{...base,status:'verified',verifiedAt:{[Op.gte]:start,[Op.lt]:end}},attributes:['method','amount'],raw:true}),
   Expense.findAll({where:{...base,status:'approved',expenseDate:{[Op.gte]:from,[Op.lte]:to}},attributes:['paymentMethod','amount'],raw:true}),
   Purchase.findAll({where:{...base,status:'received',receivedAt:{[Op.gte]:start,[Op.lt]:end}},attributes:['id','supplierId','totalCost'],raw:true}),
@@ -62,13 +62,21 @@ async function financial(restaurantId,query={}){
  const cashIn=payments.filter(p=>p.method==='cash').reduce((n,p)=>n+Number(p.amount),0);
  const cashExpense=expenses.filter(e=>e.paymentMethod==='cash').reduce((n,e)=>n+Number(e.amount),0);
  const cashSupplierPayments=supplierPayments.filter(p=>p.method==='cash').reduce((n,p)=>n+Number(p.amount),0);
+ const completedRevenue=completedOrders.reduce((n,o)=>n+Number(o.grandTotal),0);
+ const completedLines=completedOrders.flatMap(o=>o.items||[]);
+ const missingCostLines=completedLines.filter(line=>line.cogsStatus!=='estimated'||line.cogsTotal===null);
+ const estimatedCogs=completedLines.reduce((n,line)=>n+(line.cogsStatus==='estimated'?Number(line.cogsTotal||0):0),0);
+ const cogsComplete=missingCostLines.length===0;
+ const grossProfit=cogsComplete?completedRevenue-estimatedCogs:null;
+ const netProfit=cogsComplete?grossProfit-approvedExpenseTotal:null;
  return {period:{from,to},timezone:'Asia/Karachi',currency:'PKR',
   collections:{total:collected.toFixed(2),count:payments.length,byMethod:byMethod(payments,'method')},
   approvedExpenses:{total:approvedExpenseTotal.toFixed(2),count:expenses.length,byMethod:byMethod(expenses,'paymentMethod')},
   purchases:{receivedTotal:receivedPurchaseCost.toFixed(2),receivedCount:purchases.length,supplierPaidForReceived:Number(supplierPaidForReceived).toFixed(2),supplierOutstanding:Number(supplierDue).toFixed(2)},
   supplierPayments:{total:sum(supplierPayments,'amount').toFixed(2),count:supplierPayments.length},
   cashFlow:{cashCollections:cashIn.toFixed(2),cashExpenses:cashExpense.toFixed(2),cashSupplierPayments:cashSupplierPayments.toFixed(2),netCashMovement:(cashIn-cashExpense-cashSupplierPayments).toFixed(2)},
-  accountingNotes:{profitAvailable:false,reason:'Purchase receipts are inventory acquisitions, not necessarily cost of goods sold. Accurate gross/net profit requires stock consumption or recipe-based COGS valuation. Do not subtract full purchases from revenue as profit.'}
+  profitability:{completedOrders:completedOrders.length,salesRevenue:completedRevenue.toFixed(2),estimatedCogs:estimatedCogs.toFixed(2),missingCostLines:missingCostLines.length,cogsComplete,grossProfit:grossProfit===null?null:grossProfit.toFixed(2),approvedOperatingExpenses:approvedExpenseTotal.toFixed(2),netProfit:netProfit===null?null:netProfit.toFixed(2),status:cogsComplete?'complete':'incomplete'},
+  accountingNotes:{profitBasis:'Completed orders within selected period, recipe consumption COGS snapshots and approved expenses.',cogsMethod:'Weighted average of recorded purchase stock movements for each ingredient at the order branch.',supplierPaymentsExcludedFromProfit:true,purchasesExcludedFromProfit:true,warning:cogsComplete?null:'Profit is withheld until every completed order line has an estimated recipe cost. Configure recipes and receive purchases with unit costs, then complete orders with inventory auto-deduction enabled.'}
  };
 }
 
