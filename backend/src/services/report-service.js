@@ -1,6 +1,6 @@
 'use strict';
 const {Op}=require('sequelize');
-const {Order,OrderItem,Payment,Expense,Purchase,PurchasePayment,Branch,sequelize}=require('../models');
+const {Order,OrderItem,Payment,Expense,Purchase,PurchasePayment,Branch,StockMovement,sequelize}=require('../models');
 function invalid(message){const e=new Error(message);e.statusCode=400;e.code='INVALID_REPORT_FILTER';return e;}
 function range(query={}){
  const from=query.from||query.date||new Date().toISOString().slice(0,10);
@@ -92,4 +92,44 @@ async function financial(restaurantId,query={}){
  };
 }
 
-module.exports={overview,financial,range};
+
+async function analytics(restaurantId,query={}){
+ const {from,to,start,end}=range(query);
+ const branchId=query.branchId?Number(query.branchId):null;
+ if(branchId!==null&&(!Number.isSafeInteger(branchId)||branchId<1))throw invalid('Invalid branchId.');
+ if(branchId){const branch=await Branch.findOne({where:{id:branchId,restaurantId},attributes:['id']});if(!branch){const e=invalid('Branch not found for this restaurant.');e.statusCode=404;throw e;}}
+ const scope={restaurantId,status:'completed',completedAt:{[Op.gte]:start,[Op.lt]:end},...(branchId?{branchId}:{})};
+ const [orders,branches,waste]=await Promise.all([
+  Order.findAll({where:scope,include:[{model:OrderItem,as:'items'}],order:[['completedAt','ASC']]}),
+  Branch.findAll({where:{restaurantId,isActive:true,...(branchId?{id:branchId}:{})},attributes:['id','name'],raw:true}),
+  StockMovement.findAll({where:{restaurantId,movementType:'waste',createdAt:{[Op.gte]:start,[Op.lt]:end},...(branchId?{branchId}:{})},attributes:['branchId','inventoryItemId','quantityChange','unitCost'],raw:true})
+ ]);
+ const daily=new Map(),products=new Map(),branchStats=new Map();
+ for(const order of orders){
+  const d=new Date(order.completedAt).toISOString().slice(0,10);
+  const day=daily.get(d)||{date:d,orders:0,revenue:0};
+  day.orders++;day.revenue+=Number(order.grandTotal);daily.set(d,day);
+  const b=branchStats.get(String(order.branchId))||{orders:0,revenue:0,cogs:0,missingCogs:0};
+  b.orders++;b.revenue+=Number(order.grandTotal);
+  for(const line of order.items||[]){
+   const key=line.productName;
+   const product=products.get(key)||{productName:key,quantity:0,revenue:0,cogs:0,missingCost:false};
+   product.quantity+=Number(line.quantity);product.revenue+=Number(line.lineTotal);
+   if(line.cogsStatus==='estimated'&&line.cogsTotal!==null){product.cogs+=Number(line.cogsTotal);b.cogs+=Number(line.cogsTotal);}else{product.missingCost=true;b.missingCogs++;}
+   products.set(key,product);
+  }
+  branchStats.set(String(order.branchId),b);
+ }
+ const productRows=[...products.values()].map(p=>({productName:p.productName,quantity:Number(p.quantity.toFixed(3)),revenue:p.revenue.toFixed(2),cogs:p.missingCost?null:p.cogs.toFixed(2),grossProfit:p.missingCost?null:(p.revenue-p.cogs).toFixed(2),marginPercent:p.missingCost||p.revenue<=0?null:Number(((p.revenue-p.cogs)/p.revenue*100).toFixed(2)),costStatus:p.missingCost?'incomplete':'complete'}));
+ const wasteQty=waste.reduce((n,x)=>n+Math.abs(Number(x.quantityChange)),0);
+ const wasteCost=waste.reduce((n,x)=>n+Math.abs(Number(x.quantityChange))*Number(x.unitCost||0),0);
+ return {period:{from,to},timezone:'Asia/Karachi',currency:'PKR',
+  dailySales:[...daily.values()].map(x=>({date:x.date,orders:x.orders,revenue:x.revenue.toFixed(2)})),
+  bestSellingProducts:[...productRows].sort((a,b)=>b.quantity-a.quantity).slice(0,10),
+  highestRevenueProducts:[...productRows].sort((a,b)=>Number(b.revenue)-Number(a.revenue)).slice(0,10),
+  lowestMarginProducts:productRows.filter(p=>p.marginPercent!==null).sort((a,b)=>a.marginPercent-b.marginPercent).slice(0,10),
+  wastage:{movementCount:waste.length,totalQuantity:Number(wasteQty.toFixed(3)),estimatedCost:wasteCost.toFixed(2),note:'Wastage cost is estimated only where stock movement unitCost is populated.'},
+  branchComparison:branches.map(b=>{const x=branchStats.get(String(b.id))||{orders:0,revenue:0,cogs:0,missingCogs:0};return {branchId:b.id,branchName:b.name,orders:x.orders,revenue:x.revenue.toFixed(2),estimatedCogs:x.missingCogs?null:x.cogs.toFixed(2),grossProfit:x.missingCogs?null:(x.revenue-x.cogs).toFixed(2),costStatus:x.missingCogs?'incomplete':'complete'};})
+ };
+}
+\nmodule.exports={overview,financial,analytics,range};
