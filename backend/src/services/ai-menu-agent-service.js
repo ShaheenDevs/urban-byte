@@ -7,7 +7,7 @@ function isMenuRequest(text){const q=normalize(text);return /\b(menu|price|price
 function greeting(text){return /^(hi|hello|hey|salam|assalam|assalam o alaikum|aoa|aoa urban byte|salam urban byte)[!.\s]*$/i.test(String(text||'').trim());}
 function pkr(value){return 'Rs. '+Number(value).toLocaleString('en-PK',{maximumFractionDigits:2});}
 async function getProducts(restaurantId,branchId,query){
- const stop=new Set(['please','mujhe','mujhy','chahiye','chaiye','price','rate','menu','show','batao','btao','kya','kia','available','hai','hy','the','with','and','for','urban','byte']);
+ const stop=new Set(['please','mujhe','mujhy','chahiye','chaiye','price','rate','menu','show','batao','btao','kya','kia','available','hai','hy','the','with','and','for','urban','byte','large','medium','regular','small','family','personal','big','jumbo','single','double','ka','ki','ke','mein','ma','mujhe','mujhy','chahye','chahiye']);
  const tokens=normalize(query).split(' ').filter(x=>x.length>2&&!stop.has(x)).slice(0,5);
  const where={restaurantId,isActive:true,isAvailable:true};
  if(tokens.length)where[Op.and]=tokens.map(token=>({name:{[Op.like]:'%'+token+'%'}}));
