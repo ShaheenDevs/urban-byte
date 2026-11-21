@@ -14,7 +14,7 @@ module.exports={
  receivePurchase:wrap((r,id)=>service.receivePurchase(id,{id:r.auth.sub},r.params.purchaseId),'Purchase received and stock updated.'),
  saveRecipe:wrap((r,id)=>service.saveRecipe(id,r.body||{}),'Recipe saved.'),
  listRecipes:wrap((r,id)=>service.listRecipes(id),'Recipes loaded.'),
- createSupplier:wrap((r,id)=>service.createSupplier(id,r.body||{}),'Supplier created.',201),
+ recordPurchasePayment:wrap((r,id)=>service.recordPurchasePayment(id,{id:r.auth.sub},r.params.purchaseId,r.body||{}),'Supplier payment recorded.',201),\n supplierLedger:wrap((r,id)=>service.supplierLedger(id,r.params.supplierId),'Supplier ledger loaded.'),\n createSupplier:wrap((r,id)=>service.createSupplier(id,r.body||{}),'Supplier created.',201),
  listSuppliers:wrap((r,id)=>service.listSuppliers(id),'Suppliers loaded.'),
  setReorderLevel:wrap((r,id)=>service.setReorderLevel(id,r.body||{}),'Reorder threshold saved.'),
  lowStock:wrap((r,id)=>service.lowStock(id,r.query.branchId),'Low-stock items loaded.'),
