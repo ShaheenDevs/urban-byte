@@ -32,6 +32,24 @@ class OperationsService {
     final path = query.isEmpty ? '/kitchen/tickets' : '/kitchen/tickets?' + Uri(queryParameters: query).query;
     return _list(await _request('GET', path));
   }
+
+  Future<List<Map<String, dynamic>>> deliveryAssignments({String? status}) async {
+    final path = status == null ? '/delivery/assignments' : '/delivery/assignments?status=${Uri.encodeQueryComponent(status)}';
+    return _list(await _request('GET', path));
+  }
+
+  Future<void> updateDeliveryStatus(String assignmentId, String status, {bool codCollected = false, String? note}) async {
+    await _request('PATCH', '/delivery/assignments/$assignmentId/status', body: {
+      'status': status,
+      if (codCollected) 'codCollected': true,
+      if (note != null && note.isNotEmpty) 'note': note,
+    });
+  }
+
+  Future<void> assignDelivery(String orderId, String deliveryUserId) async {
+    await _request('POST', '/delivery/orders/$orderId/assign', body: {'deliveryUserId': int.parse(deliveryUserId)});
+  }
+
   Future<List<Map<String, dynamic>>> notifications({bool unreadOnly = false}) async {
     final path = unreadOnly ? '/notifications?unread=true' : '/notifications';
     return _list(await _request('GET', path));
