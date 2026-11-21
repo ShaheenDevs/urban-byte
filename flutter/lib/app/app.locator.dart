@@ -12,6 +12,7 @@ import 'package:stacked_shared/stacked_shared.dart';
 
 import '../services/auth_service.dart';
 import '../services/expense_service.dart';
+import '../services/financial_report_service.dart';
 import '../services/inventory_service.dart';
 import '../services/operations_service.dart';
 import '../services/staff_service.dart';
@@ -31,4 +32,5 @@ Future<void> setupLocator(
   locator.registerLazySingleton(() => OperationsService());
   locator.registerLazySingleton(() => StaffService(locator<AuthService>()));
   locator.registerLazySingleton(() => ExpenseService(locator<AuthService>()));
+  locator.registerLazySingleton(() => FinancialReportService(locator<AuthService>()));
 }
