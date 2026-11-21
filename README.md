@@ -141,3 +141,12 @@ Customer records, verified payment workflow, delivery workflow, thermal printing
 - `GET /api/v1/expenses/reports/summary` returns approved totals grouped by payment method.
 - Admin and Supervisor receive expense permissions in the system role seeder. Run database migrations and reseed only in a controlled development environment; the role seeder resets role/permission data in its down migration.
 - Only approved expenses are included in the expense summary. Expense records are not automatically posted as cash-shift movements, preventing double-counting; cash reconciliation integration remains a separate accounting task.
+
+
+## Supplier ledger and purchase payments
+- Existing inventory purchase drafts can be received into branch stock; this milestone adds supplier payment records and supplier account balances.
+- `GET /api/v1/inventory/suppliers/:supplierId/ledger` returns received purchases, recorded payments, total purchases, total paid and outstanding balance.
+- `POST /api/v1/inventory/purchases/:purchaseId/payments` records a supplier payment with amount, method (`cash`, `bank_transfer`, `easypaisa`, `jazzcash` or `card`), and optional reference/notes.
+- Payments are limited to the outstanding balance of that received purchase and are saved transactionally. This does not automatically create a cash-shift entry or expense; cash reconciliation/accounting posting needs a separate explicit workflow.
+- Run the new `20261121000700-create-purchase-payments` migration before using supplier payment endpoints.
+- Flutter Stock Operations now opens a supplier ledger from the supplier list and supports recording a payment against an outstanding received purchase.
