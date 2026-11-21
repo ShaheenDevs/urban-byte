@@ -1,0 +1,5 @@
+'use strict';
+module.exports={
+ async up(q,D){await q.createTable('whatsapp_outbound_messages',{id:{type:D.BIGINT.UNSIGNED,autoIncrement:true,primaryKey:true},restaurant_id:{type:D.BIGINT.UNSIGNED,allowNull:false},conversation_id:{type:D.BIGINT.UNSIGNED,allowNull:false,references:{model:'ai_conversations',key:'id'},onDelete:'CASCADE'},provider_message_id:{type:D.STRING(191),allowNull:true,unique:true},recipient_phone:{type:D.STRING(30),allowNull:false},message_type:{type:D.ENUM('text','template'),allowNull:false,defaultValue:'text'},content:{type:D.TEXT,allowNull:false},delivery_status:{type:D.ENUM('queued','sent','delivered','read','failed'),allowNull:false,defaultValue:'queued'},provider_error:{type:D.STRING(500),allowNull:true},sent_at:{type:D.DATE,allowNull:true},delivered_at:{type:D.DATE,allowNull:true},read_at:{type:D.DATE,allowNull:true},created_at:{type:D.DATE,allowNull:false},updated_at:{type:D.DATE,allowNull:false}});await q.addIndex('whatsapp_outbound_messages',['restaurant_id','delivery_status']);await q.addIndex('whatsapp_outbound_messages',['conversation_id','created_at']);},
+ async down(q){await q.dropTable('whatsapp_outbound_messages');}
+};
