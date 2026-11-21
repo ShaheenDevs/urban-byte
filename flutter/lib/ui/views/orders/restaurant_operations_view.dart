@@ -3,6 +3,7 @@ import 'package:stacked/stacked.dart';
 import '../../../app/app.locator.dart';
 import '../../../services/inventory_service.dart';
 import '../../../services/operations_service.dart';
+import '../notifications/notification_inbox_sheet.dart';
 
 class RestaurantOperationsView
     extends StackedView<RestaurantOperationsViewModel> {
@@ -21,6 +22,24 @@ class RestaurantOperationsView
           child: Scaffold(
               appBar: AppBar(
                   title: const Text('Restaurant operations'),
+                  actions: [
+                    FutureBuilder<int>(
+                      future: locator<OperationsService>().unreadNotificationCount(),
+                      builder: (context, snapshot) => IconButton(
+                        tooltip: 'Notifications',
+                        onPressed: () => showModalBottomSheet<void>(
+                          context: context,
+                          isScrollControlled: true,
+                          builder: (_) => const NotificationInboxSheet(),
+                        ),
+                        icon: Badge(
+                          isLabelVisible: (snapshot.data ?? 0) > 0,
+                          label: Text('${snapshot.data ?? 0}'),
+                          child: const Icon(Icons.notifications_outlined),
+                        ),
+                      ),
+                    ),
+                  ],
                   bottom: const TabBar(tabs: [
                     Tab(text: 'Orders'),
                     Tab(text: 'Kitchen'),
