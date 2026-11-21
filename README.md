@@ -75,7 +75,11 @@ All menu and order data is scoped to the restaurant in the signed access token. 
 - Configure `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET`, `WHATSAPP_RESTAURANT_ID`, and `WHATSAPP_BRANCH_ID` in the backend environment. Never commit real secrets.
 - Set the Meta webhook callback URL to `https://YOUR_API_HOST/api/v1/webhooks/whatsapp/webhook` and subscribe to the `messages` field.
 - `GET` verifies the Meta webhook challenge; `POST` verifies `X-Hub-Signature-256` against the exact raw request body, deduplicates provider message IDs, and stores inbound text messages as WhatsApp AI conversations/messages.
-- This milestone only ingests inbound text. It does not send replies, process media/interactive messages, or connect an LLM. Configure a public HTTPS API and real Meta app credentials before testing with WhatsApp.
+- `POST /api/v1/ai/conversations/:conversationId/whatsapp/send` — authenticated staff with `ai.view`; sends a text reply through WhatsApp Cloud API and stores its provider message ID.
+- Configure `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`, and optional `WHATSAPP_GRAPH_VERSION` in `.env`. Use a long-lived/system-user token with the required WhatsApp messaging permissions; never commit it.
+- The same signed webhook ingests inbound text and processes provider delivery/read/failure status callbacks. Outbound messages are stored with queued/sent/delivered/read/failed states.
+- Outbound send is only available for existing WhatsApp conversations with a valid customer number. Meta's messaging window/template rules still apply; this implementation sends text messages only and does not yet handle approved template messages, media, interactive buttons, retries or an LLM.
+- Configure a public HTTPS API and real Meta app credentials before testing with WhatsApp. A successful API response means Meta accepted the send request, not that the customer received or read it.
 
 ## AI agent endpoints
 - `POST /api/v1/ai/conversations` — ai.view; opens a manual/WhatsApp/phone/web conversation.
@@ -84,6 +88,7 @@ All menu and order data is scoped to the restaurant in the signed access token. 
 - `POST /api/v1/ai/conversations/:conversationId/messages` — ai.view; appends a customer, assistant, staff or system message.
 - `POST /api/v1/ai/conversations/:conversationId/order-draft` — ai.view; validates a structured order draft and creates a pending approval request.
 - `GET /api/v1/ai/approvals` and `POST /api/v1/ai/approvals/:requestId/review` — ai.orders.approve; Admin and authorized Supervisor approval workflow.
+- `POST /api/v1/ai/conversations/:conversationId/whatsapp/send` — ai.view; sends an outbound WhatsApp text reply and records provider delivery status.
 
 The current AI milestone provides deterministic intake, backend risk checks, order conversion and staff approvals. A draft is auto-approved only when the customer explicitly confirms it, branch and order type are valid, required delivery/table details are present, quantities are valid, and no discount/custom price is requested. Backend order creation revalidates active products and calculates prices from server-side menu/branch prices. Drafts with any risk reason remain pending for an authorized Admin/Supervisor. Approved drafts create normal orders with source `ai`; payment remains unpaid and is never auto-marked paid. This is not yet a connected LLM or WhatsApp integration. Provider credentials and webhooks are required before connecting external messaging or AI services.
 
