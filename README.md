@@ -71,6 +71,12 @@ A kitchen ticket is created when an order is confirmed. Kitchen actions update b
 
 All menu and order data is scoped to the restaurant in the signed access token. Never commit `.env`, secrets, provider keys or customer data. MySQL integration testing requires configured database credentials.
 
+## WhatsApp Cloud API webhook
+- Configure `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET`, `WHATSAPP_RESTAURANT_ID`, and `WHATSAPP_BRANCH_ID` in the backend environment. Never commit real secrets.
+- Set the Meta webhook callback URL to `https://YOUR_API_HOST/api/v1/webhooks/whatsapp/webhook` and subscribe to the `messages` field.
+- `GET` verifies the Meta webhook challenge; `POST` verifies `X-Hub-Signature-256` against the exact raw request body, deduplicates provider message IDs, and stores inbound text messages as WhatsApp AI conversations/messages.
+- This milestone only ingests inbound text. It does not send replies, process media/interactive messages, or connect an LLM. Configure a public HTTPS API and real Meta app credentials before testing with WhatsApp.
+
 ## AI agent endpoints
 - `POST /api/v1/ai/conversations` — ai.view; opens a manual/WhatsApp/phone/web conversation.
 - `GET /api/v1/ai/conversations` — ai.view; lists restaurant-scoped conversations.
