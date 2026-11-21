@@ -49,14 +49,37 @@ class RestaurantOperationsViewModel extends BaseViewModel {
     setBusy(true);
     loadError = null;
     try {
-      final r = await Future.wait(
-          [api.orders(), api.kitchenQueue(), api.menu(), inventory.branches()]);
-      orders = List<Map<String, dynamic>>.from(r[0] as List);
-      tickets = List<Map<String, dynamic>>.from(r[1] as List);
-      products = List<Map<String, dynamic>>.from(r[2] as List);
-      branches = r[3] as List;
-      if (branches.isNotEmpty && !branches.any((b) => '${b.id}' == branchId))
-        branchId = '${branches.first.id}';
+      if (permissions.contains('inventory.view')) {
+        branches = await inventory.branches();
+        if (branches.isNotEmpty && !branches.any((b) => '${b.id}' == branchId)) {
+          branchId = '${branches.first.id}';
+        }
+      }
+      final tasks = <Future<dynamic>>[];
+      final keys = <String>[];
+      if (permissions.contains('orders.view_all') || permissions.contains('orders.view_own')) {
+        keys.add('orders');
+        tasks.add(api.orders(branchId: branchId.isEmpty ? null : branchId));
+      }
+      if (canKitchen) {
+        keys.add('tickets');
+        tasks.add(api.kitchenQueue(branchId: branchId.isEmpty ? null : branchId));
+      }
+      if (permissions.contains('menu.view') || canCreate) {
+        keys.add('products');
+        tasks.add(api.menu());
+      }
+      final results = await Future.wait(tasks);
+      for (var i = 0; i < keys.length; i++) {
+        switch (keys[i]) {
+          case 'orders':
+            orders = List<Map<String, dynamic>>.from(results[i] as List);
+          case 'tickets':
+            tickets = List<Map<String, dynamic>>.from(results[i] as List);
+          case 'products':
+            products = List<Map<String, dynamic>>.from(results[i] as List);
+        }
+      }
       loaded = true;
     } catch (e) {
       loadError = e.toString();
@@ -64,6 +87,12 @@ class RestaurantOperationsViewModel extends BaseViewModel {
       setBusy(false);
       notifyListeners();
     }
+  }
+
+  Future<void> selectBranch(String? value) async {
+    if (value == null || value == branchId) return;
+    branchId = value;
+    await load();
   }
 
   Future<void> changeStatus(String id, String status) async {
@@ -151,8 +180,13 @@ class _Kitchen extends StatelessWidget {
   Widget build(BuildContext context) => RefreshIndicator(
       onRefresh: vm.load,
       child: ListView(padding: const EdgeInsets.all(12), children: [
+        if (vm.branches.isNotEmpty) DropdownButtonFormField<String>(
+            value: vm.branchId,
+            decoration: const InputDecoration(labelText: 'Kitchen branch'),
+            items: vm.branches.map((b) => DropdownMenuItem<String>(value: '${b.id}', child: Text(b.name))).toList(),
+            onChanged: vm.isBusy ? null : vm.selectBranch),
         if (vm.loadError != null) Text(vm.loadError!),
-        if (vm.tickets.isEmpty) const Text('Kitchen queue is empty.'),
+        if (vm.tickets.isEmpty) const Padding(padding: EdgeInsets.all(24), child: Center(child: Text('Kitchen queue is empty. New confirmed orders will appear here.'))),
         ...vm.tickets.map((t) {
           final id = '${t['id']}';
           final status = '${t['status']}';
@@ -168,6 +202,8 @@ class _Kitchen extends StatelessWidget {
                             style: Theme.of(context).textTheme.titleMedium),
                         Text(
                             'Order ${order['orderNumber'] ?? ''} • ${order['tableLabel'] ?? order['orderType'] ?? ''}'),
+                        if (order['customerName'] != null) Text('Customer: ${order['customerName']}'),
+                        if (order['notes'] != null && '${order['notes']}'.isNotEmpty) Text('Order notes: ${order['notes']}'),
                         ...items.map((i) => ListTile(
                             dense: true,
                             title: Text(
