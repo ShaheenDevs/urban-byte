@@ -8,6 +8,7 @@ router.use('/orders',require('./order-routes'));
 router.use('/customers',require('./customer-routes'));
 router.use('/payments',require('./payment-routes'));
 router.use('/cash-shifts',require('./cash-shift-routes'));
+router.use('/expenses',require('./expense-routes'));
 router.use('/kitchen',require('./kitchen-routes'));
 router.use('/inventory',require('./inventory-routes'));
 router.use('/ai',require('./ai-routes'));
