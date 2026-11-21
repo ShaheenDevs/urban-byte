@@ -71,4 +71,5 @@ async function financial(restaurantId,query={}){
   accountingNotes:{profitAvailable:false,reason:'Purchase receipts are inventory acquisitions, not necessarily cost of goods sold. Accurate gross/net profit requires stock consumption or recipe-based COGS valuation. Do not subtract full purchases from revenue as profit.'}
  };
 }
-\nmodule.exports={overview,financial,range};
+
+module.exports={overview,financial,range};
