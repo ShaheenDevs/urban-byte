@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../app/app.locator.dart';
+import '../../../services/operations_service.dart';
+import '../notifications/notification_inbox_sheet.dart';
 import '../inventory/inventory_view.dart';
 import '../orders/restaurant_operations_view.dart';
 import '../ai/ai_agent_view.dart';
@@ -20,7 +23,27 @@ class RoleDashboardPlaceholder extends StatelessWidget {
       permissions.contains('kitchen.orders.view');
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text('$roleName Dashboard')),
+        appBar: AppBar(
+          title: Text('$roleName Dashboard'),
+          actions: [
+            FutureBuilder<int>(
+              future: locator<OperationsService>().unreadNotificationCount(),
+              builder: (context, snapshot) => IconButton(
+                tooltip: 'Notifications',
+                onPressed: () => showModalBottomSheet<void>(
+                  context: context,
+                  isScrollControlled: true,
+                  builder: (_) => const NotificationInboxSheet(),
+                ),
+                icon: Badge(
+                  isLabelVisible: (snapshot.data ?? 0) > 0,
+                  label: Text('\${snapshot.data ?? 0}'),
+                  child: const Icon(Icons.notifications_outlined),
+                ),
+              ),
+            ),
+          ],
+        ),
         body: ListView(padding: const EdgeInsets.all(16), children: [
           Text('Urban Byte', style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 6),
