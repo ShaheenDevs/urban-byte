@@ -11,16 +11,19 @@ class OperationsService {
   final FlutterSecureStorage _storage;
   Future<List<Map<String, dynamic>>> menu() async =>
       _list(await _request('GET', '/menu/products'));
-  Future<List<Map<String, dynamic>>> orders({String? status}) async {
-    final q =
-        status == null ? '' : '?status=' + Uri.encodeQueryComponent(status);
+  Future<List<Map<String, dynamic>>> orders({String? status, String? branchId}) async {
+    final query = <String, String>{if (status != null) 'status': status, if (branchId != null && branchId.isNotEmpty) 'branchId': branchId};
+    final q = query.isEmpty ? '' : '?' + Uri(queryParameters: query).query;
     final data = await _request('GET', '/orders$q');
     if (data is Map && data['items'] is List) return _list(data['items']);
     return _list(data);
   }
 
-  Future<List<Map<String, dynamic>>> kitchenQueue() async =>
-      _list(await _request('GET', '/kitchen/tickets'));
+  Future<List<Map<String, dynamic>>> kitchenQueue({String? branchId, String? status}) async {
+    final query = <String, String>{if (branchId != null && branchId.isNotEmpty) 'branchId': branchId, if (status != null) 'status': status};
+    final path = query.isEmpty ? '/kitchen/tickets' : '/kitchen/tickets?' + Uri(queryParameters: query).query;
+    return _list(await _request('GET', path));
+  }
   Future<Map<String, dynamic>> createOrder(
       {required String branchId,
       required String orderType,
