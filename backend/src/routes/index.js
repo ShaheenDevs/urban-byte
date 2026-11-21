@@ -8,4 +8,5 @@ router.use('/kitchen',require('./kitchen-routes'));
 router.use('/inventory',require('./inventory-routes'));
 router.use('/ai',require('./ai-routes'));
 router.use('/notifications',require('./notification-routes'));
+router.use('/dashboard',require('./dashboard-routes'));
 module.exports=router;
