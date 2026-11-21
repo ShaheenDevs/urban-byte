@@ -106,7 +106,7 @@ async function analytics(restaurantId,query={}){
  ]);
  const daily=new Map(),products=new Map(),branchStats=new Map();
  for(const order of orders){
-  const d=new Date(order.completedAt).toISOString().slice(0,10);
+  const d=new Date(new Date(order.completedAt).getTime()+5*60*60*1000).toISOString().slice(0,10);
   const day=daily.get(d)||{date:d,orders:0,revenue:0};
   day.orders++;day.revenue+=Number(order.grandTotal);daily.set(d,day);
   const b=branchStats.get(String(order.branchId))||{orders:0,revenue:0,cogs:0,missingCogs:0};
@@ -132,4 +132,5 @@ async function analytics(restaurantId,query={}){
   branchComparison:branches.map(b=>{const x=branchStats.get(String(b.id))||{orders:0,revenue:0,cogs:0,missingCogs:0};return {branchId:b.id,branchName:b.name,orders:x.orders,revenue:x.revenue.toFixed(2),estimatedCogs:x.missingCogs?null:x.cogs.toFixed(2),grossProfit:x.missingCogs?null:(x.revenue-x.cogs).toFixed(2),costStatus:x.missingCogs?'incomplete':'complete'};})
  };
 }
-\nmodule.exports={overview,financial,analytics,range};
+
+module.exports={overview,financial,analytics,range};
