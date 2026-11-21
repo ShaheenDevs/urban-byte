@@ -3,10 +3,10 @@ const {Op}=require('sequelize');
 const {Product,ProductVariant,MenuCategory,BranchProductPrice,Deal,DealItem,DealPrice,AiMessage}=require('../models');
 const whatsapp=require('./whatsapp-outbound-service');
 const aiOrders=require('./ai-agent-service');
-const {normalize,words,parseQuantity,variantSize}=require('./ai-order-parser');
+const {normalize,words,parseQuantity,variantSize,isExplicitConfirmation}=require('./ai-order-parser');
 function pkr(v){return 'Rs. '+Number(v).toLocaleString('en-PK',{maximumFractionDigits:2});}
 function isGreeting(t){return /^(hi|hello|hey|salam|assalam|assalam o alaikum|aoa)[!.\s]*$/i.test(String(t||'').trim());}
-function isConfirm(t){return /^(confirm|confirmed|yes confirm|haan confirm|han confirm|ji confirm|yes|haan|han|ji|ok confirm|place order|order confirm|confirm order|finalize|finalise)$/i.test(normalize(t));}
+function isConfirm(t){return isExplicitConfirmation(t);}
 function isCart(t){return /\b(cart|summary|total|checkout|my order|mera order|order details)\b/.test(normalize(t))||/cart|total|order dikhao|order batao|hisab|khulasa/.test(normalize(t));}
 
 async function getProducts(restaurantId,branchId,query){
@@ -22,8 +22,8 @@ async function respond(restaurantId,conversation,text){
  const q=String(text||'').trim();const context={...(conversation.context||{})};const cart={items:Array.isArray(context.cart?.items)?context.cart.items:[],orderType:context.cart?.orderType||null,deliveryAddress:context.cart?.deliveryAddress||null,tableLabel:context.cart?.tableLabel||null};
  let reply;
  if(isGreeting(q)){reply='Assalam-o-Alaikum! Urban Byte mein khush aamdeed. Aap pizza, burger ya deals ka menu pooch sakte hain. Order ke liye item aur quantity likhein.';}
- else if(isCart(q)){reply=cartSummary(cart);}
  else if(/^(clear cart|empty cart|cart clear|order cancel|cancel cart)$/i.test(normalize(q))){cart.items=[];context.cart=cart;await conversation.update({context});reply='Aapka cart clear kar diya hai. Naya order add kar sakte hain.';}
+ else if(isCart(q)){reply=cartSummary(cart);}
  else if(/^(delivery|home delivery|deliver)$/i.test(normalize(q))||/home delivery|delivery chahiye|ghar deliver/.test(normalize(q))){cart.orderType='delivery';context.cart=cart;await conversation.update({context});reply='Delivery ke liye apna complete address aur area bhej dein.';}
  else if(/^(takeaway|take away|pickup|pick up)$/i.test(normalize(q))){cart.orderType='takeaway';context.cart=cart;await conversation.update({context});reply='Theek hai, takeaway select kar liya. Aur koi item add karna hai ya cart summary dekhein?';}
  else if(/^(dine in|dine-in|restaurant mein|table)$/i.test(normalize(q))){cart.orderType='dine_in';context.cart=cart;await conversation.update({context});reply='Dine-in select kar liya. Apna table number/label bhej dein.';}
