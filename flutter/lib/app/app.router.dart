@@ -12,11 +12,13 @@ import 'package:flutter/material.dart';
 import 'package:stacked/stacked.dart' as _i1;
 import 'package:stacked_services/stacked_services.dart' as _i4;
 import 'package:urban_byte/ui/views/auth/login_view.dart' as _i2;
+import 'package:urban_byte/ui/views/reports/financial_report_view.dart' as _i5;
 
 class Routes {
   static const loginView = '/login-view';
+  static const financialReportView = '/financial-report-view';
 
-  static const all = <String>{loginView};
+  static const all = <String>{loginView, financialReportView};
 }
 
 class StackedRouter extends _i1.RouterBase {
@@ -99,5 +101,15 @@ extension NavigatorStateExtension on _i4.NavigationService {
         preventDuplicates: preventDuplicates,
         parameters: parameters,
         transition: transition);
+  }
+}
+
+extension FinancialReportNavigator on _i4.NavigationService {
+  Future<dynamic> navigateToFinancialReportView({
+    int? routerId,
+    bool preventDuplicates = true,
+  }) async {
+    return navigateTo<dynamic>(Routes.financialReportView,
+      id: routerId, preventDuplicates: preventDuplicates);
   }
 }
