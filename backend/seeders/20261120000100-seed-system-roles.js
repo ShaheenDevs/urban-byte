@@ -12,7 +12,7 @@ const permissionKeys = [
   'inventory.view', 'inventory.manage', 'inventory.adjust', 'payments.view', 'payments.verify', 'payments.refund', 'payments.cod.collect',
   'ai.view', 'ai.conversations.view', 'ai.orders.approve', 'ai.settings.manage',
   'kitchen.orders.view', 'kitchen.orders.prepare', 'kitchen.orders.ready',
-  'delivery.view_assigned', 'delivery.status.update', 'staff.manage', 'roles.manage', 'reports.view', 'settings.manage',
+  'delivery.view_assigned', 'delivery.status.update', 'staff.manage', 'roles.manage', 'reports.view', 'settings.manage', 'printers.manage', 'printers.view', 'printing.receipt', 'printing.kitchen', 'printing.view', 'printing.bridge', 'printing.retry',
 ];
 module.exports = {
   async up(queryInterface) {
@@ -28,9 +28,9 @@ module.exports = {
     const permissionIdByKey = Object.fromEntries(permissionRows.map((row) => [row.permission_key, row.id]));
     const grants = {
       admin: permissionKeys,
-      supervisor: ['dashboard.view','orders.view_all','orders.create','orders.edit','orders.cancel','orders.status.update','menu.view','customers.view','customers.manage','customers.history.view','inventory.view','inventory.adjust','payments.view','payments.record','payments.verify','cash_shifts.view','cash_shifts.open','cash_shifts.manage','cash_shifts.close','payments.cod.collect','ai.view','ai.conversations.view','ai.orders.approve','kitchen.orders.view','delivery.view_assigned','delivery.status.update','reports.view'],
-      waiter: ['dashboard.view','orders.view_own','orders.create','orders.edit','orders.status.update','menu.view','customers.view','customers.manage','customers.history.view','cash_shifts.view','cash_shifts.open','cash_shifts.manage','cash_shifts.close'],
-      kitchen: ['dashboard.view','kitchen.orders.view','kitchen.orders.prepare','kitchen.orders.ready'],
+      supervisor: ['dashboard.view','orders.view_all','orders.create','orders.edit','orders.cancel','orders.status.update','menu.view','customers.view','customers.manage','customers.history.view','inventory.view','inventory.adjust','payments.view','payments.record','payments.verify','cash_shifts.view','cash_shifts.open','cash_shifts.manage','cash_shifts.close','payments.cod.collect','ai.view','ai.conversations.view','ai.orders.approve','kitchen.orders.view','delivery.view_assigned','delivery.status.update','reports.view','printers.manage','printers.view','printing.receipt','printing.kitchen','printing.view','printing.bridge','printing.retry'],
+      waiter: ['dashboard.view','orders.view_own','orders.create','orders.edit','orders.status.update','menu.view','customers.view','customers.manage','customers.history.view','printing.receipt','cash_shifts.view','cash_shifts.open','cash_shifts.manage','cash_shifts.close'],
+      kitchen: ['dashboard.view','kitchen.orders.view','kitchen.orders.prepare','kitchen.orders.ready','printing.kitchen'],
       delivery: ['dashboard.view','delivery.view_assigned','delivery.status.update','payments.cod.collect'],
     };
     const rows = Object.entries(grants).flatMap(([slug, keys]) => keys.map((key) => ({ role_id: roleIdBySlug[slug], permission_id: permissionIdByKey[key], created_at: now, updated_at: now })));
