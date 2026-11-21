@@ -18,7 +18,7 @@ async function sendText(restaurantId,conversationId,input={}){
   const providerId=data?.messages?.[0]?.id;
   if(!providerId)throw error('WhatsApp provider response did not include a message ID.',502,'WHATSAPP_INVALID_RESPONSE');
   await record.update({providerMessageId:providerId,deliveryStatus:'sent',sentAt:new Date()});
-  await AiMessage.create({conversationId:conversation.id,senderType:'staff',content:body,metadata:{channel:'whatsapp',direction:'outbound',providerMessageId:providerId}});
+  await AiMessage.create({conversationId:conversation.id,senderType:['staff','assistant','system'].includes(input.senderType)?input.senderType:'staff',content:body,metadata:{channel:'whatsapp',direction:'outbound',providerMessageId:providerId}});
   return record;
  }catch(e){if(record.deliveryStatus==='queued')await record.update({deliveryStatus:'failed',providerError:String(e.message||e).slice(0,500)});throw e;}
 }
