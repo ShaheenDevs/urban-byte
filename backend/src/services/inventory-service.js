@@ -36,7 +36,7 @@ async function deductOrderStock(order,transaction){
  for(const line of lines){
   const recipe=await Recipe.findOne({where:{restaurantId:order.restaurantId,productVariantId:line.productVariantId,isActive:true},include:[{model:RecipeItem,as:'items'}],transaction});
   if(!recipe)throw fail('Missing active recipe for '+line.productName+'. Inventory was not deducted and order completion is blocked.',409,'RECIPE_MISSING');
-  let lineCost=0,lineHasMissingCost=false;
+  let lineCost=0,lineHasMissingCost=recipe.items.length===0;
   for(const ingredient of recipe.items){
    const amountNeeded=calculateRecipeConsumption(ingredient.quantity,line.quantity,recipe.yieldQuantity);
    const itemId=String(ingredient.inventoryItemId);
