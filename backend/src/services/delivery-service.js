@@ -38,9 +38,9 @@ async function updateStatus(restaurantId,user,assignmentId,input={}){
   if(!order)throw fail('Order not found.',404,'ORDER_NOT_FOUND');
   const now=new Date(),changes={status:next};
   if(next==='picked_up'){if(assignment.status!=='assigned')throw fail('Only assigned orders can be picked up.',409);changes.pickedUpAt=now;}
-  if(next==='out_for_delivery'){if(!['picked_up','assigned'].includes(assignment.status))throw fail('Order must be picked up first.',409);if(order.status==='ready') {validateTransition('ready','out_for_delivery');await order.update({status:'out_for_delivery'},{transaction:t});await OrderStatusHistory.create({orderId:order.id,fromStatus:'ready',toStatus:'out_for_delivery',changedByUserId:user.id,note:'Delivery started'},{transaction:t});}else if(order.status!=='out_for_delivery')throw fail('Kitchen must mark this order ready before dispatch.',409);changes.outForDeliveryAt=now;}
+  if(next==='out_for_delivery'){if(assignment.status!=='picked_up')throw fail('Order must be picked up first.',409);if(order.status==='ready') {validateTransition('ready','out_for_delivery');await order.update({status:'out_for_delivery'},{transaction:t});await OrderStatusHistory.create({orderId:order.id,fromStatus:'ready',toStatus:'out_for_delivery',changedByUserId:user.id,note:'Delivery started'},{transaction:t});}else if(order.status!=='out_for_delivery')throw fail('Kitchen must mark this order ready before dispatch.',409);changes.outForDeliveryAt=now;}
   if(next==='delivered'){
-   if(!['out_for_delivery','picked_up','assigned'].includes(assignment.status))throw fail('Invalid delivery completion.',409);
+   if(assignment.status!=='out_for_delivery')throw fail('Start the delivery route before marking an order delivered.',409);
    if(order.paymentMethod==='cod'&&Number(assignment.codAmount)>0&&!assignment.codCollected){
     if(input.codCollected!==true)throw fail('Confirm COD collection before marking delivered.',409,'COD_NOT_COLLECTED');
     if(!user.permissions.includes('payments.cod.collect'))throw fail('You do not have permission to record COD collection.',403,'FORBIDDEN');
