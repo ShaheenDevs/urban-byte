@@ -1,0 +1,5 @@
+'use strict';
+module.exports={
+ async up(q,D){await q.createTable('whatsapp_webhook_events',{id:{type:D.BIGINT.UNSIGNED,autoIncrement:true,primaryKey:true},provider_message_id:{type:D.STRING(191),allowNull:false,unique:true},restaurant_id:{type:D.BIGINT.UNSIGNED,allowNull:false},event_type:{type:D.STRING(40),allowNull:false,defaultValue:'message'},payload:{type:D.JSON,allowNull:false},processing_status:{type:D.ENUM('received','processed','ignored','failed'),allowNull:false,defaultValue:'received'},error_message:{type:D.STRING(500),allowNull:true},received_at:{type:D.DATE,allowNull:false},processed_at:{type:D.DATE,allowNull:true},created_at:{type:D.DATE,allowNull:false},updated_at:{type:D.DATE,allowNull:false}});await q.addIndex('whatsapp_webhook_events',['restaurant_id','processing_status']);},
+ async down(q){await q.dropTable('whatsapp_webhook_events');}
+};
