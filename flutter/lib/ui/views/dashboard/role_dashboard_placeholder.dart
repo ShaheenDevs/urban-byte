@@ -5,6 +5,7 @@ import '../notifications/notification_inbox_sheet.dart';
 import '../inventory/inventory_view.dart';
 import '../orders/restaurant_operations_view.dart';
 import '../ai/ai_agent_view.dart';
+import '../printing/printing_view.dart';
 
 /// Role-aware starting workspace. Full navigation modules are added incrementally.
 class RoleDashboardPlaceholder extends StatelessWidget {
@@ -126,6 +127,15 @@ class RoleDashboardPlaceholder extends StatelessWidget {
                     onTap: () => Navigator.of(context).push(MaterialPageRoute(
                         builder: (_) =>
                             AiAgentView(permissions: permissions))))),
+          if (permissions.contains('printers.view') || permissions.contains('printers.manage') || permissions.contains('printing.view'))
+            Card(child: ListTile(
+              leading: const Icon(Icons.print_outlined),
+              title: const Text('Printer management'),
+              subtitle: const Text('Printers, receipt queue and kitchen tickets'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => PrintingView(permissions: permissions))),
+            )),
           if (_canOpenOrders)
             Card(
                 child: ListTile(
