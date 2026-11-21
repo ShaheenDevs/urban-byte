@@ -1,0 +1,13 @@
+'use strict';
+const router=require('express').Router();
+const {authenticate}=require('../middleware/auth');
+const {requirePermission}=require('../middleware/require-permission');
+const c=require('../controllers/staff-controller');
+router.use(authenticate,requirePermission('settings.manage'));
+router.get('/',c.list);
+router.post('/',c.create);
+router.get('/roles',c.roles);
+router.get('/permissions',c.permissions);
+router.patch('/:userId',c.update);
+router.put('/:userId/permission-overrides',c.override);
+module.exports=router;
