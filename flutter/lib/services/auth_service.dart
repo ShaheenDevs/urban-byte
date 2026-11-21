@@ -32,6 +32,8 @@ class AuthService {
     return session;
   }
 
+  Future<String?> getAccessToken() => _storage.read(key: 'access_token');
+
   Future<void> logout() async {
     final token = await _storage.read(key: 'refresh_token');
     if (token != null) {
