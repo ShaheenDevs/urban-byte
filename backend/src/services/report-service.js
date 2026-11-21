@@ -68,6 +68,16 @@ async function financial(restaurantId,query={}){
  const missingCostLines=completedLines.filter(line=>line.cogsStatus!=='estimated'||line.cogsTotal===null);
  const estimatedCogs=completedLines.reduce((n,line)=>n+(line.cogsStatus==='estimated'?Number(line.cogsTotal||0):0),0);
  const cogsComplete=missingCostLines.length===0;
+ const productTotals=new Map();
+ for(const line of completedLines){
+  const key=line.productName;
+  const entry=productTotals.get(key)||{productName:key,quantity:0,revenue:0,cogs:0,missingCost:false};
+  entry.quantity+=Number(line.quantity||0);
+  entry.revenue+=Number(line.lineTotal||0);
+  if(line.cogsStatus==='estimated'&&line.cogsTotal!==null)entry.cogs+=Number(line.cogsTotal||0);else entry.missingCost=true;
+  productTotals.set(key,entry);
+ }
+ const productProfitability=[...productTotals.values()].map(p=>({productName:p.productName,quantity:Number(p.quantity.toFixed(3)),revenue:p.revenue.toFixed(2),cogs:p.missingCost?null:p.cogs.toFixed(2),grossProfit:p.missingCost?null:(p.revenue-p.cogs).toFixed(2),status:p.missingCost?'incomplete':'complete'})).sort((a,b)=>Number(b.revenue)-Number(a.revenue));
  const grossProfit=cogsComplete?completedRevenue-estimatedCogs:null;
  const netProfit=cogsComplete?grossProfit-approvedExpenseTotal:null;
  return {period:{from,to},timezone:'Asia/Karachi',currency:'PKR',
@@ -76,7 +86,7 @@ async function financial(restaurantId,query={}){
   purchases:{receivedTotal:receivedPurchaseCost.toFixed(2),receivedCount:purchases.length,supplierPaidForReceived:Number(supplierPaidForReceived).toFixed(2),supplierOutstanding:Number(supplierDue).toFixed(2)},
   supplierPayments:{total:sum(supplierPayments,'amount').toFixed(2),count:supplierPayments.length},
   cashFlow:{cashCollections:cashIn.toFixed(2),cashExpenses:cashExpense.toFixed(2),cashSupplierPayments:cashSupplierPayments.toFixed(2),netCashMovement:(cashIn-cashExpense-cashSupplierPayments).toFixed(2)},
-  profitability:{completedOrders:completedOrders.length,salesRevenue:completedRevenue.toFixed(2),estimatedCogs:estimatedCogs.toFixed(2),missingCostLines:missingCostLines.length,cogsComplete,grossProfit:grossProfit===null?null:grossProfit.toFixed(2),approvedOperatingExpenses:approvedExpenseTotal.toFixed(2),netProfit:netProfit===null?null:netProfit.toFixed(2),status:cogsComplete?'complete':'incomplete'},
+  productProfitability,\n  profitability:{completedOrders:completedOrders.length,salesRevenue:completedRevenue.toFixed(2),estimatedCogs:estimatedCogs.toFixed(2),missingCostLines:missingCostLines.length,cogsComplete,grossProfit:grossProfit===null?null:grossProfit.toFixed(2),approvedOperatingExpenses:approvedExpenseTotal.toFixed(2),netProfit:netProfit===null?null:netProfit.toFixed(2),status:cogsComplete?'complete':'incomplete'},
   accountingNotes:{profitBasis:'Completed orders within selected period, recipe consumption COGS snapshots and approved expenses.',cogsMethod:'Weighted average of recorded purchase stock movements for each ingredient at the order branch.',supplierPaymentsExcludedFromProfit:true,purchasesExcludedFromProfit:true,warning:cogsComplete?null:'Profit is withheld until every completed order line has an estimated recipe cost. Configure recipes and receive purchases with unit costs, then complete orders with inventory auto-deduction enabled.'}
  };
 }
