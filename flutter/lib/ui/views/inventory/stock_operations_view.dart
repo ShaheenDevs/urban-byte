@@ -1,14 +1,18 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:stacked/stacked.dart';
 import '../../../app/app.locator.dart';
 import '../../../models/inventory_item.dart';
 import '../../../services/inventory_service.dart';
+import '../../../services/financial_report_service.dart';
 
 class StockOperationsView extends StackedView<StockOperationsViewModel> {
   const StockOperationsView({super.key});
   @override
   StockOperationsViewModel viewModelBuilder(BuildContext context) =>
-      StockOperationsViewModel(locator<InventoryService>())..load();
+      StockOperationsViewModel(locator<InventoryService>(), locator<FinancialReportService>())..load();
   @override
   Widget builder(
           BuildContext context, StockOperationsViewModel vm, Widget? child) =>
@@ -32,7 +36,8 @@ class StockOperationsView extends StackedView<StockOperationsViewModel> {
 }
 
 class StockOperationsViewModel extends BaseViewModel {
-  StockOperationsViewModel(this.api);
+  StockOperationsViewModel(this.api, this.reports);
+  final FinancialReportService reports;
   final InventoryService api;
   bool loaded = false;
   String branchId = '';
@@ -325,9 +330,41 @@ class _Suppliers extends StatelessWidget {
           ),
           actions: [
             TextButton(
+                onPressed: ledger == null ? null : () => _shareLedgerXlsx(ledger!, supplier),
+                child: const Text('Excel')),
+            TextButton(
+                onPressed: () => _shareLedgerPdf(supplierId, supplier),
+                child: const Text('PDF')),
+            TextButton(
                 onPressed: () => Navigator.pop(ctx), child: const Text('Close'))
           ]),
     );
+  }
+
+  Future<void> _shareLedgerXlsx(
+      Map<String, dynamic> ledger, Map<String, dynamic> supplier) async {
+    try {
+      final bytes = await vm.reports.buildSupplierLedgerWorkbook(ledger: ledger);
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/urban_byte_supplier_${supplier['id']}_ledger.xlsx');
+      await file.writeAsBytes(bytes, flush: true);
+      await Share.shareXFiles([XFile(file.path)], text: 'Supplier ledger - ${supplier['name']}');
+    } catch (e) {
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+
+  Future<void> _shareLedgerPdf(
+      String supplierId, Map<String, dynamic> supplier) async {
+    try {
+      final bytes = await vm.reports.exportSupplierLedgerPdf(supplierId);
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/urban_byte_supplier_${supplierId}_ledger.pdf');
+      await file.writeAsBytes(bytes, flush: true);
+      await Share.shareXFiles([XFile(file.path)], text: 'Supplier ledger - ${supplier['name']}');
+    } catch (e) {
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    }
   }
 
   Future<void> _recordPayment(
