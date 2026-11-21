@@ -1,7 +1,7 @@
 'use strict';
 const router=require('express').Router(),{authenticate}=require('../middleware/auth'),{requirePermission}=require('../middleware/require-permission'),c=require('../controllers/inventory-controller');
 router.use(authenticate);
-router.get('/branches',requirePermission('inventory.view'),c.branches);
+router.get('/branches',requirePermission('branches.view'),c.branches);
 router.get('/items',requirePermission('inventory.view'),c.listItems);
 router.post('/items',requirePermission('inventory.manage'),c.createItem);
 router.get('/stock',requirePermission('inventory.view'),c.stock);
