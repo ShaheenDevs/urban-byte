@@ -37,7 +37,14 @@ class FinancialReportView extends StackedView<FinancialReportViewModel> {
         _MetricCard('Cash supplier payments','PKR ${_money(vm.data!['cashFlow']?['cashSupplierPayments'])}',Icons.store),
         _MetricCard('Net cash movement','PKR ${_money(vm.data!['cashFlow']?['netCashMovement'])}',Icons.account_balance),
         const SizedBox(height:12),
-        Card(child:Padding(padding:const EdgeInsets.all(14),child:Text(vm.data!['accountingNotes']?['reason']??'Financial report totals are based on verified collections and approved expenses.'))),
+        Text('Profitability',style:Theme.of(context).textTheme.titleLarge),
+        _MetricCard('Completed-order revenue','PKR ${_money(vm.data!['profitability']?['salesRevenue'])}',Icons.point_of_sale),
+        _MetricCard('Estimated recipe COGS','PKR ${_money(vm.data!['profitability']?['estimatedCogs'])}',Icons.restaurant),
+        _MetricCard('Gross profit',vm.data!['profitability']?['grossProfit']==null?'Incomplete':'PKR ${_money(vm.data!['profitability']?['grossProfit'])}',Icons.trending_up),
+        _MetricCard('Net profit',vm.data!['profitability']?['netProfit']==null?'Incomplete':'PKR ${_money(vm.data!['profitability']?['netProfit'])}',Icons.account_balance),
+        if((vm.data!['profitability']?['status']??'incomplete')!='complete')
+          Card(child:Padding(padding:const EdgeInsets.all(14),child:Text('Profit calculation incomplete: ${vm.data!['profitability']?['missingCostLines']??0} order lines need valid recipe costs. Receive ingredients with unit costs, configure recipes and complete orders with stock auto-deduction enabled.'))),
+        Card(child:Padding(padding:const EdgeInsets.all(14),child:Text(vm.data!['accountingNotes']?['warning']??'Profit uses completed orders, estimated recipe costs and approved expenses.'))),
       ]
     ]),
   );
