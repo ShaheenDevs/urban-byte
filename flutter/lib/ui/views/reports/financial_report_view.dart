@@ -64,7 +64,7 @@ class FinancialReportView extends StackedView<FinancialReportViewModel> {
           _Bars(title:'Daily completed-order sales',items:(vm.analytics!['dailySales'] as List? ?? []).map((e)=>{'label':e['date'].toString(),'value':double.tryParse(e['revenue'].toString())??0}).toList()),
           _Bars(title:'Best-selling products (quantity)',items:(vm.analytics!['bestSellingProducts'] as List? ?? []).map((e)=>{'label':e['productName'].toString(),'value':double.tryParse(e['quantity'].toString())??0}).toList()),
           _Bars(title:'Highest revenue products',items:(vm.analytics!['highestRevenueProducts'] as List? ?? []).map((e)=>{'label':e['productName'].toString(),'value':double.tryParse(e['revenue'].toString())??0}).toList()),
-          Card(child:ListTile(title:const Text('Recorded wastage'),subtitle:Text('Quantity: ${vm.analytics!['wastage']?['totalQuantity']}'),trailing:Text('PKR ${vm.analytics!['wastage']?['estimatedCost']}'))),
+          Card(child:ListTile(title:const Text('Recorded wastage'),subtitle:Text('Quantity: ${vm.analytics!['wastage']?['totalQuantity']}'),trailing:Text(vm.analytics!['wastage']?['estimatedCost']==null?'Cost incomplete':'PKR ${vm.analytics!['wastage']?['estimatedCost']}'))),
           _Bars(title:'Lowest-margin products (%)',items:(vm.analytics!['lowestMarginProducts'] as List? ?? []).map((e)=>{'label':e['productName'].toString(),'value':double.tryParse(e['marginPercent'].toString())??0}).toList()),
           Text('Branch comparison',style:Theme.of(context).textTheme.titleMedium),
           ...((vm.analytics!['branchComparison'] as List? ?? []).map((b)=>Card(child:ListTile(
