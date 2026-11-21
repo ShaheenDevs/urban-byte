@@ -169,3 +169,11 @@ Customer records, verified payment workflow, delivery workflow, thermal printing
 - Profit uses completed-order revenue, not verified payment collections. Supplier payments and received purchase totals are excluded from profit to avoid double-counting inventory acquisition and supplier settlement.
 - For reliable costs, receive ingredient purchases with correct unit costs, configure recipes and enable inventory auto-deduction for the relevant branch before completing orders. Historical orders are not retroactively costed by this migration.
 - This is an operational estimate based on weighted-average purchase costs; it does not yet account for labor, utilities allocation, tax accounting, spoilage adjustments or opening stock valuation.
+
+
+## Restaurant analytics dashboard
+- `GET /api/v1/reports/analytics?from=YYYY-MM-DD&to=YYYY-MM-DD&branchId=1` — requires `reports.view`, uses Asia/Karachi date boundaries and restaurant-scoped data.
+- Returns daily completed-order sales, best-selling products by quantity, highest-revenue products, lowest-margin products where COGS is complete, recorded wastage quantity/cost, and branch comparisons.
+- Product/branch margin figures are withheld when any included order line has incomplete COGS. Wastage cost is an estimate only when the stock movement has a recorded unit cost.
+- Flutter Financial Dashboard now loads financial and analytics data together, with daily sales/product bar summaries, wastage and branch comparison. Changing the date/branch filters and generating the report refreshes both datasets.
+- PDF/Excel export is not part of this milestone.
