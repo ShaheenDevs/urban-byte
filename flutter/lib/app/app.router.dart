@@ -26,6 +26,10 @@ class StackedRouter extends _i1.RouterBase {
     _i1.RouteDef(
       Routes.loginView,
       page: _i2.LoginView,
+    ),
+    _i1.RouteDef(
+      Routes.financialReportView,
+      page: _i5.FinancialReportView,
     )
   ];
 
@@ -38,7 +42,11 @@ class StackedRouter extends _i1.RouterBase {
         builder: (context) => _i2.LoginView(key: args.key),
         settings: data,
       );
-    }
+    },
+    _i5.FinancialReportView: (data) => _i3.MaterialPageRoute<dynamic>(
+      builder: (context) => const _i5.FinancialReportView(),
+      settings: data,
+    )
   };
 
   @override
