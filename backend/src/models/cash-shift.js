@@ -1,0 +1,15 @@
+'use strict';
+module.exports=(s,D)=>s.define('CashShift',{
+ id:{type:D.BIGINT.UNSIGNED,primaryKey:true,autoIncrement:true},
+ restaurantId:{type:D.BIGINT.UNSIGNED,allowNull:false,field:'restaurant_id'},
+ branchId:{type:D.BIGINT.UNSIGNED,allowNull:false,field:'branch_id'},
+ openedByUserId:{type:D.BIGINT.UNSIGNED,allowNull:false,field:'opened_by_user_id'},
+ closedByUserId:{type:D.BIGINT.UNSIGNED,allowNull:true,field:'closed_by_user_id'},
+ openingCash:{type:D.DECIMAL(12,2),allowNull:false,field:'opening_cash'},
+ expectedCash:{type:D.DECIMAL(12,2),allowNull:true,field:'expected_cash'},
+ actualCash:{type:D.DECIMAL(12,2),allowNull:true,field:'actual_cash'},
+ cashVariance:{type:D.DECIMAL(12,2),allowNull:true,field:'cash_variance'},
+ status:{type:D.ENUM('open','closed'),allowNull:false,defaultValue:'open'},
+ openedAt:{type:D.DATE,allowNull:false,field:'opened_at'},closedAt:{type:D.DATE,allowNull:true,field:'closed_at'},
+ closingNotes:{type:D.STRING(500),allowNull:true,field:'closing_notes'}
+},{tableName:'cash_shifts',underscored:true});
