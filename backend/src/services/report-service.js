@@ -45,7 +45,8 @@ async function financial(restaurantId,query={}){
   Payment.findAll({where:{...base,status:'verified',verifiedAt:{[Op.gte]:start,[Op.lt]:end}},attributes:['method','amount'],raw:true}),
   Expense.findAll({where:{...base,status:'approved',expenseDate:{[Op.gte]:from,[Op.lte]:to}},attributes:['paymentMethod','amount'],raw:true}),
   Purchase.findAll({where:{...base,status:'received',receivedAt:{[Op.gte]:start,[Op.lt]:end}},attributes:['id','supplierId','totalCost'],raw:true}),
-  Purchase.findAll({where:base,attributes:['id'],raw:true})
+  Purchase.findAll({where:base,attributes:['id'],raw:true}),
+  Order.findAll({where:{...base,status:'completed',completedAt:{[Op.gte]:start,[Op.lt]:end}},include:[{model:OrderItem,as:'items'}]})
  ]);
  const branchPurchaseIds=branchPurchases.map(p=>p.id);
  const supplierPayments=branchPurchaseIds.length?await PurchasePayment.findAll({where:{restaurantId,purchaseId:{[Op.in]:branchPurchaseIds},createdAt:{[Op.gte]:start,[Op.lt]:end}},attributes:['method','amount','purchaseId'],raw:true}):[];
