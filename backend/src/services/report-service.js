@@ -7,7 +7,7 @@ function range(query={}){
  const to=query.to||query.date||from;
  const valid=v=>/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v+'T00:00:00Z'));
  if(!valid(from)||!valid(to)||from>to)throw invalid('Use a valid YYYY-MM-DD date range.');
- const start=new Date(from+'T00:00:00.000Z');const end=new Date(to+'T00:00:00.000Z');end.setUTCDate(end.getUTCDate()+1);
+ const start=new Date(new Date(from+'T00:00:00.000Z').getTime()-5*60*60*1000);const end=new Date(new Date(to+'T00:00:00.000Z').getTime()-5*60*60*1000+24*60*60*1000);
  return {from,to,start,end};
 }
 async function overview(restaurantId,query={}){
