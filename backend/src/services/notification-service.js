@@ -1,6 +1,7 @@
 'use strict';
 const {Op}=require('sequelize');
-const {Notification,Permission,Role,UserRole,User,UserPermission}=require('../models');
+const {Notification,Permission,UserRole,User,UserPermission,RolePermission}=require('../models');
+const {resolveNotificationRecipients}=require('./notification-recipient-resolver');
 function fail(message,status=400,code='VALIDATION_ERROR'){const e=new Error(message);e.statusCode=status;e.code=code;throw e;}
 async function recipientIds(restaurantId,permissionKeys,transaction){
  const [permissions,users]=await Promise.all([
@@ -11,17 +12,10 @@ async function recipientIds(restaurantId,permissionKeys,transaction){
  const permissionIds=permissions.map(p=>String(p.id)),userIds=users.map(u=>String(u.id));
  const [roleLinks,roleGrants,overrides]=await Promise.all([
   UserRole.findAll({where:{userId:{[Op.in]:userIds}},attributes:['userId','roleId'],transaction}),
-  require('../models').RolePermission.findAll({where:{permissionId:{[Op.in]:permissionIds}},attributes:['roleId','permissionId'],transaction}),
+  RolePermission.findAll({where:{permissionId:{[Op.in]:permissionIds}},attributes:['roleId','permissionId'],transaction}),
   UserPermission.findAll({where:{userId:{[Op.in]:userIds},permissionId:{[Op.in]:permissionIds}},attributes:['userId','permissionId','effect'],transaction})
  ]);
- const grantedByRole=new Set();
- for(const link of roleLinks){for(const grant of roleGrants){if(String(link.roleId)===String(grant.roleId))grantedByRole.add(String(link.userId)+':'+String(grant.permissionId));}}
- const explicit=new Map(overrides.map(x=>[String(x.userId)+':'+String(x.permissionId),x.effect]));
- return users.filter(user=>permissions.some(permission=>{
-  const key=String(user.id)+':'+String(permission.id),effect=explicit.get(key);
-  if(effect==='deny')return false;
-  return effect==='allow'||grantedByRole.has(key);
- })).map(user=>user.id);
+ return resolveNotificationRecipients(users,permissions,roleLinks,roleGrants,overrides);
 }
 async function notifyPermissions(restaurantId,permissionKeys,payload,transaction){
  const ids=await recipientIds(restaurantId,permissionKeys,transaction);
