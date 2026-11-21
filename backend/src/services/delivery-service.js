@@ -43,6 +43,7 @@ async function updateStatus(restaurantId,user,assignmentId,input={}){
    if(!['out_for_delivery','picked_up','assigned'].includes(assignment.status))throw fail('Invalid delivery completion.',409);
    if(order.paymentMethod==='cod'&&Number(assignment.codAmount)>0&&!assignment.codCollected){
     if(input.codCollected!==true)throw fail('Confirm COD collection before marking delivered.',409,'COD_NOT_COLLECTED');
+    if(!user.permissions.includes('payments.cod.collect'))throw fail('You do not have permission to record COD collection.',403,'FORBIDDEN');
     changes.codCollected=true;changes.codCollectedAt=now;
    }
    if(order.status==='out_for_delivery'){validateTransition('out_for_delivery','completed');await order.update({status:'completed',completedAt:now},{transaction:t});await OrderStatusHistory.create({orderId:order.id,fromStatus:'out_for_delivery',toStatus:'completed',changedByUserId:user.id,note:'Delivery completed'},{transaction:t});}
