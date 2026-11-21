@@ -111,6 +111,7 @@ async function analytics(restaurantId,query={}){
   day.orders++;day.revenue+=Number(order.grandTotal);daily.set(d,day);
   const b=branchStats.get(String(order.branchId))||{orders:0,revenue:0,cogs:0,missingCogs:0};
   b.orders++;b.revenue+=Number(order.grandTotal);
+  if(!(order.items||[]).length)b.missingCogs++;
   for(const line of order.items||[]){
    const key=line.productName;
    const product=products.get(key)||{productName:key,quantity:0,revenue:0,cogs:0,missingCost:false};
@@ -122,13 +123,14 @@ async function analytics(restaurantId,query={}){
  }
  const productRows=[...products.values()].map(p=>({productName:p.productName,quantity:Number(p.quantity.toFixed(3)),revenue:p.revenue.toFixed(2),cogs:p.missingCost?null:p.cogs.toFixed(2),grossProfit:p.missingCost?null:(p.revenue-p.cogs).toFixed(2),marginPercent:p.missingCost||p.revenue<=0?null:Number(((p.revenue-p.cogs)/p.revenue*100).toFixed(2)),costStatus:p.missingCost?'incomplete':'complete'}));
  const wasteQty=waste.reduce((n,x)=>n+Math.abs(Number(x.quantityChange)),0);
- const wasteCost=waste.reduce((n,x)=>n+Math.abs(Number(x.quantityChange))*Number(x.unitCost||0),0);
+ const unpricedWaste=waste.filter(x=>x.unitCost===null||x.unitCost===undefined);
+ const wasteCost=waste.filter(x=>x.unitCost!==null&&x.unitCost!==undefined).reduce((n,x)=>n+Math.abs(Number(x.quantityChange))*Number(x.unitCost),0);
  return {period:{from,to},timezone:'Asia/Karachi',currency:'PKR',
   dailySales:[...daily.values()].map(x=>({date:x.date,orders:x.orders,revenue:x.revenue.toFixed(2)})),
   bestSellingProducts:[...productRows].sort((a,b)=>b.quantity-a.quantity).slice(0,10),
   highestRevenueProducts:[...productRows].sort((a,b)=>Number(b.revenue)-Number(a.revenue)).slice(0,10),
   lowestMarginProducts:productRows.filter(p=>p.marginPercent!==null).sort((a,b)=>a.marginPercent-b.marginPercent).slice(0,10),
-  wastage:{movementCount:waste.length,totalQuantity:Number(wasteQty.toFixed(3)),estimatedCost:wasteCost.toFixed(2),note:'Wastage cost is estimated only where stock movement unitCost is populated.'},
+  wastage:{movementCount:waste.length,totalQuantity:Number(wasteQty.toFixed(3)),estimatedCost:unpricedWaste.length?null:wasteCost.toFixed(2),unpricedMovementCount:unpricedWaste.length,costStatus:unpricedWaste.length?'incomplete':'complete',note:'Wastage cost is estimated only where stock movement unitCost is populated.'},
   branchComparison:branches.map(b=>{const x=branchStats.get(String(b.id))||{orders:0,revenue:0,cogs:0,missingCogs:0};return {branchId:b.id,branchName:b.name,orders:x.orders,revenue:x.revenue.toFixed(2),estimatedCogs:x.missingCogs?null:x.cogs.toFixed(2),grossProfit:x.missingCogs?null:(x.revenue-x.cogs).toFixed(2),costStatus:x.missingCogs?'incomplete':'complete'};})
  };
 }
