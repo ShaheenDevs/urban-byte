@@ -67,7 +67,15 @@ class InventoryService {
         'POST', '/inventory/purchases/' + Uri.encodeComponent(id) + '/receive');
   }
 
-  Future<List<Map<String, dynamic>>> recipes() async =>
+
+  Future<Map<String,dynamic>> supplierLedger(String supplierId) async =>
+      Map<String,dynamic>.from(await _get('/inventory/suppliers/' + Uri.encodeComponent(supplierId) + '/ledger') as Map);
+  Future<void> recordPurchasePayment(String purchaseId,{required double amount,required String method,String? reference,String? notes}) async {
+    await _request('POST','/inventory/purchases/' + Uri.encodeComponent(purchaseId) + '/payments',body:{
+      'amount':amount,'method':method,'reference':reference,'notes':notes
+    });
+  }
+\n  Future<List<Map<String, dynamic>>> recipes() async =>
       _list(await _get('/inventory/recipes'));
   Future<void> saveRecipe(
       {required String variantId,
