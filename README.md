@@ -11,7 +11,7 @@ Fresh monorepo for Urban Byte restaurant operations.
 - Order creation, item name/price snapshots, order listing/details, status history and controlled status transitions.
 - Kitchen tickets generated from confirmed orders, kitchen queue, prepare/ready actions and synchronized order status updates.
 - Inventory catalog, supplier directory, branch stock/reorder thresholds, purchase receiving, recipe management and immutable stock movement history.
-- AI conversation intake, customer/staff message history, structured order-draft risk checks and Admin/Supervisor approval queue.
+- AI conversation intake, customer/staff message history, structured order-draft risk checks, Admin/Supervisor approval queue and deterministic menu/deal replies.
 - Optional branch-level recipe consumption on order completion; missing recipes or insufficient stock block completion atomically.
 - Flutter Stacked login scaffold with secure token storage.
 - Flutter inventory screen with live branch selection, catalog count, low-stock count, stock balances and item creation.
@@ -77,7 +77,7 @@ All menu and order data is scoped to the restaurant in the signed access token. 
 - `GET` verifies the Meta webhook challenge; `POST` verifies `X-Hub-Signature-256` against the exact raw request body, deduplicates provider message IDs, and stores inbound text messages as WhatsApp AI conversations/messages.
 - `POST /api/v1/ai/conversations/:conversationId/whatsapp/send` — authenticated staff with `ai.view`; sends a text reply through WhatsApp Cloud API and stores its provider message ID.
 - Configure `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`, and optional `WHATSAPP_GRAPH_VERSION` in `.env`. Use a long-lived/system-user token with the required WhatsApp messaging permissions; never commit it.
-- The same signed webhook ingests inbound text and processes provider delivery/read/failure status callbacks. Outbound messages are stored with queued/sent/delivered/read/failed states.
+- The same signed webhook ingests inbound text, automatically replies to greetings/menu/deal questions using the active database menu and branch prices, and processes provider delivery/read/failure status callbacks. This is a deterministic rule-based assistant, not an LLM; complex order placement still uses the structured draft and customer-confirmation workflow. Outbound messages are stored with queued/sent/delivered/read/failed states.
 - Outbound send is only available for existing WhatsApp conversations with a valid customer number. Meta's messaging window/template rules still apply; this implementation sends text messages only and does not yet handle approved template messages, media, interactive buttons, retries or an LLM.
 - Configure a public HTTPS API and real Meta app credentials before testing with WhatsApp. A successful API response means Meta accepted the send request, not that the customer received or read it.
 
@@ -90,7 +90,7 @@ All menu and order data is scoped to the restaurant in the signed access token. 
 - `GET /api/v1/ai/approvals` and `POST /api/v1/ai/approvals/:requestId/review` — ai.orders.approve; Admin and authorized Supervisor approval workflow.
 - `POST /api/v1/ai/conversations/:conversationId/whatsapp/send` — ai.view; sends an outbound WhatsApp text reply and records provider delivery status.
 
-The current AI milestone provides deterministic intake, backend risk checks, order conversion and staff approvals. A draft is auto-approved only when the customer explicitly confirms it, branch and order type are valid, required delivery/table details are present, quantities are valid, and no discount/custom price is requested. Backend order creation revalidates active products and calculates prices from server-side menu/branch prices. Drafts with any risk reason remain pending for an authorized Admin/Supervisor. Approved drafts create normal orders with source `ai`; payment remains unpaid and is never auto-marked paid. This is not yet a connected LLM or WhatsApp integration. Provider credentials and webhooks are required before connecting external messaging or AI services.
+The current AI milestone provides deterministic menu/deal lookup, backend risk checks, order conversion and staff approvals. A draft is auto-approved only when the customer explicitly confirms it, branch and order type are valid, required delivery/table details are present, quantities are valid, and no discount/custom price is requested. Backend order creation revalidates active products and calculates prices from server-side menu/branch prices. Drafts with any risk reason remain pending for an authorized Admin/Supervisor. Approved drafts create normal orders with source `ai`; payment remains unpaid and is never auto-marked paid. This is not yet a connected LLM or WhatsApp integration. Provider credentials and webhooks are required before connecting external messaging or AI services.
 
 ## Flutter AI Agent setup
 The AI workspace is available to users with `ai.view` or `ai.orders.approve`. It lists conversations and, for authorized approvers, pending order requests with risk reasons. Approve & create order creates an AI-source order using server-side menu prices; the order remains unpaid. Customer confirmation is required for deterministic auto-approval. This UI does not connect WhatsApp or an external LLM provider yet.
