@@ -4,7 +4,7 @@ const {authenticate}=require('../middleware/auth');
 const {requirePermission}=require('../middleware/require-permission');
 const c=require('../controllers/payment-controller');
 router.use(authenticate);
-router.post('/',requirePermission('payments.view'),c.record);
+router.post('/',requirePermission('payments.record'),c.record);
 router.get('/',requirePermission('payments.view'),c.list);
 router.post('/:paymentId/verify',requirePermission('payments.verify'),c.verify);
 router.get('/reports/daily',requirePermission('reports.view'),c.summary);
