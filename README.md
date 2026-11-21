@@ -12,6 +12,7 @@ Fresh monorepo for Urban Byte restaurant operations.
 - Kitchen tickets generated from confirmed orders, branch-filtered kitchen queue, prepare/ready actions, kitchen notes and synchronized order status updates.
 - Flutter restaurant operations workspace with orders, Kitchen Display System, branch filtering and manual order creation.
 - Persistent role-targeted notifications for new orders, kitchen progress/ready events and AI approval requests; per-user inbox, unread count and read actions.
+- Role-scoped dashboard summary API with Pakistan-local daily metrics, payment-confirmed revenue, order status breakdown and recent orders.
 - Inventory catalog, supplier directory, branch stock/reorder thresholds, purchase receiving, recipe management and immutable stock movement history.
 - AI conversation intake, customer/staff message history, structured order-draft risk checks, Admin/Supervisor approval queue and deterministic menu/deal replies.
 - Optional branch-level recipe consumption on order completion; missing recipes or insufficient stock block completion atomically.
