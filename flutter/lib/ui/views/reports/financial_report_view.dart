@@ -9,7 +9,7 @@ class FinancialReportView extends StackedView<FinancialReportViewModel> {
   FinancialReportViewModel viewModelBuilder(BuildContext context)=>FinancialReportViewModel(locator<FinancialReportService>());
   @override
   Widget builder(BuildContext context,FinancialReportViewModel vm,Widget? child)=>Scaffold(
-    appBar:AppBar(title:const Text('Financial Dashboard'),actions:[IconButton(onPressed:vm.load,icon:const Icon(Icons.refresh))]),
+    appBar:AppBar(title:const Text('Financial Dashboard'),actions:[IconButton(onPressed:vm.loadAll,icon:const Icon(Icons.refresh))]),
     body:ListView(padding:const EdgeInsets.all(16),children:[
       Row(children:[
         Expanded(child:TextFormField(initialValue:vm.from,decoration:const InputDecoration(labelText:'From (YYYY-MM-DD)',border:OutlineInputBorder()),onChanged:vm.setFrom)),
@@ -19,7 +19,7 @@ class FinancialReportView extends StackedView<FinancialReportViewModel> {
       const SizedBox(height:10),
       TextField(decoration:const InputDecoration(labelText:'Branch ID (optional)',border:OutlineInputBorder()),keyboardType:TextInputType.number,onChanged:vm.setBranch),
       const SizedBox(height:10),
-      FilledButton.icon(onPressed:vm.load,icon:const Icon(Icons.assessment),label:const Text('Generate report')),
+      FilledButton.icon(onPressed:vm.loadAll,icon:const Icon(Icons.assessment),label:const Text('Generate report')),
       if(vm.error!=null)Padding(padding:const EdgeInsets.only(top:12),child:Text(vm.error!,style:const TextStyle(color:Colors.red))),
       if(vm.isBusy)const LinearProgressIndicator(),
       if(vm.data!=null)...[
@@ -65,7 +65,7 @@ class FinancialReportView extends StackedView<FinancialReportViewModel> {
           _Bars(title:'Best-selling products (quantity)',items:(vm.analytics!['bestSellingProducts'] as List? ?? []).map((e)=>{'label':e['productName'].toString(),'value':double.tryParse(e['quantity'].toString())??0}).toList()),
           _Bars(title:'Highest revenue products',items:(vm.analytics!['highestRevenueProducts'] as List? ?? []).map((e)=>{'label':e['productName'].toString(),'value':double.tryParse(e['revenue'].toString())??0}).toList()),
           Card(child:ListTile(title:const Text('Recorded wastage'),subtitle:Text('Quantity: ${vm.analytics!['wastage']?['totalQuantity']}'),trailing:Text('PKR ${vm.analytics!['wastage']?['estimatedCost']}'))),
-          Text('Branch comparison',style:Theme.of(context).textTheme.titleMedium),
+          _Bars(title:'Lowest-margin products (%)',items:(vm.analytics!['lowestMarginProducts'] as List? ?? []).map((e)=>{'label':e['productName'].toString(),'value':double.tryParse(e['marginPercent'].toString())??0}).toList()),\n          Text('Branch comparison',style:Theme.of(context).textTheme.titleMedium),
           ...((vm.analytics!['branchComparison'] as List? ?? []).map((b)=>Card(child:ListTile(
             title:Text(b['branchName']?.toString()??'Branch'),
             subtitle:Text('Orders: ${b['orders']} • Revenue: PKR ${b['revenue']}'),
@@ -82,10 +82,16 @@ class _MetricCard extends StatelessWidget {
   final String label,value;final IconData icon;
   @override Widget build(BuildContext context)=>Card(child:ListTile(leading:Icon(icon),title:Text(label),trailing:Text(value,style:const TextStyle(fontWeight:FontWeight.bold))));
 }
-class _Bars extends StatelessWidget {\n  const _Bars({required this.title,required this.items});\n  final String title;final List<Map<String,dynamic>> items;\n  @override Widget build(BuildContext context){final maxValue=items.fold<double>(0,(m,e)=>(e['value'] as double)>m?e['value'] as double:m);return Card(child:Padding(padding:const EdgeInsets.all(14),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(title,style:Theme.of(context).textTheme.titleMedium),const SizedBox(height:10),...items.map((e){final value=e['value'] as double;return Padding(padding:const EdgeInsets.symmetric(vertical:4),child:Row(children:[SizedBox(width:105,child:Text(e['label'].toString(),maxLines:1,overflow:TextOverflow.ellipsis)),Expanded(child:LinearProgressIndicator(value:maxValue<=0?0:value/maxValue,minHeight:9)),const SizedBox(width:8),Text(value.toStringAsFixed(0))]));})])));}\n}\nclass FinancialReportViewModel extends BaseViewModel {
-  FinancialReportViewModel(this._service){final now=DateTime.now();from=_date(now);to=from;load();loadAnalytics();}
+class _Bars extends StatelessWidget {
+  const _Bars({required this.title,required this.items});
+  final String title;final List<Map<String,dynamic>> items;
+  @override Widget build(BuildContext context){final maxValue=items.fold<double>(0,(m,e)=>(e['value'] as double)>m?e['value'] as double:m);return Card(child:Padding(padding:const EdgeInsets.all(14),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(title,style:Theme.of(context).textTheme.titleMedium),const SizedBox(height:10),...items.map((e){final value=e['value'] as double;return Padding(padding:const EdgeInsets.symmetric(vertical:4),child:Row(children:[SizedBox(width:105,child:Text(e['label'].toString(),maxLines:1,overflow:TextOverflow.ellipsis)),Expanded(child:LinearProgressIndicator(value:maxValue<=0?0:value/maxValue,minHeight:9)),const SizedBox(width:8),Text(value.toStringAsFixed(0))]));})])));}
+}
+class FinancialReportViewModel extends BaseViewModel {
+  FinancialReportViewModel(this._service){final now=DateTime.now();from=_date(now);to=from;loadAll();}
   final FinancialReportService _service;late String from,to;String? branchId,error,analyticsError;Map<String,dynamic>? data,analytics;bool analyticsBusy=false;
   static String _date(DateTime d)=>'${d.year.toString().padLeft(4,'0')}-${d.month.toString().padLeft(2,'0')}-${d.day.toString().padLeft(2,'0')}';
   void setFrom(String v){from=v;}void setTo(String v){to=v;}void setBranch(String v){branchId=v;}
-  Future<void> load()async{setBusy(true);error=null;try{data=await _service.load(from:from,to:to,branchId:branchId);}catch(e){error=e.toString();}setBusy(false);notifyListeners();}\n  Future<void> loadAnalytics()async{analyticsBusy=true;analyticsError=null;notifyListeners();try{analytics=await _service.loadAnalytics(from:from,to:to,branchId:branchId);}catch(e){analyticsError=e.toString();}analyticsBusy=false;notifyListeners();}
+  Future<void> loadAll()async{await Future.wait([load(),loadAnalytics()]);}\n  Future<void> load()async{setBusy(true);error=null;try{data=await _service.load(from:from,to:to,branchId:branchId);}catch(e){error=e.toString();}setBusy(false);notifyListeners();}
+  Future<void> loadAnalytics()async{analyticsBusy=true;analyticsError=null;notifyListeners();try{analytics=await _service.loadAnalytics(from:from,to:to,branchId:branchId);}catch(e){analyticsError=e.toString();}analyticsBusy=false;notifyListeners();}
 }
