@@ -44,6 +44,13 @@ class FinancialReportView extends StackedView<FinancialReportViewModel> {
         _MetricCard('Net profit',vm.data!['profitability']?['netProfit']==null?'Incomplete':'PKR ${_money(vm.data!['profitability']?['netProfit'])}',Icons.account_balance),
         if((vm.data!['profitability']?['status']??'incomplete')!='complete')
           Card(child:Padding(padding:const EdgeInsets.all(14),child:Text('Profit calculation incomplete: ${vm.data!['profitability']?['missingCostLines']??0} order lines need valid recipe costs. Receive ingredients with unit costs, configure recipes and complete orders with stock auto-deduction enabled.'))),
+        const SizedBox(height:12),
+        Text('Product Profitability',style:Theme.of(context).textTheme.titleLarge),
+        ...((vm.data!['productProfitability'] as List? ?? []).map((item)=>Card(child:ListTile(
+          title:Text(item['productName']?.toString()??'Product'),
+          subtitle:Text('Qty: ${item['quantity']} • Revenue: PKR ${item['revenue']} • COGS: ${item['cogs']??'Incomplete'}'),
+          trailing:Text(item['grossProfit']==null?'Incomplete':'PKR ${item['grossProfit']}',style:const TextStyle(fontWeight:FontWeight.bold))
+        )))),
         Card(child:Padding(padding:const EdgeInsets.all(14),child:Text(vm.data!['accountingNotes']?['warning']??'Profit uses completed orders, estimated recipe costs and approved expenses.'))),
       ]
     ]),
