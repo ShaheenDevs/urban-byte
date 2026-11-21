@@ -7,7 +7,7 @@ const roles = [
   ['Delivery', 'delivery', 'Assigned delivery workflow'],
 ];
 const permissionKeys = [
-  'dashboard.view', 'orders.view_all', 'orders.view_own', 'orders.create', 'orders.edit', 'orders.cancel', 'orders.status.update',
+  'dashboard.view', 'branches.view', 'orders.view_all', 'orders.view_own', 'orders.create', 'orders.edit', 'orders.cancel', 'orders.status.update',
   'menu.view', 'menu.manage', 'deals.manage', 'customers.view', 'customers.manage', 'customers.history.view', 'payments.record', 'cash_shifts.view', 'cash_shifts.open', 'cash_shifts.manage', 'cash_shifts.close',
   'inventory.view', 'inventory.manage', 'inventory.adjust', 'payments.view', 'payments.verify', 'payments.refund', 'payments.cod.collect',
   'ai.view', 'ai.conversations.view', 'ai.orders.approve', 'ai.settings.manage',
@@ -28,8 +28,8 @@ module.exports = {
     const permissionIdByKey = Object.fromEntries(permissionRows.map((row) => [row.permission_key, row.id]));
     const grants = {
       admin: permissionKeys,
-      supervisor: ['dashboard.view','orders.view_all','orders.create','orders.edit','orders.cancel','orders.status.update','menu.view','customers.view','customers.manage','customers.history.view','inventory.view','inventory.adjust','payments.view','payments.record','payments.verify','cash_shifts.view','cash_shifts.open','cash_shifts.manage','cash_shifts.close','payments.cod.collect','ai.view','ai.conversations.view','ai.orders.approve','kitchen.orders.view','delivery.view_assigned','delivery.status.update','reports.view','printers.manage','printers.view','printing.receipt','printing.kitchen','printing.view','printing.bridge','printing.retry'],
-      waiter: ['dashboard.view','orders.view_own','orders.create','orders.edit','orders.status.update','menu.view','customers.view','customers.manage','customers.history.view','printing.receipt','cash_shifts.view','cash_shifts.open','cash_shifts.manage','cash_shifts.close'],
+      supervisor: ['dashboard.view','branches.view','orders.view_all','orders.create','orders.edit','orders.cancel','orders.status.update','menu.view','customers.view','customers.manage','customers.history.view','inventory.view','inventory.adjust','payments.view','payments.record','payments.verify','cash_shifts.view','cash_shifts.open','cash_shifts.manage','cash_shifts.close','payments.cod.collect','ai.view','ai.conversations.view','ai.orders.approve','kitchen.orders.view','delivery.view_assigned','delivery.status.update','reports.view','printers.manage','printers.view','printing.receipt','printing.kitchen','printing.view','printing.bridge','printing.retry'],
+      waiter: ['dashboard.view','branches.view','orders.view_own','orders.create','orders.edit','orders.status.update','menu.view','customers.view','customers.manage','customers.history.view','printing.receipt','cash_shifts.view','cash_shifts.open','cash_shifts.manage','cash_shifts.close'],
       kitchen: ['dashboard.view','kitchen.orders.view','kitchen.orders.prepare','kitchen.orders.ready','printing.kitchen'],
       delivery: ['dashboard.view','delivery.view_assigned','delivery.status.update','payments.cod.collect'],
     };
