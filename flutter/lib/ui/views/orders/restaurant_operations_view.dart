@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:stacked/stacked.dart';
 import '../../../app/app.locator.dart';
@@ -194,11 +195,51 @@ class _Orders extends StatelessWidget {
       ]));
 }
 
-class _Kitchen extends StatelessWidget {
+class _Kitchen extends StatefulWidget {
   const _Kitchen(this.vm);
   final RestaurantOperationsViewModel vm;
   @override
-  Widget build(BuildContext context) => !vm.canKitchen
+  State<_Kitchen> createState() => _KitchenState();
+}
+
+class _KitchenState extends State<_Kitchen> {
+  Timer? _refreshTimer;
+  Timer? _clockTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      if (mounted && !widget.vm.isBusy && widget.vm.canKitchen) {
+        widget.vm.load();
+      }
+    });
+    _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    _clockTimer?.cancel();
+    super.dispose();
+  }
+
+  String _elapsed(dynamic placedAt) {
+    final started = DateTime.tryParse('${placedAt ?? ''}')?.toLocal();
+    if (started == null) return 'Time unavailable';
+    final duration = DateTime.now().difference(started);
+    final minutes = duration.inMinutes;
+    return minutes < 60
+        ? '${minutes}m ${duration.inSeconds % 60}s'
+        : '${duration.inHours}h ${minutes % 60}m';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final vm = widget.vm;
+    return !vm.canKitchen
       ? const Center(child: Text('You do not have permission to view kitchen tickets.'))
       : RefreshIndicator(
       onRefresh: vm.load,
@@ -247,6 +288,7 @@ class _Kitchen extends StatelessWidget {
                       ])));
         })
       ]));
+  }
 }
 
 class _NewOrder extends StatefulWidget {
