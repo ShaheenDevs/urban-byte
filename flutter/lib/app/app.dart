@@ -4,10 +4,12 @@ import '../services/auth_service.dart';
 import '../services/inventory_service.dart';
 import '../services/operations_service.dart';
 import '../ui/views/auth/login_view.dart';
+import '../ui/views/printing/printing_view.dart';
 
 @StackedApp(
   routes: [
     MaterialRoute(page: LoginView),
+    MaterialRoute(page: PrintingView),
   ],
   dependencies: [
     LazySingleton(classType: NavigationService),
