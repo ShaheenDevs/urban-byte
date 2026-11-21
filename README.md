@@ -11,6 +11,7 @@ Fresh monorepo for Urban Byte restaurant operations.
 - Order creation, item name/price snapshots, order listing/details, status history and controlled status transitions.
 - Kitchen tickets generated from confirmed orders, branch-filtered kitchen queue, prepare/ready actions, kitchen notes and synchronized order status updates.
 - Flutter restaurant operations workspace with orders, Kitchen Display System, branch filtering and manual order creation.
+- Persistent role-targeted notifications for new orders, kitchen progress/ready events and AI approval requests; per-user inbox, unread count and read actions.
 - Inventory catalog, supplier directory, branch stock/reorder thresholds, purchase receiving, recipe management and immutable stock movement history.
 - AI conversation intake, customer/staff message history, structured order-draft risk checks, Admin/Supervisor approval queue and deterministic menu/deal replies.
 - Optional branch-level recipe consumption on order completion; missing recipes or insufficient stock block completion atomically.
@@ -52,6 +53,14 @@ Order types: `dine_in`, `takeaway`, `delivery`. Status flow: placed → confirme
 - `PATCH /api/v1/inventory/branches/:branchId/auto-deduction` — settings.manage only; body `{ "enabled": true }` checks that every active prepared or retail product has a recipe before enabling branch-level deductions.
 
 Recipe-based auto-deduction is disabled by default per branch. Enable auto deduction through the Admin-only branch endpoint only after recipes and opening stock have been reconciled. When enabled, order completion deducts ingredient quantities in the same transaction; missing recipes or insufficient stock block completion. The deduction timestamp and stock movement references prevent repeat deductions.
+
+## Notification endpoints
+- `GET /api/v1/notifications` — authenticated user's notification inbox; supports `unread=true` and `limit`.
+- `GET /api/v1/notifications/unread-count` — current user's unread notification count.
+- `PATCH /api/v1/notifications/:notificationId/read` — mark one of the current user's notifications as read.
+- `PATCH /api/v1/notifications/read-all` — mark all of the current user's notifications as read.
+
+Notifications are persisted in MySQL and targeted using current role grants plus explicit user permission overrides. An explicit deny suppresses a role grant; an explicit allow can grant notification eligibility. New orders notify `orders.view_all` staff, confirmed orders notify kitchen staff, kitchen-ready events notify order staff, and AI drafts requiring review notify users with `ai.orders.approve`. Notification writes are best-effort after the business transaction commits so a notification outage does not undo an order. Flutter exposes an inbox sheet and unread badge on role dashboards and the operations workspace.
 
 ## Kitchen display endpoints
 - `GET /api/v1/kitchen/tickets` — kitchen.orders.view; supports branchId and status filters.
@@ -101,4 +110,4 @@ The AI workspace is available to users with `ai.view` or `ai.orders.approve`. It
 Run `cd flutter && flutter pub get && flutter test`. Set `API_BASE_URL` with `--dart-define` for a physical device or deployed API. The inventory dashboard reads the active branch list from the backend; it does not assume branch ID 1.
 
 ## Remaining milestones
-Customer records, verified payment workflow, delivery workflow, thermal printing bridge, reporting, role-based home dashboards and live push notifications.
+Customer records, verified payment workflow, delivery workflow, thermal printing bridge, reporting, full role-specific dashboard KPIs and live push notifications (FCM/APNs).
