@@ -10,3 +10,5 @@ test('selects requested variant size or default',()=>{const variants=[{id:1,name
 test('supports Pakistani Urdu size aliases',()=>{const variants=[{id:1,name:'Regular',isDefault:true},{id:2,name:'Large',isDefault:false},{id:3,name:'Small',isDefault:false}];assert.equal(variantSize('bari pizza',variants).id,2);assert.equal(variantSize('choti pizza',variants).id,3);});
 test('supports Pakistani quantity words',()=>{assert.equal(parseQuantity('aik pizza'),1);assert.equal(parseQuantity('chaar burger'),4);assert.equal(parseQuantity('paanch fries'),5);});
 test('keeps menu search tokens useful after Roman Urdu filler removal',()=>{assert.deepEqual(words('mujhe do zinger burger chahiye'),'zinger burger'.split(' '));});
+
+test('requires explicit order confirmation phrase',()=>{const {isExplicitConfirmation}=require('../src/services/ai-order-parser');assert.equal(isExplicitConfirmation('CONFIRM'),true);assert.equal(isExplicitConfirmation('yes confirm'),true);assert.equal(isExplicitConfirmation('haan'),false);assert.equal(isExplicitConfirmation('yes'),false);assert.equal(isExplicitConfirmation('ji'),false);});
