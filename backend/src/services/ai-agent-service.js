@@ -2,6 +2,8 @@
 const {AiConversation,AiMessage,AiApprovalRequest,Branch}=require('../models');
 const orderService=require('./order-service');
 const {Op}=require('sequelize');
+const notifications=require('./notification-service');
+async function notifyApprovers(restaurantId,request){try{await notifications.notifyPermissions(restaurantId,['ai.orders.approve'],{type:'ai.approval_required',title:'AI order needs approval',body:'A customer order requires staff review.',data:{approvalRequestId:String(request.id),conversationId:String(request.conversationId),branchId:String(request.branchId)}});}catch(error){/* Notification failure must not block the approval queue. */}}
 function fail(message,status=400,code='VALIDATION_ERROR'){const e=new Error(message);e.statusCode=status;e.code=code;return e;}
 function id(v){const n=Number(v);if(!Number.isSafeInteger(n)||n<1)throw fail('A valid positive ID is required.');return n;}
 function scopedConversation(restaurantId,conversationId){return AiConversation.findOne({where:{id:id(conversationId),restaurantId}});}
@@ -28,6 +30,7 @@ async function submitOrderDraft(restaurantId,conversationId,input={}){
  }
  const request=await AiApprovalRequest.create({restaurantId,branchId,conversationId:c.id,requestType:'order',riskReasons:reasons,payload,status:'pending'});
  await c.update({status:'waiting_approval'});
+ await notifyApprovers(restaurantId,request);
  return {approvalRequest:request,decision:'requires_staff_review',riskReasons:reasons};
 }
 async function listApprovals(restaurantId){return AiApprovalRequest.findAll({where:{restaurantId,status:'pending'},include:[{model:AiConversation,as:'conversation'}],order:[['createdAt','ASC']]});}
