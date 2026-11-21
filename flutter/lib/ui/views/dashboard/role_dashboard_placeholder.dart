@@ -73,7 +73,8 @@ class RoleDashboardPlaceholder extends StatelessWidget {
                   );
                 }
                 final data = snapshot.data ?? {};
-                final metrics = Map<String, dynamic>.from(data['metrics'] as Map? ?? {});
+                final metrics =
+                    Map<String, dynamic>.from(data['metrics'] as Map? ?? {});
                 final money = metrics['paidRevenueToday']?.toString() ?? '0.00';
                 return Card(
                   child: Padding(
@@ -88,11 +89,20 @@ class RoleDashboardPlaceholder extends StatelessWidget {
                           spacing: 12,
                           runSpacing: 12,
                           children: [
-                            _MetricTile(label: 'Orders today', value: '${metrics['todayOrders'] ?? 0}'),
-                            _MetricTile(label: 'Open orders', value: '${metrics['openOrders'] ?? 0}'),
-                            _MetricTile(label: 'Completed', value: '${metrics['completedToday'] ?? 0}'),
-                            _MetricTile(label: 'Pending payments', value: '${metrics['pendingPayments'] ?? 0}'),
-                            _MetricTile(label: 'Paid revenue', value: 'PKR $money'),
+                            _MetricTile(
+                                label: 'Orders today',
+                                value: '${metrics['todayOrders'] ?? 0}'),
+                            _MetricTile(
+                                label: 'Open orders',
+                                value: '${metrics['openOrders'] ?? 0}'),
+                            _MetricTile(
+                                label: 'Completed',
+                                value: '${metrics['completedToday'] ?? 0}'),
+                            _MetricTile(
+                                label: 'Pending payments',
+                                value: '${metrics['pendingPayments'] ?? 0}'),
+                            _MetricTile(
+                                label: 'Paid revenue', value: 'PKR $money'),
                           ],
                         ),
                         const SizedBox(height: 8),
@@ -128,23 +138,30 @@ class RoleDashboardPlaceholder extends StatelessWidget {
                     onTap: () => Navigator.of(context).push(MaterialPageRoute(
                         builder: (_) =>
                             AiAgentView(permissions: permissions))))),
-          if (permissions.contains('printers.view') || permissions.contains('printers.manage') || permissions.contains('printing.view'))
-            Card(child: ListTile(
+          if (permissions.contains('printers.view') ||
+              permissions.contains('printers.manage') ||
+              permissions.contains('printing.view'))
+            Card(
+                child: ListTile(
               leading: const Icon(Icons.print_outlined),
               title: const Text('Printer management'),
-              subtitle: const Text('Printers, receipt queue and kitchen tickets'),
+              subtitle:
+                  const Text('Printers, receipt queue and kitchen tickets'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => PrintingView(permissions: permissions))),
+                  builder: (_) => PrintingView(permissions: permissions))),
             )),
-          if (permissions.contains('delivery.view_assigned') || permissions.contains('delivery.assignments.view_all'))
-            Card(child: ListTile(
+          if (permissions.contains('delivery.view_assigned') ||
+              permissions.contains('delivery.assignments.view_all'))
+            Card(
+                child: ListTile(
               leading: const CircleAvatar(child: Icon(Icons.delivery_dining)),
               title: const Text('Delivery management'),
-              subtitle: const Text('Assigned orders, delivery status and COD collection'),
+              subtitle: const Text(
+                  'Assigned orders, delivery status and COD collection'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => DeliveryView(permissions: permissions))),
+                  builder: (_) => DeliveryView(permissions: permissions))),
             )),
           if (_canOpenOrders)
             Card(
@@ -160,7 +177,6 @@ class RoleDashboardPlaceholder extends StatelessWidget {
         ]),
       );
 }
-
 
 class _MetricTile extends StatelessWidget {
   const _MetricTile({required this.label, required this.value});

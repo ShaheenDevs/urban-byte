@@ -30,7 +30,7 @@ Future<void> setupLocator(
   locator.registerLazySingleton(() => AuthService());
   locator.registerLazySingleton(() => InventoryService());
   locator.registerLazySingleton(() => OperationsService());
-  locator.registerLazySingleton(() => StaffService(locator<AuthService>()));
-  locator.registerLazySingleton(() => ExpenseService(locator<AuthService>()));
-  locator.registerLazySingleton(() => FinancialReportService(locator<AuthService>()));
+  locator.registerLazySingleton(() => StaffService());
+  locator.registerLazySingleton(() => ExpenseService());
+  locator.registerLazySingleton(() => FinancialReportService());
 }

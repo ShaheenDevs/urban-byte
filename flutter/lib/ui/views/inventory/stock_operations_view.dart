@@ -58,8 +58,9 @@ class StockOperationsViewModel extends BaseViewModel {
       suppliers = r[2] as List<Map<String, dynamic>>;
       purchases = r[3] as List<Map<String, dynamic>>;
       recipes = r[4] as List<Map<String, dynamic>>;
-      if (branches.isNotEmpty && !branches.any((b) => b.id == branchId))
+      if (branches.isNotEmpty && !branches.any((b) => b.id == branchId)) {
         branchId = branches.first.id;
+      }
       loaded = true;
     } catch (e) {
       loadError = e.toString();
@@ -184,7 +185,9 @@ class _Purchases extends StatelessWidget {
                                 q == null ||
                                 q <= 0 ||
                                 c == null ||
-                                c < 0) return;
+                                c < 0) {
+                              return;
+                            }
                             Navigator.pop(ctx);
                             vm.run(() => vm.api.createPurchase(
                                     branchId: vm.branchId,
@@ -223,7 +226,7 @@ class _Suppliers extends StatelessWidget {
                 title: Text('${s['name']}'),
                 subtitle: Text('${s['phone'] ?? 'No phone'}'),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => _showLedger(context,s))))
+                onTap: () => _showLedger(context, s))))
       ]);
   Future<void> _newSupplier(BuildContext context) async {
     final name = TextEditingController(),
@@ -265,51 +268,120 @@ class _Suppliers extends StatelessWidget {
     notes.dispose();
   }
 
-  Future<void> _showLedger(BuildContext context, Map<String,dynamic> supplier) async {
+  Future<void> _showLedger(
+      BuildContext context, Map<String, dynamic> supplier) async {
     final supplierId = '${supplier['id']}';
-    Map<String,dynamic>? ledger;
+    Map<String, dynamic>? ledger;
     String? error;
-    try { ledger = await vm.api.supplierLedger(supplierId); } catch (e) { error = e.toString(); }
+    try {
+      ledger = await vm.api.supplierLedger(supplierId);
+    } catch (e) {
+      error = e.toString();
+    }
     if (!context.mounted) return;
-    await showDialog<void>(context:context,builder:(ctx)=>AlertDialog(
-      title:Text('${supplier['name']} — Ledger'),
-      content:SizedBox(width:480,child:error!=null?Text(error!):ledger==null?const CircularProgressIndicator():SingleChildScrollView(child:Column(crossAxisAlignment:CrossAxisAlignment.start,mainAxisSize:MainAxisSize.min,children:[
-        Text('Purchases: PKR ${ledger!['purchaseTotal']??0}'),
-        Text('Paid: PKR ${ledger!['paidTotal']??0}'),
-        Text('Outstanding: PKR ${ledger!['outstanding']??0}',style:const TextStyle(fontWeight:FontWeight.bold)),
-        const Divider(),
-        ...((ledger!['purchases'] as List? ?? []).map((p) => ListTile(
-          contentPadding:EdgeInsets.zero,
-          title:Text('${p['purchaseNumber']}'),
-          subtitle:Text('Total ${p['total']} • Paid ${p['paid']} • Due ${p['due']}'),
-          trailing:TextButton(
-            onPressed:double.tryParse('${p['due']}')==null||double.parse('${p['due']}')<=0?null:()=>_recordPayment(ctx,'${p['purchaseId']}',double.parse('${p['due']}')),
-            child:const Text('Pay')
-          )
-        )))
-      ])))),
-      actions:[TextButton(onPressed:()=>Navigator.pop(ctx),child:const Text('Close'))]
-    ));
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+          title: Text('${supplier['name']} — Ledger'),
+          content: SizedBox(
+            width: 480,
+            child: error != null
+                ? Text(error!)
+                : ledger == null
+                    ? const CircularProgressIndicator()
+                    : SingleChildScrollView(
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                  'Purchases: PKR ${ledger!['purchaseTotal'] ?? 0}'),
+                              Text('Paid: PKR ${ledger!['paidTotal'] ?? 0}'),
+                              Text(
+                                  'Outstanding: PKR ${ledger!['outstanding'] ?? 0}',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold)),
+                              const Divider(),
+                              ...((ledger!['purchases'] as List? ?? []).map(
+                                  (p) => ListTile(
+                                      contentPadding: EdgeInsets.zero,
+                                      title: Text('${p['purchaseNumber']}'),
+                                      subtitle: Text(
+                                          'Total ${p['total']} • Paid ${p['paid']} • Due ${p['due']}'),
+                                      trailing: TextButton(
+                                          onPressed: double.tryParse(
+                                                          '${p['due']}') ==
+                                                      null ||
+                                                  double.parse('${p['due']}') <=
+                                                      0
+                                              ? null
+                                              : () => _recordPayment(
+                                                  ctx,
+                                                  '${p['purchaseId']}',
+                                                  double.parse('${p['due']}')),
+                                          child: const Text('Pay')))))
+                            ]),
+                      ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx), child: const Text('Close'))
+          ]),
+    );
   }
 
-  Future<void> _recordPayment(BuildContext context,String purchaseId,double due) async {
-    final amount=TextEditingController(text:due.toStringAsFixed(2));
-    var method='cash';
-    final saved=await showDialog<bool>(context:context,builder:(ctx)=>StatefulBuilder(builder:(ctx,set)=>AlertDialog(
-      title:const Text('Record supplier payment'),
-      content:Column(mainAxisSize:MainAxisSize.min,children:[
-        TextField(controller:amount,keyboardType:const TextInputType.numberWithOptions(decimal:true),decoration:InputDecoration(labelText:'Amount (max PKR ${due.toStringAsFixed(2)})')),
-        DropdownButtonFormField<String>(value:method,decoration:const InputDecoration(labelText:'Method'),items:const ['cash','bank_transfer','easypaisa','jazzcash','card'].map((m)=>DropdownMenuItem(value:m,child:Text(m.replaceAll('_',' ')))).toList(),onChanged:(v)=>set(()=>method=v??'cash'))
-      ]),
-      actions:[
-        TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Cancel')),
-        FilledButton(onPressed:double.tryParse(amount.text)==null||double.parse(amount.text)<=0||double.parse(amount.text)>due?null:()=>Navigator.pop(ctx,true),child:const Text('Save payment'))
-      ]
-    )));
-    if(saved==true) await vm.run(()=>vm.api.recordPurchasePayment(purchaseId,amount:double.parse(amount.text),method:method));
+  Future<void> _recordPayment(
+      BuildContext context, String purchaseId, double due) async {
+    final amount = TextEditingController(text: due.toStringAsFixed(2));
+    var method = 'cash';
+    final saved = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => StatefulBuilder(
+            builder: (ctx, set) => AlertDialog(
+                    title: const Text('Record supplier payment'),
+                    content: Column(mainAxisSize: MainAxisSize.min, children: [
+                      TextField(
+                          controller: amount,
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          decoration: InputDecoration(
+                              labelText:
+                                  'Amount (max PKR ${due.toStringAsFixed(2)})')),
+                      DropdownButtonFormField<String>(
+                          value: method,
+                          decoration:
+                              const InputDecoration(labelText: 'Method'),
+                          items: const [
+                            'cash',
+                            'bank_transfer',
+                            'easypaisa',
+                            'jazzcash',
+                            'card'
+                          ]
+                              .map((m) => DropdownMenuItem(
+                                  value: m,
+                                  child: Text(m.replaceAll('_', ' '))))
+                              .toList(),
+                          onChanged: (v) => set(() => method = v ?? 'cash'))
+                    ]),
+                    actions: [
+                      TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: const Text('Cancel')),
+                      FilledButton(
+                          onPressed: double.tryParse(amount.text) == null ||
+                                  double.parse(amount.text) <= 0 ||
+                                  double.parse(amount.text) > due
+                              ? null
+                              : () => Navigator.pop(ctx, true),
+                          child: const Text('Save payment'))
+                    ])));
+    if (saved == true) {
+      await vm.run(() => vm.api.recordPurchasePayment(purchaseId,
+          amount: double.parse(amount.text), method: method));
+    }
     amount.dispose();
   }
-
 }
 
 class _Recipes extends StatelessWidget {
@@ -392,7 +464,9 @@ class _Recipes extends StatelessWidget {
                                 y <= 0 ||
                                 q == null ||
                                 q <= 0 ||
-                                item == null) return;
+                                item == null) {
+                              return;
+                            }
                             Navigator.pop(ctx);
                             vm.run(() => vm.api.saveRecipe(
                                     variantId: '$v',

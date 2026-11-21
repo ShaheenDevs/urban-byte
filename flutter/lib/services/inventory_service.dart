@@ -19,12 +19,12 @@ class InventoryService {
           .map((e) => InventoryItem.fromJson(Map<String, dynamic>.from(e)))
           .toList();
   Future<List<BranchStockEntry>> stock(String id) async =>
-      (await _get('/inventory/stock?branchId=' + Uri.encodeQueryComponent(id))
+      (await _get('/inventory/stock?branchId=${Uri.encodeQueryComponent(id)}')
               as List)
           .map((e) => BranchStockEntry.fromJson(Map<String, dynamic>.from(e)))
           .toList();
   Future<List<BranchStockEntry>> lowStock(String id) async => (await _get(
-              '/inventory/stock/low?branchId=' + Uri.encodeQueryComponent(id))
+              '/inventory/stock/low?branchId=${Uri.encodeQueryComponent(id)}')
           as List)
       .map((e) => BranchStockEntry.fromJson(Map<String, dynamic>.from(e)))
       .toList();
@@ -64,18 +64,18 @@ class InventoryService {
 
   Future<void> receivePurchase(String id) async {
     await _request(
-        'POST', '/inventory/purchases/' + Uri.encodeComponent(id) + '/receive');
+        'POST', '/inventory/purchases/${Uri.encodeComponent(id)}/receive');
   }
 
 
   Future<Map<String,dynamic>> supplierLedger(String supplierId) async =>
-      Map<String,dynamic>.from(await _get('/inventory/suppliers/' + Uri.encodeComponent(supplierId) + '/ledger') as Map);
+      Map<String,dynamic>.from(await _get('/inventory/suppliers/${Uri.encodeComponent(supplierId)}/ledger') as Map);
   Future<void> recordPurchasePayment(String purchaseId,{required double amount,required String method,String? reference,String? notes}) async {
-    await _request('POST','/inventory/purchases/' + Uri.encodeComponent(purchaseId) + '/payments',body:{
+    await _request('POST','/inventory/purchases/${Uri.encodeComponent(purchaseId)}/payments',body:{
       'amount':amount,'method':method,'reference':reference,'notes':notes
     });
   }
-\n  Future<List<Map<String, dynamic>>> recipes() async =>
+  Future<List<Map<String, dynamic>>> recipes() async =>
       _list(await _get('/inventory/recipes'));
   Future<void> saveRecipe(
       {required String variantId,
@@ -94,11 +94,12 @@ class InventoryService {
   Future<dynamic> _request(String method, String path,
       {Map<String, dynamic>? body}) async {
     final token = await _storage.read(key: 'access_token');
-    if (token == null || token.isEmpty)
+    if (token == null || token.isEmpty) {
       throw const InventoryException('Please sign in again.');
+    }
     final uri = Uri.parse(apiBaseUrl + path);
     final headers = {
-      'Authorization': 'Bearer ' + token,
+      'Authorization': 'Bearer $token',
       'Content-Type': 'application/json'
     };
     final encoded = body == null ? null : jsonEncode(body);
@@ -116,9 +117,10 @@ class InventoryService {
     }
     if (response.statusCode < 200 ||
         response.statusCode >= 300 ||
-        payload['success'] != true)
+        payload['success'] != true) {
       throw InventoryException(
           payload['message'] as String? ?? 'Inventory request failed.');
+    }
     return payload['data'];
   }
 }

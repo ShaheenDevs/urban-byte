@@ -25,7 +25,8 @@ class RestaurantOperationsView
                   title: const Text('Restaurant operations'),
                   actions: [
                     FutureBuilder<int>(
-                      future: locator<OperationsService>().unreadNotificationCount(),
+                      future: locator<OperationsService>()
+                          .unreadNotificationCount(),
                       builder: (context, snapshot) => IconButton(
                         tooltip: 'Notifications',
                         onPressed: () => showModalBottomSheet<void>(
@@ -71,19 +72,22 @@ class RestaurantOperationsViewModel extends BaseViewModel {
     try {
       if (permissions.contains('branches.view')) {
         branches = await inventory.branches();
-        if (branches.isNotEmpty && !branches.any((b) => '${b.id}' == branchId)) {
+        if (branches.isNotEmpty &&
+            !branches.any((b) => '${b.id}' == branchId)) {
           branchId = '${branches.first.id}';
         }
       }
       final tasks = <Future<dynamic>>[];
       final keys = <String>[];
-      if (permissions.contains('orders.view_all') || permissions.contains('orders.view_own')) {
+      if (permissions.contains('orders.view_all') ||
+          permissions.contains('orders.view_own')) {
         keys.add('orders');
         tasks.add(api.orders(branchId: branchId.isEmpty ? null : branchId));
       }
       if (canKitchen) {
         keys.add('tickets');
-        tasks.add(api.kitchenQueue(branchId: branchId.isEmpty ? null : branchId));
+        tasks.add(
+            api.kitchenQueue(branchId: branchId.isEmpty ? null : branchId));
       }
       if (permissions.contains('menu.view') || canCreate) {
         keys.add('products');
@@ -125,14 +129,16 @@ class RestaurantOperationsViewModel extends BaseViewModel {
 
   Future<void> create(String type, List<Map<String, dynamic>> lines,
       {String? table, String? name, String? phone, String? address}) async {
-    await _run(() async { await api.createOrder(
-        branchId: branchId,
-        orderType: type,
-        items: lines,
-        tableLabel: table,
-        customerName: name,
-        customerPhone: phone,
-        deliveryAddress: address); });
+    await _run(() async {
+      await api.createOrder(
+          branchId: branchId,
+          orderType: type,
+          items: lines,
+          tableLabel: table,
+          customerName: name,
+          customerPhone: phone,
+          deliveryAddress: address);
+    });
   }
 
   Future<void> _run(Future<void> Function() action) async {
@@ -154,45 +160,49 @@ class _Orders extends StatelessWidget {
   const _Orders(this.vm);
   final RestaurantOperationsViewModel vm;
   @override
-  Widget build(BuildContext context) => !vm.permissions.contains('orders.view_all') && !vm.permissions.contains('orders.view_own')
+  Widget build(BuildContext context) => !vm.permissions
+              .contains('orders.view_all') &&
+          !vm.permissions.contains('orders.view_own')
       ? const Center(child: Text('You do not have permission to view orders.'))
       : RefreshIndicator(
-      onRefresh: vm.load,
-      child: ListView(padding: const EdgeInsets.all(12), children: [
-        if (vm.loadError != null)
-          Text(vm.loadError!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error)),
-        if (vm.orders.isEmpty) const Text('No orders found.'),
-        ...vm.orders.map((o) {
-          final id = '${o['id']}';
-          final status = '${o['status'] ?? 'placed'}';
-          final items = (o['items'] as List? ?? []);
-          return Card(
-              child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('${o['orderNumber'] ?? 'Order #$id'}',
-                            style: Theme.of(context).textTheme.titleMedium),
-                        Text(
-                            '${o['orderType']} • ${o['tableLabel'] ?? o['customerName'] ?? ''}'),
-                        Text('Status: $status • PKR ${o['grandTotal'] ?? ''}'),
-                        Text(items
-                            .map(
-                                (i) => '${i['quantity']} × ${i['productName']}')
-                            .join(', ')),
-                        if (vm.canUpdate && status == 'placed')
-                          Align(
-                              alignment: Alignment.centerRight,
-                              child: TextButton(
-                                  onPressed: vm.isBusy
-                                      ? null
-                                      : () => vm.changeStatus(id, 'confirmed'),
-                                  child: const Text('Confirm order')))
-                      ])));
-        })
-      ]));
+          onRefresh: vm.load,
+          child: ListView(padding: const EdgeInsets.all(12), children: [
+            if (vm.loadError != null)
+              Text(vm.loadError!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            if (vm.orders.isEmpty) const Text('No orders found.'),
+            ...vm.orders.map((o) {
+              final id = '${o['id']}';
+              final status = '${o['status'] ?? 'placed'}';
+              final items = (o['items'] as List? ?? []);
+              return Card(
+                  child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('${o['orderNumber'] ?? 'Order #$id'}',
+                                style: Theme.of(context).textTheme.titleMedium),
+                            Text(
+                                '${o['orderType']} • ${o['tableLabel'] ?? o['customerName'] ?? ''}'),
+                            Text(
+                                'Status: $status • PKR ${o['grandTotal'] ?? ''}'),
+                            Text(items
+                                .map((i) =>
+                                    '${i['quantity']} × ${i['productName']}')
+                                .join(', ')),
+                            if (vm.canUpdate && status == 'placed')
+                              Align(
+                                  alignment: Alignment.centerRight,
+                                  child: TextButton(
+                                      onPressed: vm.isBusy
+                                          ? null
+                                          : () =>
+                                              vm.changeStatus(id, 'confirmed'),
+                                      child: const Text('Confirm order')))
+                          ])));
+            })
+          ]));
 }
 
 class _Kitchen extends StatefulWidget {
@@ -240,54 +250,69 @@ class _KitchenState extends State<_Kitchen> {
   Widget build(BuildContext context) {
     final vm = widget.vm;
     return !vm.canKitchen
-      ? const Center(child: Text('You do not have permission to view kitchen tickets.'))
-      : RefreshIndicator(
-      onRefresh: vm.load,
-      child: ListView(padding: const EdgeInsets.all(12), children: [
-        if (vm.branches.isNotEmpty) DropdownButtonFormField<String>(
-            value: vm.branchId,
-            decoration: const InputDecoration(labelText: 'Kitchen branch'),
-            items: vm.branches.map((b) => DropdownMenuItem<String>(value: '${b.id}', child: Text(b.name))).toList(),
-            onChanged: vm.isBusy ? null : vm.selectBranch),
-        if (vm.loadError != null) Text(vm.loadError!),
-        if (vm.tickets.isEmpty) const Padding(padding: EdgeInsets.all(24), child: Center(child: Text('Kitchen queue is empty. New confirmed orders will appear here.'))),
-        ...vm.tickets.map((t) {
-          final id = '${t['id']}';
-          final status = '${t['status']}';
-          final order = t['order'] as Map? ?? const {};
-          final items = t['items'] as List? ?? [];
-          return Card(
-              child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('${t['ticketNumber'] ?? 'Ticket #$id'}',
-                            style: Theme.of(context).textTheme.titleMedium),
-                        Text(
-                            'Order ${order['orderNumber'] ?? ''} • ${order['tableLabel'] ?? order['orderType'] ?? ''}'),
-                        if (order['customerName'] != null) Text('Customer: ${order['customerName']}'),
-                        if (order['notes'] != null && '${order['notes']}'.isNotEmpty) Text('Order notes: ${order['notes']}'),
-                        ...items.map((i) => ListTile(
-                            dense: true,
-                            title: Text(
-                                '${i['quantity']} × ${i['productName']} ${i['variantName'] ?? ''}'),
-                            subtitle: Text('${i['notes'] ?? ''}'))),
-                        if (status == 'pending')
-                          FilledButton(
-                              onPressed: vm.isBusy
-                                  ? null
-                                  : () => vm.kitchen(id, 'prepare'),
-                              child: const Text('Start preparing'))
-                        else if (status == 'preparing')
-                          FilledButton(
-                              onPressed: vm.isBusy
-                                  ? null
-                                  : () => vm.kitchen(id, 'ready'),
-                              child: const Text('Mark ready'))
-                      ])));
-        })
-      ]));
+        ? const Center(
+            child: Text('You do not have permission to view kitchen tickets.'))
+        : RefreshIndicator(
+            onRefresh: vm.load,
+            child: ListView(padding: const EdgeInsets.all(12), children: [
+              if (vm.branches.isNotEmpty)
+                DropdownButtonFormField<String>(
+                    value: vm.branchId,
+                    decoration:
+                        const InputDecoration(labelText: 'Kitchen branch'),
+                    items: vm.branches
+                        .map((b) => DropdownMenuItem<String>(
+                            value: '${b.id}', child: Text(b.name)))
+                        .toList(),
+                    onChanged: vm.isBusy ? null : vm.selectBranch),
+              if (vm.loadError != null) Text(vm.loadError!),
+              if (vm.tickets.isEmpty)
+                const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Center(
+                        child: Text(
+                            'Kitchen queue is empty. New confirmed orders will appear here.'))),
+              ...vm.tickets.map((t) {
+                final id = '${t['id']}';
+                final status = '${t['status']}';
+                final order = t['order'] as Map? ?? const {};
+                final items = t['items'] as List? ?? [];
+                return Card(
+                    child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('${t['ticketNumber'] ?? 'Ticket #$id'}',
+                                  style:
+                                      Theme.of(context).textTheme.titleMedium),
+                              Text(
+                                  'Order ${order['orderNumber'] ?? ''} • ${order['tableLabel'] ?? order['orderType'] ?? ''}'),
+                              if (order['customerName'] != null)
+                                Text('Customer: ${order['customerName']}'),
+                              if (order['notes'] != null &&
+                                  '${order['notes']}'.isNotEmpty)
+                                Text('Order notes: ${order['notes']}'),
+                              ...items.map((i) => ListTile(
+                                  dense: true,
+                                  title: Text(
+                                      '${i['quantity']} × ${i['productName']} ${i['variantName'] ?? ''}'),
+                                  subtitle: Text('${i['notes'] ?? ''}'))),
+                              if (status == 'pending')
+                                FilledButton(
+                                    onPressed: vm.isBusy
+                                        ? null
+                                        : () => vm.kitchen(id, 'prepare'),
+                                    child: const Text('Start preparing'))
+                              else if (status == 'preparing')
+                                FilledButton(
+                                    onPressed: vm.isBusy
+                                        ? null
+                                        : () => vm.kitchen(id, 'ready'),
+                                    child: const Text('Mark ready'))
+                            ])));
+              })
+            ]));
   }
 }
 
@@ -308,7 +333,11 @@ class _NewOrderState extends State<_NewOrder> {
   final Map<String, int> cart = {};
   final search = TextEditingController();
   @override
-  void initState() { super.initState(); search.addListener(() => setState(() {})); }
+  void initState() {
+    super.initState();
+    search.addListener(() => setState(() {}));
+  }
+
   @override
   void dispose() {
     table.dispose();
@@ -336,9 +365,20 @@ class _NewOrderState extends State<_NewOrder> {
   @override
   Widget build(BuildContext context) {
     final vm = widget.vm;
-    final available = variants.where((v) => ('${v['_productName']} ${v['name'] ?? v['variantName'] ?? ''}').toLowerCase().contains(search.text.toLowerCase())).toList();
+    final available = variants
+        .where((v) =>
+            ('${v['_productName']} ${v['name'] ?? v['variantName'] ?? ''}')
+                .toLowerCase()
+                .contains(search.text.toLowerCase()))
+        .toList();
     final allVariants = variants;
-    final total = allVariants.fold<double>(0, (sum, v) => sum + ((cart['${v['id']}'] ?? 0) * (double.tryParse('${v['salePrice'] ?? v['basePrice'] ?? 0}') ?? 0)));
+    final total = allVariants.fold<double>(
+        0,
+        (sum, v) =>
+            sum +
+            ((cart['${v['id']}'] ?? 0) *
+                (double.tryParse('${v['salePrice'] ?? v['basePrice'] ?? 0}') ??
+                    0)));
     return ListView(padding: const EdgeInsets.all(16), children: [
       if (!vm.canCreate)
         const Text('Your account does not have order creation permission.')
@@ -380,7 +420,10 @@ class _NewOrderState extends State<_NewOrder> {
                 const InputDecoration(labelText: 'Customer phone (optional)')),
         const SizedBox(height: 12),
         Text('Menu products', style: Theme.of(context).textTheme.titleMedium),
-        TextField(controller: search, decoration: const InputDecoration(prefixIcon: Icon(Icons.search), labelText: 'Search products')),
+        TextField(
+            controller: search,
+            decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.search), labelText: 'Search products')),
         if (available.isEmpty)
           const Text('No active product variants returned by the menu API.'),
         ...available.map((v) {
@@ -405,7 +448,11 @@ class _NewOrderState extends State<_NewOrder> {
                   ])));
         }),
         const SizedBox(height: 12),
-        Card(child: ListTile(title: const Text('Cart total'), trailing: Text('PKR ${total.toStringAsFixed(2)}', style: Theme.of(context).textTheme.titleLarge))),
+        Card(
+            child: ListTile(
+                title: const Text('Cart total'),
+                trailing: Text('PKR ${total.toStringAsFixed(2)}',
+                    style: Theme.of(context).textTheme.titleLarge))),
         FilledButton(
             onPressed: vm.isBusy ||
                     cart.values.every((q) => q == 0) ||

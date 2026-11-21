@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:stacked/stacked.dart';
 import '../../../app/app.locator.dart';
 import '../../../services/operations_service.dart';
 
