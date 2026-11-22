@@ -103,7 +103,17 @@ class _AvailableRolesDialog extends StatefulWidget {
 }
 
 class _AvailableRolesDialogState extends State<_AvailableRolesDialog> {
-  late final Future<List<Map<String, dynamic>>> _roles = PublicRoleService().fetchRoles();
+  late Future<List<Map<String, dynamic>>> _roles;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRoles();
+  }
+
+  void _loadRoles() {
+    _roles = PublicRoleService().fetchRoles();
+  }
 
   @override
   Widget build(BuildContext context) => AlertDialog(
@@ -120,7 +130,7 @@ class _AvailableRolesDialogState extends State<_AvailableRolesDialog> {
             return Column(mainAxisSize: MainAxisSize.min, children: [
               Text(snapshot.error.toString()),
               const SizedBox(height: 8),
-              TextButton(onPressed: () => setState(() {}), child: const Text('Retry')),
+              TextButton(onPressed: () => setState(_loadRoles), child: const Text('Retry')),
             ]);
           }
           final roles = snapshot.data ?? [];
