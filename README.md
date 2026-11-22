@@ -258,3 +258,12 @@ npm run dev
 The repair command deliberately resets the password for the exact configured email/phone, activates that account, links it to the Urban Byte restaurant and ensures the Admin role (and Owner role, if seeded). Do not run it with another person's account identifier. Never paste your real `.env` or password into chat or GitHub.
 
 If the seed still fails, copy the complete error stack including the first Sequelize validation details; the short `ERROR: Validation error` line alone does not identify the exact constraint.
+
+
+### Repair missing Urban Byte menu / inventory starter records
+If the setup screen shows Restaurant, Branch, Owner, Roles and Permissions as Found, but Menu Categories, Menu Products, Inventory Ingredients and Suppliers as Missing, run the targeted idempotent demo-data seeder from `backend/`:
+```bash
+npm run db:seed:urban-byte
+```
+This runs only `20261122000100-seed-urban-byte-demo.js`; it does not rerun the legacy role seeder, reset the database, or delete business records. Restart the backend and tap **Check again** in Flutter. Expected starter counts are 6 menu categories, 10 products, 8 inventory items and 3 suppliers (existing records are reused).
+If this command fails, share the complete terminal output from the first error line through the stack trace, with credentials redacted. Do not run `db:migrate:undo`, drop tables, or delete rows to fix this.
