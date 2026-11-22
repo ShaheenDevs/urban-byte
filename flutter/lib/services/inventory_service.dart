@@ -75,6 +75,16 @@ class InventoryService {
       'amount':amount,'method':method,'reference':reference,'notes':notes
     });
   }
+
+  Future<Map<String,dynamic>> inventoryValuation({String? branchId}) async {
+    final query = branchId == null ? '' : '?branchId=${Uri.encodeQueryComponent(branchId)}';
+    return Map<String,dynamic>.from(await _get('/inventory/stock/valuation$query') as Map);
+  }
+  Future<Map<String,dynamic>> transferStock({required String fromBranchId,required String toBranchId,required String inventoryItemId,required double quantity}) async =>
+      Map<String,dynamic>.from(await _request('POST','/inventory/stock/transfers',body:{'fromBranchId':int.parse(fromBranchId),'toBranchId':int.parse(toBranchId),'inventoryItemId':int.parse(inventoryItemId),'quantity':quantity}) as Map);
+  Future<Map<String,dynamic>> returnPurchase({required String purchaseId,required String purchaseItemId,required double quantity,String? note}) async =>
+      Map<String,dynamic>.from(await _request('POST','/inventory/purchases/${Uri.encodeComponent(purchaseId)}/returns',body:{'purchaseItemId':int.parse(purchaseItemId),'quantity':quantity,'note':note}) as Map);
+
   Future<List<Map<String, dynamic>>> recipes() async =>
       _list(await _get('/inventory/recipes'));
   Future<void> saveRecipe(
