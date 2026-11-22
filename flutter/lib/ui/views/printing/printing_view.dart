@@ -51,11 +51,18 @@ class PrintingView extends StackedView<PrintingViewModel> {
                         title: Text('${p['name'] ?? 'Printer'}'),
                         subtitle: Text(
                             '${p['connectionType']} • ${p['paperWidth']} • ${p['purpose']}'),
-                        trailing: Icon(
+                        trailing: Wrap(mainAxisSize: MainAxisSize.min, children: [
+                          IconButton(
+                            tooltip: 'Test print',
+                            onPressed: vm.isBusy ? null : () => vm.testPrint(p),
+                            icon: const Icon(Icons.print_outlined),
+                          ),
+                          Icon(
                             p['isActive'] == true
                                 ? Icons.check_circle
                                 : Icons.pause_circle,
                             color: p['isActive'] == true ? Colors.green : null),
+                        ]),
                       ))),
                   const SizedBox(height: 20),
                   Text('Recent print jobs',
@@ -245,6 +252,19 @@ class PrintingViewModel extends BaseViewModel {
           address: address,
           deviceIdentifier: device);
       await load();
+    } catch (e) {
+      loadingError = e.toString();
+    } finally {
+      setBusy(false);
+      notifyListeners();
+    }
+  }
+
+  Future<void> testPrint(Map<String, dynamic> printer) async {
+    setBusy(true);
+    loadingError = null;
+    try {
+      await service.testNetworkPrinter(printer);
     } catch (e) {
       loadingError = e.toString();
     } finally {
