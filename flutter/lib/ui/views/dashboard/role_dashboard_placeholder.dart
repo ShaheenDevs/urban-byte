@@ -8,6 +8,8 @@ import '../ai/ai_agent_view.dart';
 import '../printing/printing_view.dart';
 import '../delivery/delivery_view.dart';
 import '../pos/pos_view.dart';
+import '../payments/payment_verification_view.dart';
+import '../cash_shift/cash_shift_view.dart';
 
 /// Role-aware starting workspace. Full navigation modules are added incrementally.
 class RoleDashboardPlaceholder extends StatelessWidget {
@@ -125,6 +127,30 @@ class RoleDashboardPlaceholder extends StatelessWidget {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const PosView()),
+                ),
+              ),
+            ),
+          if (permissions.contains('payments.verify') || permissions.contains('payments.view'))
+            Card(
+              child: ListTile(
+                leading: const CircleAvatar(child: Icon(Icons.fact_check_outlined)),
+                title: const Text('Payment verification'),
+                subtitle: const Text('Review pending payments and verify received funds'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const PaymentVerificationView()),
+                ),
+              ),
+            ),
+          if (permissions.contains('cash_shifts.open') || permissions.contains('cash_shifts.view'))
+            Card(
+              child: ListTile(
+                leading: const CircleAvatar(child: Icon(Icons.point_of_sale_outlined)),
+                title: const Text('Cashier shift'),
+                subtitle: const Text('Open shift, cash in/out and close with reconciliation'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const CashShiftView()),
                 ),
               ),
             ),
