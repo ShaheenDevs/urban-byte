@@ -34,7 +34,7 @@ Fresh monorepo for Urban Byte restaurant operations.
 - `GET /api/v1/orders/:orderId` — orders.view_own or orders.view_all.
 - `PATCH /api/v1/orders/:orderId/status` — orders.status.update.
 
-Order types: `dine_in`, `takeaway`, `delivery`. Status flow: placed → confirmed → preparing → ready → (out_for_delivery) → completed. Cancellation is only allowed before preparation. Server calculates item prices from active variants and branch prices; client-supplied totals/discounts are ignored. Taxes and delivery charges currently remain zero pending configured policies. Order creation cannot mark a payment as paid.
+Order types: `dine_in`, `takeaway`, `delivery`. Status flow: placed → confirmed → preparing → ready → (out_for_delivery) → completed. Cancellation is only allowed before preparation. Server calculates item prices from active variants and branch prices. Client-supplied totals are ignored. Configured restaurant tax is calculated server-side; fixed order discounts are accepted only for authorized staff within the configured percentage cap. Delivery charges remain zero until configured separately. Order creation cannot mark a payment as paid.
 
 ## Inventory endpoints
 - `GET /api/v1/inventory/branches` — active branches for the authenticated restaurant; inventory.view.
@@ -94,7 +94,7 @@ All menu and order data is scoped to the restaurant in the signed access token. 
 - Copy `appsettings.example.json` to `appsettings.json`, set the API URL, dedicated bridge staff access token, branch ID and printer ID.
 - USB: install the printer in Windows and set `WindowsPrinterName` to the exact Windows queue name.
 - Bluetooth: pair an ESC/POS printer that exposes a Serial Port Profile COM port, then set `BluetoothComPort` (e.g. COM5). BLE-only devices are not supported by this bridge version.
-- Run `dotnet run` from the bridge directory on the Windows PC connected to the printer. The worker claims jobs from `POST /api/v1/printing/jobs/claim` and reports `printed` or `failed` to `PATCH /api/v1/printing/jobs/:jobId/status`.
+- Run `dotnet run` from the bridge directory on the Windows PC connected to the printer. The worker claims jobs from `POST /api/v1/printing/jobs/claim` and reports `printed` or `failed` to `PATCH /api/v1/printing/jobs/:jobId/status`. The bridge currently uses a configured access token; because normal JWT access tokens expire, renew/update that token when required during development. Automated refresh-token rotation for the bridge is not part of this first version.
 - Keep the bridge PC awake and reachable to the API. Never commit `appsettings.json` or a bridge access token. Use a dedicated account with only the required `printing.bridge` permission.
 
 ## WhatsApp Cloud API webhook
