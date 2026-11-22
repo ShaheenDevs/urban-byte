@@ -98,7 +98,7 @@ class OperationsService {
       String? customerName,
       String? customerPhone,
       String? deliveryAddress,
-      String? paymentMethod}) async {
+      String? paymentMethod,\n      double? discountAmount}) async {
     final key = 'ub-' + DateTime.now().microsecondsSinceEpoch.toString();
     final data = await _request('POST', '/orders', body: {
       'branchId': int.parse(branchId),
@@ -108,7 +108,7 @@ class OperationsService {
       if (customerName != null) 'customerName': customerName,
       if (customerPhone != null) 'customerPhone': customerPhone,
       if (deliveryAddress != null) 'deliveryAddress': deliveryAddress,
-      if (paymentMethod != null) 'paymentMethod': paymentMethod
+      if (paymentMethod != null) 'paymentMethod': paymentMethod,\n      if (discountAmount != null && discountAmount > 0) 'discountAmount': discountAmount
     }, extraHeaders: {
       'Idempotency-Key': key
     });
