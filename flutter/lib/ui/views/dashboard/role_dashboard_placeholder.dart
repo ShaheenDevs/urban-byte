@@ -11,6 +11,7 @@ import '../pos/pos_view.dart';
 import '../payments/payment_verification_view.dart';
 import '../cash_shift/cash_shift_view.dart';
 import '../reports/financial_reports_view.dart';
+import '../expenses/expenses_view.dart';
 
 /// Role-aware starting workspace. Full navigation modules are added incrementally.
 class RoleDashboardPlaceholder extends StatelessWidget {
@@ -152,6 +153,18 @@ class RoleDashboardPlaceholder extends StatelessWidget {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const CashShiftView()),
+                ),
+              ),
+            ),
+          if (permissions.contains('expenses.view') || permissions.contains('expenses.create'))
+            Card(
+              child: ListTile(
+                leading: const CircleAvatar(child: Icon(Icons.receipt_long_outlined)),
+                title: const Text('Expense management'),
+                subtitle: const Text('Record expenses and review approval status'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const ExpensesView()),
                 ),
               ),
             ),
