@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:stacked/stacked.dart';
 import '../../../models/auth_session.dart';
@@ -26,7 +28,8 @@ class LoginViewModel extends BaseViewModel {
           identifier: identifier, password: password);
     } on AuthException catch (error) {
       message = error.message;
-    } catch (_) {
+    } catch (e) {
+      log(e.toString());
       message =
           'Server se connection nahi ho saka. API URL aur network check karein.';
     } finally {

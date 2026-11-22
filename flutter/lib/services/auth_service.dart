@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import '../app/api_config.dart';
@@ -13,6 +14,7 @@ class AuthService {
 
   Future<AuthSession> login(
       {required String identifier, required String password}) async {
+        log('POST $apiBaseUrl/auth/login');
     final response = await _client.post(
       Uri.parse('$apiBaseUrl/auth/login'),
       headers: const {'Content-Type': 'application/json'},
