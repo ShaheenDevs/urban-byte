@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import '../app/api_config.dart';
@@ -46,6 +47,48 @@ class PrintingService {
       if (deviceIdentifier != null && deviceIdentifier.trim().isNotEmpty)
         'deviceIdentifier': deviceIdentifier.trim(),
     });
+  }
+
+
+  Future<void> testNetworkPrinter(Map<String,dynamic> printer) async {
+    if (printer['connectionType'] != 'network') {
+      throw const PrintingException('Direct test print currently supports network ESC/POS printers only. USB, Bluetooth and Windows bridge need their local print bridge.');
+    }
+    final address = printer['address']?.toString().trim() ?? '';
+    if (address.isEmpty) {
+      throw const PrintingException('This printer has no network IP/host configured.');
+    }
+    final width = printer['paperWidth']?.toString() == '58mm' ? 32 : 48;
+    final now = DateTime.now().toString().substring(0, 19);
+    final lines = <String>[
+      'URBAN BYTE',
+      'PRINTER TEST',
+      '------------------------------',
+      'Connection: Network',
+      'Printer: ${printer['name'] ?? 'Receipt printer'}',
+      'Paper: ${printer['paperWidth'] ?? '80mm'}',
+      'Time: $now',
+      '------------------------------',
+      'If you can read this,',
+      'the printer is working.',
+      '',
+      '',
+    ];
+    final text = lines.map((line) => line.length > width ? line.substring(0, width) : line).join('\n');
+    Socket? socket;
+    try {
+      socket = await Socket.connect(address, 9100, timeout: const Duration(seconds: 5));
+      socket.add([0x1B, 0x40, 0x1B, 0x61, 0x01, 0x1B, 0x45, 0x01]);
+      socket.add(latin1.encode(text));
+      socket.add([0x1B, 0x45, 0x00, 0x1B, 0x61, 0x00, 0x1D, 0x56, 0x00]);
+      await socket.flush().timeout(const Duration(seconds: 5));
+    } on SocketException catch (e) {
+      throw PrintingException('Cannot connect to printer at $address: ${e.message}');
+    } on TimeoutException {
+      throw PrintingException('Printer at $address did not respond within 5 seconds.');
+    } finally {
+      socket?.destroy();
+    }
   }
 
   Future<void> enqueueReceipt(String orderId, {String? printerId}) async {
