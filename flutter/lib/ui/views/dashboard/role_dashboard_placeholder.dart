@@ -10,6 +10,7 @@ import '../delivery/delivery_view.dart';
 import '../pos/pos_view.dart';
 import '../payments/payment_verification_view.dart';
 import '../cash_shift/cash_shift_view.dart';
+import '../reports/financial_reports_view.dart';
 
 /// Role-aware starting workspace. Full navigation modules are added incrementally.
 class RoleDashboardPlaceholder extends StatelessWidget {
@@ -151,6 +152,18 @@ class RoleDashboardPlaceholder extends StatelessWidget {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const CashShiftView()),
+                ),
+              ),
+            ),
+          if (permissions.contains('reports.view'))
+            Card(
+              child: ListTile(
+                leading: const CircleAvatar(child: Icon(Icons.analytics_outlined)),
+                title: const Text('Financial reports'),
+                subtitle: const Text('Sales, collections, expenses, cash flow and profit'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const FinancialReportsView()),
                 ),
               ),
             ),
