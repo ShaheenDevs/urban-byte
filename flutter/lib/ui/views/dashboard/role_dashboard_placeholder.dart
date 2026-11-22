@@ -7,6 +7,7 @@ import '../orders/restaurant_operations_view.dart';
 import '../ai/ai_agent_view.dart';
 import '../printing/printing_view.dart';
 import '../delivery/delivery_view.dart';
+import '../pos/pos_view.dart';
 
 /// Role-aware starting workspace. Full navigation modules are added incrementally.
 class RoleDashboardPlaceholder extends StatelessWidget {
@@ -115,6 +116,18 @@ class RoleDashboardPlaceholder extends StatelessWidget {
               },
             ),
           const SizedBox(height: 20),
+          if (permissions.contains('orders.create') || permissions.contains('pos.use'))
+            Card(
+              child: ListTile(
+                leading: const CircleAvatar(child: Icon(Icons.point_of_sale)),
+                title: const Text('Point of Sale'),
+                subtitle: const Text('Create dine-in, takeaway and delivery orders'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const PosView()),
+                ),
+              ),
+            ),
           if (_canOpenInventory)
             Card(
                 child: ListTile(
