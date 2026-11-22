@@ -1,6 +1,6 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:urban_byte/models/inventory_item.dart';
 import '../../../services/report_service.dart';
 import '../../../services/inventory_service.dart';
 
@@ -111,7 +111,7 @@ class _FinancialReportsViewState extends State<FinancialReportsView> {
             ]))),
             Text('Daily sales', style: Theme.of(context).textTheme.titleLarge),
             if (days.isEmpty) const ListTile(title: Text('No completed sales in this period.')),
-            ...days.map((d) => ListTile(dense: true, title: Text(d['date'].toString()), subtitle: Text('${d['orders']} completed orders'), trailing: Text(_money(d['revenue']))),
+            ...days.map((d) => ListTile(dense: true, title: Text(d['date'].toString()), subtitle: Text('${d['orders']} completed orders'), trailing: Text(_money(d['revenue'])))),
             const SizedBox(height: 8),
             Text('Best-selling products', style: Theme.of(context).textTheme.titleLarge),
             if (products.isEmpty) const ListTile(title: Text('No product sales found.')),
