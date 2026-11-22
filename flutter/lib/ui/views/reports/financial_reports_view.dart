@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../services/report_service.dart';
 import '../../../services/inventory_service.dart';
 
@@ -68,7 +70,7 @@ class _FinancialReportsViewState extends State<FinancialReportsView> {
     final products = analytics['bestSellingProducts'] as List? ?? [];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Financial Reports'), actions: [IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh))]),
+      appBar: AppBar(title: const Text('Financial Reports'), actions: [IconButton(tooltip: 'Copy CSV for Excel', onPressed: _loading || _financial == null ? null : _copyCsv, icon: const Icon(Icons.file_download_outlined)), IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh))]),
       body: Column(children: [
         Padding(padding: const EdgeInsets.fromLTRB(12, 12, 12, 4), child: Column(children: [
           DropdownButtonFormField<String>(value: _branchId, decoration: const InputDecoration(labelText: 'All branches / Select branch'), items: [
@@ -117,6 +119,34 @@ class _FinancialReportsViewState extends State<FinancialReportsView> {
           ]))),
       ]),
     );
+  }
+
+  Future<void> _copyCsv() async {
+    final f = _financial ?? {};
+    final collections = Map<String, dynamic>.from(f['collections'] as Map? ?? {});
+    final expenses = Map<String, dynamic>.from(f['approvedExpenses'] as Map? ?? {});
+    final purchases = Map<String, dynamic>.from(f['purchases'] as Map? ?? {});
+    final cash = Map<String, dynamic>.from(f['cashFlow'] as Map? ?? {});
+    final profit = Map<String, dynamic>.from(f['profitability'] as Map? ?? {});
+    final rows = <List<String>>[
+      ['Urban Byte Financial Report'],
+      ['From', _date(_from), 'To', _date(_to), 'Branch', _branchId ?? 'All branches'],
+      ['Metric', 'Amount (PKR)'],
+      ['Verified collections', '${collections['total'] ?? 0}'],
+      ['Approved expenses', '${expenses['total'] ?? 0}'],
+      ['Received purchases', '${purchases['receivedTotal'] ?? 0}'],
+      ['Cash collections', '${cash['cashCollections'] ?? 0}'],
+      ['Cash expenses', '${cash['cashExpenses'] ?? 0}'],
+      ['Cash supplier payments', '${cash['cashSupplierPayments'] ?? 0}'],
+      ['Net cash movement', '${cash['netCashMovement'] ?? 0}'],
+      ['Gross profit', '${profit['grossProfit'] ?? 0}'],
+      ['Net profit', '${profit['netProfit'] ?? 0}'],
+      ['Profitability status', '${profit['status'] ?? 'unknown'}'],
+    ];
+    String cell(String value) => '"${value.replaceAll('"', '""')}"';
+    final csv = rows.map((row) => row.map(cell).join(',')).join('\r\n');
+    await Clipboard.setData(ClipboardData(text: csv));
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('CSV copied. Paste it into Excel or Google Sheets.')));
   }
 
   Widget _line(String label, dynamic value) => Padding(padding: const EdgeInsets.symmetric(vertical: 4), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(label), Text(_money(value), style: const TextStyle(fontWeight: FontWeight.w600))]));
