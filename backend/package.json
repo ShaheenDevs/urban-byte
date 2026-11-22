@@ -12,7 +12,8 @@
     "db:seed": "sequelize-cli db:seed:all",
     "test": "node --test",
     "admin:create": "node scripts/create-admin.js",
-    "test:db": "RUN_DB_INTEGRATION=1 node --test test/database.integration.test.js"
+    "test:db": "RUN_DB_INTEGRATION=1 node --test test/database.integration.test.js",
+    "admin:repair": "node scripts/repair-admin.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
