@@ -237,3 +237,24 @@ The backend includes an idempotent Sequelize seeder at `backend/seeders/20261122
 - Use Refresh / Check again after running migrations or the seed script.
 - This screen is diagnostic only: it does not create restaurant records, change stock, or create users. After setup is confirmed, sign-in is available from the login flow; the current app entry point is intentionally focused on setup review.
 - Configure `API_BASE_URL` for the development machine/device using `--dart-define=API_BASE_URL=http://YOUR_LAN_IP:4000/api/v1`. Android emulator commonly uses `10.0.2.2` to reach the host machine; a physical phone needs the computer's reachable LAN IP and both devices on the same network.
+
+
+## Troubleshooting: seed validation error and invalid admin login
+If `npm run db:seed` fails while inserting the legacy system roles/permissions, pull the latest `main` first. The system-role seeder now uses duplicate-safe inserts so a partially seeded database can be seeded again without dropping tables or deleting existing records.
+
+After seeding, create or repair the local admin login using the credentials you explicitly set in `backend/.env`:
+```env
+ADMIN_NAME=Urban Byte Owner
+ADMIN_EMAIL=your-login-email@example.com
+ADMIN_PHONE=
+ADMIN_PASSWORD=ChooseYourOwnUniquePassword123!
+``
+Use a unique password with at least 12 characters. Then run:
+```bash
+npm run db:seed
+npm run admin:repair
+npm run dev
+``
+The repair command deliberately resets the password for the exact configured email/phone, activates that account, links it to the Urban Byte restaurant and ensures the Admin role (and Owner role, if seeded). Do not run it with another person's account identifier. Never paste your real `.env` or password into chat or GitHub.
+
+If the seed still fails, copy the complete error stack including the first Sequelize validation details; the short `ERROR: Validation error` line alone does not identify the exact constraint.
