@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'app/app.locator.dart';
-import './ui/views/auth/login_view.dart';
 import './ui/views/setup/setup_wizard_view.dart';
 
 Future<void> main() async {
