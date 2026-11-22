@@ -82,6 +82,21 @@ A kitchen ticket is created when an order is confirmed. Kitchen actions update b
 
 All menu and order data is scoped to the restaurant in the signed access token. Never commit `.env`, secrets, provider keys or customer data. MySQL integration testing requires configured database credentials.
 
+
+## Restaurant settings, tax and discounts
+- `GET /api/v1/settings` — `settings.manage`; returns restaurant tax, discount cap and receipt header/footer configuration.
+- `PUT /api/v1/settings` — `settings.manage`; body supports `taxEnabled`, `taxRate` (percentage), `taxInclusive`, `discountEnabled`, `maxDiscountPercent`, `receiptHeader`, and `receiptFooter`.
+- Order creation reads the saved restaurant settings on the server. Tax is calculated server-side; inclusive tax is extracted from the discounted price, exclusive tax is added to it. A requested fixed discount amount is accepted only from staff with `settings.manage` or `deals.manage`, while discounts are enabled and within the configured cap.
+- Default tax is disabled and default maximum discount is 20%. Confirm the applicable tax rules with your accountant before enabling tax. Receipt header/footer fields are saved in settings; printer rendering customization is the next integration step.
+
+## Windows USB / Bluetooth printer bridge
+- Project: `windows-printer-bridge/` (.NET 8 for Windows).
+- Copy `appsettings.example.json` to `appsettings.json`, set the API URL, dedicated bridge staff access token, branch ID and printer ID.
+- USB: install the printer in Windows and set `WindowsPrinterName` to the exact Windows queue name.
+- Bluetooth: pair an ESC/POS printer that exposes a Serial Port Profile COM port, then set `BluetoothComPort` (e.g. COM5). BLE-only devices are not supported by this bridge version.
+- Run `dotnet run` from the bridge directory on the Windows PC connected to the printer. The worker claims jobs from `POST /api/v1/printing/jobs/claim` and reports `printed` or `failed` to `PATCH /api/v1/printing/jobs/:jobId/status`.
+- Keep the bridge PC awake and reachable to the API. Never commit `appsettings.json` or a bridge access token. Use a dedicated account with only the required `printing.bridge` permission.
+
 ## WhatsApp Cloud API webhook
 - Configure `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET`, `WHATSAPP_RESTAURANT_ID`, and `WHATSAPP_BRANCH_ID` in the backend environment. Never commit real secrets.
 - Set the Meta webhook callback URL to `https://YOUR_API_HOST/api/v1/webhooks/whatsapp/webhook` and subscribe to the `messages` field.
