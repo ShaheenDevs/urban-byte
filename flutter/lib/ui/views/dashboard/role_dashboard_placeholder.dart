@@ -15,6 +15,7 @@ import '../expenses/expenses_view.dart';
 import '../suppliers/suppliers_view.dart';
 import '../purchases/purchases_view.dart';
 import '../inventory/stock_control_view.dart';
+import '../settings/restaurant_settings_view.dart';
 
 /// Role-aware starting workspace. Full navigation modules are added incrementally.
 class RoleDashboardPlaceholder extends StatelessWidget {
@@ -264,6 +265,18 @@ class RoleDashboardPlaceholder extends StatelessWidget {
                     onTap: () => Navigator.of(context).push(MaterialPageRoute(
                         builder: (_) =>
                             AiAgentView(permissions: permissions))))),
+          if (permissions.contains('settings.manage'))
+            Card(
+              child: ListTile(
+                leading: const CircleAvatar(child: Icon(Icons.tune)),
+                title: const Text('Restaurant settings'),
+                subtitle: const Text('Tax, discounts and receipt branding'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const RestaurantSettingsView()),
+                ),
+              ),
+            ),
           if (permissions.contains('printers.view') ||
               permissions.contains('printers.manage') ||
               permissions.contains('printing.view'))
