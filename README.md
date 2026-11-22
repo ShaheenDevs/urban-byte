@@ -222,3 +222,11 @@ The backend includes an idempotent Sequelize seeder at `backend/seeders/20261122
 - Ingredient master records are created without fabricated opening stock or purchase costs. Receive actual stock through purchase workflows to establish reliable inventory valuation and COGS.
 - A demo owner account is created only when both `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` are configured. No hard-coded production credentials are provided.
 - Existing migration files remain the source of truth for schema creation. Run migrations before seeding.
+
+
+## Database health and initial setup readiness
+- `GET /api/v1/health` authenticates a live MySQL connection and reports service/database health.
+- `GET /api/v1/health/setup` checks whether the database contains at least one restaurant, branch, active restaurant-linked user, role, permission, menu category, product, inventory item and supplier. It returns `status: ready` or `setup_required` plus counts and individual checks.
+- The setup endpoint reports database presence only; it does not expose account credentials or claim that migrations, branch stock, recipes, payment providers or printer hardware are configured.
+- A setup endpoint response with HTTP success means the query completed; inspect the `ready` boolean and `checks` map before opening the POS for live use.
+- The example environment file now uses placeholders for JWT/WhatsApp secrets and leaves legacy admin bootstrap values blank. Generate unique secrets and configure a real owner password in the private local `.env`; never reuse example credentials.
