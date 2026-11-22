@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../app/app.locator.dart';
 import '../../../services/inventory_service.dart';
 import '../../../services/operations_service.dart';
+import '../../../services/printing_service.dart';
 
 class PosView extends StatefulWidget {
   const PosView({super.key});
@@ -12,6 +13,7 @@ class PosView extends StatefulWidget {
 class _PosViewState extends State<PosView> {
   final _ops = locator<OperationsService>();
   final _inventory = locator<InventoryService>();
+  final _printing = PrintingService();
   final _cart = <String, Map<String, dynamic>>{};
   final _table = TextEditingController();
   final _customer = TextEditingController();
@@ -89,7 +91,38 @@ class _PosViewState extends State<PosView> {
       );
       if (!mounted) return;
       setState(() { _cart.clear(); _saving = false; });
-      _message('Order created: ' + (result['orderNumber']?.toString() ?? result['id'].toString()));
+      final orderId = result['id']?.toString();
+      final orderNumber = result['orderNumber']?.toString() ?? orderId ?? '';
+      if (orderId != null) {
+        await showDialog<void>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Order created successfully'),
+            content: Text('Order $orderNumber has been saved. Would you like to add a receipt to the print queue?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Not now'),
+              ),
+              FilledButton.icon(
+                onPressed: () async {
+                  Navigator.pop(dialogContext);
+                  try {
+                    await _printing.enqueueReceipt(orderId);
+                    if (mounted) _message('Receipt added to the print queue. Configure a local print bridge to print physically.');
+                  } catch (e) {
+                    if (mounted) _message('Order saved, but receipt could not be queued: $e');
+                  }
+                },
+                icon: const Icon(Icons.print),
+                label: const Text('Queue receipt'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        _message('Order created: $orderNumber');
+      }
     } catch (e) {
       if (mounted) { setState(() => _saving = false); _message(e.toString()); }
     }
