@@ -14,6 +14,7 @@ import '../reports/financial_reports_view.dart';
 import '../expenses/expenses_view.dart';
 import '../suppliers/suppliers_view.dart';
 import '../purchases/purchases_view.dart';
+import '../inventory/stock_control_view.dart';
 
 /// Role-aware starting workspace. Full navigation modules are added incrementally.
 class RoleDashboardPlaceholder extends StatelessWidget {
@@ -203,6 +204,18 @@ class RoleDashboardPlaceholder extends StatelessWidget {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const PurchasesView()),
+                ),
+              ),
+            ),
+          if (permissions.contains('inventory.view') || permissions.contains('inventory.adjust'))
+            Card(
+              child: ListTile(
+                leading: const CircleAvatar(child: Icon(Icons.swap_horiz)),
+                title: const Text('Stock control & valuation'),
+                subtitle: const Text('Branch transfers, purchase returns and stock value'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const StockControlView()),
                 ),
               ),
             ),
