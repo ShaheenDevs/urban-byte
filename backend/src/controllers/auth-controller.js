@@ -1,6 +1,7 @@
 'use strict';
 
 const authService = require('../services/auth-service');
+const staffService = require('../services/staff-service');
 const { success } = require('../utils/api-response');
 
 async function login(req, res, next) {
@@ -36,4 +37,11 @@ async function me(req, res, next) {
   } catch (error) { return next(error); }
 }
 
-module.exports = { login, refresh, logout, me };
+async function publicRoles(req, res, next) {
+  try {
+    const roles = await staffService.roles();
+    return success(res, roles.map(({ id, name, slug, description }) => ({ id, name, slug, description })), 'Available roles loaded.');
+  } catch (error) { return next(error); }
+}
+
+module.exports = { login, refresh, logout, me, publicRoles };
