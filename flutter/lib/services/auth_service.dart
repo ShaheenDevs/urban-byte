@@ -14,7 +14,7 @@ class AuthService {
 
   Future<AuthSession> login(
       {required String identifier, required String password}) async {
-        log('POST $apiBaseUrl/auth/login');
+    log('POST $apiBaseUrl/auth/login');
     final response = await _client.post(
       Uri.parse('$apiBaseUrl/auth/login'),
       headers: const {'Content-Type': 'application/json'},

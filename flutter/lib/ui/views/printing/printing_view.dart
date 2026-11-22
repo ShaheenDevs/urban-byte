@@ -51,17 +51,29 @@ class PrintingView extends StackedView<PrintingViewModel> {
                         title: Text('${p['name'] ?? 'Printer'}'),
                         subtitle: Text(
                             '${p['connectionType']} • ${p['paperWidth']} • ${p['purpose']}'),
-                        trailing: Wrap(mainAxisSize: MainAxisSize.min, children: [
+                        trailing: Wrap(children: [
                           IconButton(
                             tooltip: 'Test print',
-                            onPressed: vm.isBusy ? null : () async { final ok = await vm.testPrint(p); if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ok ? 'Test print sent to network printer.' : vm.loadingError ?? 'Test print failed.'))); },
+                            onPressed: vm.isBusy
+                                ? null
+                                : () async {
+                                    final ok = await vm.testPrint(p);
+                                    if (context.mounted)
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(SnackBar(
+                                              content: Text(ok
+                                                  ? 'Test print sent to network printer.'
+                                                  : vm.loadingError ??
+                                                      'Test print failed.')));
+                                  },
                             icon: const Icon(Icons.print_outlined),
                           ),
                           Icon(
-                            p['isActive'] == true
-                                ? Icons.check_circle
-                                : Icons.pause_circle,
-                            color: p['isActive'] == true ? Colors.green : null),
+                              p['isActive'] == true
+                                  ? Icons.check_circle
+                                  : Icons.pause_circle,
+                              color:
+                                  p['isActive'] == true ? Colors.green : null),
                         ]),
                       ))),
                   const SizedBox(height: 20),
@@ -217,12 +229,8 @@ class PrintingViewModel extends BaseViewModel {
         if (permissions.contains('printing.view')) service.jobs(),
       ]);
       var index = 0;
-      printers = permissions.contains('printers.view')
-          ? result[index++]
-          : [];
-      jobs = permissions.contains('printing.view')
-          ? result[index]
-          : [];
+      printers = permissions.contains('printers.view') ? result[index++] : [];
+      jobs = permissions.contains('printing.view') ? result[index] : [];
       loaded = true;
     } catch (e) {
       loadingError = e.toString();

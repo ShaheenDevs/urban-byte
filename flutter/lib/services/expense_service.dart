@@ -5,8 +5,7 @@ import '../app/api_config.dart';
 import 'auth_service.dart';
 
 class ExpenseService {
-  ExpenseService({http.Client? client})
-      : _client = client ?? http.Client();
+  ExpenseService({http.Client? client}) : _client = client ?? http.Client();
   final AuthService _authService = locator<AuthService>();
   final http.Client _client;
   Future<Map<String, String>> get _headers async {

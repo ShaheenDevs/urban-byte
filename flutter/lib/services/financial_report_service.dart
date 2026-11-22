@@ -70,6 +70,7 @@ class FinancialReportService {
     if (data is! Map) throw Exception('Invalid analytics response.');
     return Map<String, dynamic>.from(data);
   }
+
   Future<Uint8List> exportReport({
     required String report,
     required String format,
@@ -91,7 +92,8 @@ class FinancialReportService {
         .replace(queryParameters: query);
     final response = await _client.get(uri, headers: await _headers);
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      String message = 'Report export failed (' + response.statusCode.toString() + ').';
+      String message =
+          'Report export failed (' + response.statusCode.toString() + ').';
       try {
         final payload = jsonDecode(response.body);
         if (payload is Map && payload['message'] != null) {
@@ -108,7 +110,6 @@ class FinancialReportService {
     return response.bodyBytes;
   }
 
-
   Future<Uint8List> exportSupplierLedgerPdf(String supplierId) async {
     final token = await _authService.getAccessToken();
     if (token == null || token.isEmpty) {
@@ -116,8 +117,11 @@ class FinancialReportService {
     }
     final uri = Uri.parse(
         '$apiBaseUrl/inventory/suppliers/${Uri.encodeComponent(supplierId)}/ledger/export.pdf');
-    final response = await _client.get(uri, headers: {'Authorization': 'Bearer $token'});
-    if (response.statusCode < 200 || response.statusCode >= 300 || response.bodyBytes.isEmpty) {
+    final response =
+        await _client.get(uri, headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode < 200 ||
+        response.statusCode >= 300 ||
+        response.bodyBytes.isEmpty) {
       throw Exception('Supplier PDF export failed (${response.statusCode}).');
     }
     return response.bodyBytes;
@@ -191,5 +195,4 @@ class FinancialReportService {
 
   double _number(dynamic value) =>
       double.tryParse(value?.toString() ?? '') ?? 0;
-
 }

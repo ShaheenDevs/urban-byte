@@ -23,6 +23,7 @@ class OperationsService {
         : '?branchId=${Uri.encodeQueryComponent(branchId)}';
     return _list(await _request('GET', '/menu/products$suffix'));
   }
+
   Future<List<Map<String, dynamic>>> orders(
       {String? status, String? branchId}) async {
     final query = <String, String>{

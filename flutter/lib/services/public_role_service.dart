@@ -14,8 +14,11 @@ class PublicRoleService {
     } catch (_) {
       throw Exception('Unable to read roles response from server.');
     }
-    if (response.statusCode < 200 || response.statusCode >= 300 || payload['success'] != true) {
-      throw Exception(payload['message']?.toString() ?? 'Unable to load roles.');
+    if (response.statusCode < 200 ||
+        response.statusCode >= 300 ||
+        payload['success'] != true) {
+      throw Exception(
+          payload['message']?.toString() ?? 'Unable to load roles.');
     }
     final data = payload['data'];
     if (data is! List) throw Exception('Invalid roles response.');
