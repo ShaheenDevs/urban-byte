@@ -230,3 +230,10 @@ The backend includes an idempotent Sequelize seeder at `backend/seeders/20261122
 - The setup endpoint reports database presence only; it does not expose account credentials or claim that migrations, branch stock, recipes, payment providers or printer hardware are configured.
 - A setup endpoint response with HTTP success means the query completed; inspect the `ready` boolean and `checks` map before opening the POS for live use.
 - The example environment file now uses placeholders for JWT/WhatsApp secrets and leaves legacy admin bootstrap values blank. Generate unique secrets and configure a real owner password in the private local `.env`; never reuse example credentials.
+
+
+## Flutter first-time setup screen
+- App launch now opens the setup readiness screen, which calls `GET /api/v1/health/setup` and displays the live database checks/counts.
+- Use Refresh / Check again after running migrations or the seed script.
+- This screen is diagnostic only: it does not create restaurant records, change stock, or create users. After setup is confirmed, sign-in is available from the login flow; the current app entry point is intentionally focused on setup review.
+- Configure `API_BASE_URL` for the development machine/device using `--dart-define=API_BASE_URL=http://YOUR_LAN_IP:4000/api/v1`. Android emulator commonly uses `10.0.2.2` to reach the host machine; a physical phone needs the computer's reachable LAN IP and both devices on the same network.
