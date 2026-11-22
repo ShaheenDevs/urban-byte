@@ -37,6 +37,9 @@ async function supplierLedgerPdf(req,res,next){try{
 }catch(e){next(e);}}
 
 module.exports={
+ transfer:wrap((r,id)=>service.transferStock(id,{id:r.auth.sub},r.body||{}),'Stock transferred.'),
+ returnPurchase:wrap((r,id)=>service.returnPurchaseStock(id,{id:r.auth.sub},r.params.purchaseId,r.body||{}),'Purchase stock returned.'),
+ valuation:wrap((r,id)=>service.inventoryValuation(id,r.query.branchId),'Inventory valuation loaded.'),
  createItem:wrap((r,id)=>service.createItem(id,r.body||{}),'Inventory item created.',201),
  listItems:wrap((r,id)=>service.listItems(id),'Inventory items loaded.'),
  branches:wrap((r,id)=>service.listBranches(id),'Branches loaded.'),
