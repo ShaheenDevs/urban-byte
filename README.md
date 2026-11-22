@@ -207,12 +207,12 @@ All export routes require authentication and `reports.view`; they reuse the same
 
 
 ## Fresh database setup and Urban Byte starter data
-The backend includes an idempotent Sequelize seeder at `backend/seeders/20261122000100-seed-urban-byte-demo.js`. It creates the Urban Byte restaurant and Shahkot branch, system roles and permission catalog, starter menu categories/products/regular variants with sample PKR prices, inventory ingredient records and demo suppliers. Existing records are reused; this seeder does not delete or reset business data.
+The backend includes an idempotent Sequelize seeder at `backend/seeders/20261122000100-seed-urban-byte-demo.js`. It creates the Urban Byte restaurant and Shahkot branch, 7 system roles and 27 permissions, starter menu categories/products/regular variants with sample PKR prices, inventory ingredient records and demo suppliers. Existing records are reused; this seeder does not delete or reset business data.
 
 ### First-time local setup
 1. Create a MySQL database named `urban_byte_db` (or set `DB_NAME` in your local `.env`).
 2. Copy `backend/.env.example` to `backend/.env` and set your own MySQL credentials and strong JWT secrets.
-3. Set `SEED_ADMIN_EMAIL`, `SEED_ADMIN_NAME`, and a unique `SEED_ADMIN_PASSWORD` of at least 12 characters in your local `.env`. Do not commit `.env` or share the password.
+3. Set `SEED_ADMIN_EMAIL`, `SEED_ADMIN_NAME`, and a unique `SEED_ADMIN_PASSWORD` (the example intentionally leaves this blank) of at least 12 characters in your local `.env`. Do not commit `.env` or share the password.
 4. From `backend/`, run `npm install`, then `npm run db:migrate`, then `npm run db:seed`.
 5. Run `npm run dev`. Sign in using the owner email/password configured in your local `.env`.
 
