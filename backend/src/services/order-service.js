@@ -1,6 +1,6 @@
 'use strict';
 const crypto=require('node:crypto');
-const {Order,OrderItem,OrderStatusHistory,KitchenTicket,KitchenTicketItem,Branch,Product,ProductVariant,BranchProductPrice,sequelize}=require('../models');
+const {Order,OrderItem,OrderStatusHistory,KitchenTicket,KitchenTicketItem,Branch,Product,ProductVariant,BranchProductPrice,RestaurantSetting,sequelize}=require('../models');
 const {transitions,validateTransition}=require('./order-lifecycle');
 const inventoryService=require('./inventory-service');
 const notifications=require('./notification-service');
