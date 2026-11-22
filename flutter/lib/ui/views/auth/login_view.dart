@@ -47,9 +47,9 @@ class LoginView extends StackedView<LoginViewModel> {
                           labelText: 'Password', border: OutlineInputBorder())),
                   const SizedBox(height: 16),
                   OutlinedButton.icon(
-                      onPressed: () => _showRoles(context),
-                      icon: const Icon(Icons.groups_outlined),
-                      label: const Text('View Available Roles'),
+                    onPressed: () => _showRoles(context),
+                    icon: const Icon(Icons.groups_outlined),
+                    label: const Text('View Available Roles'),
                   ),
                   const SizedBox(height: 8),
                   FilledButton(
@@ -117,45 +117,58 @@ class _AvailableRolesDialogState extends State<_AvailableRolesDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Available Staff Roles'),
-    content: SizedBox(
-      width: 360,
-      child: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _roles,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator()));
-          }
-          if (snapshot.hasError) {
-            return Column(mainAxisSize: MainAxisSize.min, children: [
-              Text(snapshot.error.toString()),
-              const SizedBox(height: 8),
-              TextButton(onPressed: () => setState(_loadRoles), child: const Text('Retry')),
-            ]);
-          }
-          final roles = snapshot.data ?? [];
-          if (roles.isEmpty) return const Text('No roles found in database.');
-          return ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 380),
-            child: ListView.separated(
-              shrinkWrap: true,
-              itemCount: roles.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final role = roles[index];
-                return ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const CircleAvatar(child: Icon(Icons.badge_outlined)),
-                  title: Text(role['name']?.toString() ?? role['slug']?.toString() ?? 'Role'),
-                  subtitle: Text(role['slug']?.toString() ?? ''),
-                  trailing: const Icon(Icons.check_circle_outline, color: Colors.green),
-                );
-              },
-            ),
-          );
-        },
-      ),
-    ),
-    actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
-  );
+        title: const Text('Available Staff Roles'),
+        content: SizedBox(
+          width: 360,
+          child: FutureBuilder<List<Map<String, dynamic>>>(
+            future: _roles,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Center(child: CircularProgressIndicator()));
+              }
+              if (snapshot.hasError) {
+                return Column(mainAxisSize: MainAxisSize.min, children: [
+                  Text(snapshot.error.toString()),
+                  const SizedBox(height: 8),
+                  TextButton(
+                      onPressed: () => setState(_loadRoles),
+                      child: const Text('Retry')),
+                ]);
+              }
+              final roles = snapshot.data ?? [];
+              if (roles.isEmpty)
+                return const Text('No roles found in database.');
+              return ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 380),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: roles.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final role = roles[index];
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading:
+                          const CircleAvatar(child: Icon(Icons.badge_outlined)),
+                      title: Text(role['name']?.toString() ??
+                          role['slug']?.toString() ??
+                          'Role'),
+                      subtitle: Text(role['slug']?.toString() ?? ''),
+                      trailing: const Icon(Icons.check_circle_outline,
+                          color: Colors.green),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'))
+        ],
+      );
 }

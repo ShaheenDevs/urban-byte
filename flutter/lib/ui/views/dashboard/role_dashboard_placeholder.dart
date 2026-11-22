@@ -123,48 +123,60 @@ class RoleDashboardPlaceholder extends StatelessWidget {
               },
             ),
           const SizedBox(height: 20),
-          if (permissions.contains('orders.create') || permissions.contains('pos.use'))
+          if (permissions.contains('orders.create') ||
+              permissions.contains('pos.use'))
             Card(
               child: ListTile(
                 leading: const CircleAvatar(child: Icon(Icons.point_of_sale)),
                 title: const Text('Point of Sale'),
-                subtitle: const Text('Create dine-in, takeaway and delivery orders'),
+                subtitle:
+                    const Text('Create dine-in, takeaway and delivery orders'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const PosView()),
                 ),
               ),
             ),
-          if (permissions.contains('payments.verify') || permissions.contains('payments.view'))
+          if (permissions.contains('payments.verify') ||
+              permissions.contains('payments.view'))
             Card(
               child: ListTile(
-                leading: const CircleAvatar(child: Icon(Icons.fact_check_outlined)),
+                leading:
+                    const CircleAvatar(child: Icon(Icons.fact_check_outlined)),
                 title: const Text('Payment verification'),
-                subtitle: const Text('Review pending payments and verify received funds'),
+                subtitle: const Text(
+                    'Review pending payments and verify received funds'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const PaymentVerificationView()),
+                  MaterialPageRoute(
+                      builder: (_) => const PaymentVerificationView()),
                 ),
               ),
             ),
-          if (permissions.contains('cash_shifts.open') || permissions.contains('cash_shifts.view'))
+          if (permissions.contains('cash_shifts.open') ||
+              permissions.contains('cash_shifts.view'))
             Card(
               child: ListTile(
-                leading: const CircleAvatar(child: Icon(Icons.point_of_sale_outlined)),
+                leading: const CircleAvatar(
+                    child: Icon(Icons.point_of_sale_outlined)),
                 title: const Text('Cashier shift'),
-                subtitle: const Text('Open shift, cash in/out and close with reconciliation'),
+                subtitle: const Text(
+                    'Open shift, cash in/out and close with reconciliation'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const CashShiftView()),
                 ),
               ),
             ),
-          if (permissions.contains('expenses.view') || permissions.contains('expenses.create'))
+          if (permissions.contains('expenses.view') ||
+              permissions.contains('expenses.create'))
             Card(
               child: ListTile(
-                leading: const CircleAvatar(child: Icon(Icons.receipt_long_outlined)),
+                leading: const CircleAvatar(
+                    child: Icon(Icons.receipt_long_outlined)),
                 title: const Text('Expense management'),
-                subtitle: const Text('Record expenses and review approval status'),
+                subtitle:
+                    const Text('Record expenses and review approval status'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const ExpensesView()),
@@ -174,45 +186,55 @@ class RoleDashboardPlaceholder extends StatelessWidget {
           if (permissions.contains('reports.view'))
             Card(
               child: ListTile(
-                leading: const CircleAvatar(child: Icon(Icons.analytics_outlined)),
+                leading:
+                    const CircleAvatar(child: Icon(Icons.analytics_outlined)),
                 title: const Text('Financial reports'),
-                subtitle: const Text('Sales, collections, expenses, cash flow and profit'),
+                subtitle: const Text(
+                    'Sales, collections, expenses, cash flow and profit'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const FinancialReportsView()),
+                  MaterialPageRoute(
+                      builder: (_) => const FinancialReportsView()),
                 ),
               ),
             ),
           if (permissions.contains('inventory.view'))
             Card(
               child: ListTile(
-                leading: const CircleAvatar(child: Icon(Icons.local_shipping_outlined)),
+                leading: const CircleAvatar(
+                    child: Icon(Icons.local_shipping_outlined)),
                 title: const Text('Suppliers'),
-                subtitle: const Text('Supplier directory and outstanding ledger'),
+                subtitle:
+                    const Text('Supplier directory and outstanding ledger'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const SuppliersView()),
                 ),
               ),
             ),
-          if (permissions.contains('inventory.view') || permissions.contains('inventory.manage'))
+          if (permissions.contains('inventory.view') ||
+              permissions.contains('inventory.manage'))
             Card(
               child: ListTile(
-                leading: const CircleAvatar(child: Icon(Icons.shopping_cart_checkout_outlined)),
+                leading: const CircleAvatar(
+                    child: Icon(Icons.shopping_cart_checkout_outlined)),
                 title: const Text('Purchases & supplier payments'),
-                subtitle: const Text('Create invoices, receive stock and record payments'),
+                subtitle: const Text(
+                    'Create invoices, receive stock and record payments'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const PurchasesView()),
                 ),
               ),
             ),
-          if (permissions.contains('inventory.view') || permissions.contains('inventory.adjust'))
+          if (permissions.contains('inventory.view') ||
+              permissions.contains('inventory.adjust'))
             Card(
               child: ListTile(
                 leading: const CircleAvatar(child: Icon(Icons.swap_horiz)),
                 title: const Text('Stock control & valuation'),
-                subtitle: const Text('Branch transfers, purchase returns and stock value'),
+                subtitle: const Text(
+                    'Branch transfers, purchase returns and stock value'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const StockControlView()),

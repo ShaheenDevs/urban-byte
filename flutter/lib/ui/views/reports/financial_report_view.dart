@@ -52,19 +52,27 @@ class FinancialReportView extends StackedView<FinancialReportViewModel> {
           Text('Export Center', style: Theme.of(context).textTheme.titleMedium),
           Wrap(spacing: 8, runSpacing: 8, children: [
             OutlinedButton.icon(
-                onPressed: vm.exportBusy ? null : () => vm.exportReport('financial', 'pdf'),
+                onPressed: vm.exportBusy
+                    ? null
+                    : () => vm.exportReport('financial', 'pdf'),
                 icon: const Icon(Icons.picture_as_pdf),
                 label: const Text('Financial PDF')),
             OutlinedButton.icon(
-                onPressed: vm.exportBusy ? null : () => vm.exportReport('financial', 'csv'),
+                onPressed: vm.exportBusy
+                    ? null
+                    : () => vm.exportReport('financial', 'csv'),
                 icon: const Icon(Icons.table_view),
                 label: const Text('Financial Excel/CSV')),
             OutlinedButton.icon(
-                onPressed: vm.exportBusy ? null : () => vm.exportReport('analytics', 'pdf'),
+                onPressed: vm.exportBusy
+                    ? null
+                    : () => vm.exportReport('analytics', 'pdf'),
                 icon: const Icon(Icons.analytics),
                 label: const Text('Analytics PDF')),
             OutlinedButton.icon(
-                onPressed: vm.exportBusy ? null : () => vm.exportReport('analytics', 'csv'),
+                onPressed: vm.exportBusy
+                    ? null
+                    : () => vm.exportReport('analytics', 'csv'),
                 icon: const Icon(Icons.grid_on),
                 label: const Text('Analytics Excel/CSV')),
           ]),
@@ -76,8 +84,8 @@ class FinancialReportView extends StackedView<FinancialReportViewModel> {
           if (vm.errorr != null)
             Padding(
                 padding: const EdgeInsets.only(top: 12),
-                child:
-                    Text(vm.errorr!, style: const TextStyle(color: Colors.red))),
+                child: Text(vm.errorr!,
+                    style: const TextStyle(color: Colors.red))),
           if (vm.isBusy) const LinearProgressIndicator(),
           if (vm.data != null) ...[
             const SizedBox(height: 18),
@@ -320,15 +328,20 @@ class FinancialReportViewModel extends BaseViewModel {
     notifyListeners();
     try {
       final bytes = await _service.exportReport(
-          report: report, format: format, from: from, to: to,
+          report: report,
+          format: format,
+          from: from,
+          to: to,
           branchId: branchId);
       final directory = await getTemporaryDirectory();
       final stamp = DateTime.now().toIso8601String().replaceAll(':', '-');
-      final file = File('${directory.path}/urban_byte_${report}_${stamp}.${format == 'csv' ? 'csv' : 'pdf'}');
+      final file = File(
+          '${directory.path}/urban_byte_${report}_${stamp}.${format == 'csv' ? 'csv' : 'pdf'}');
       await file.writeAsBytes(bytes, flush: true);
       // await Share.shareXFiles([XFile(file.path)],
       //     text: 'Urban Byte ${report} report (${from} to ${to})');
-      exportMessage = 'Report prepared. Choose Save or Share in the system sheet.';
+      exportMessage =
+          'Report prepared. Choose Save or Share in the system sheet.';
     } catch (e) {
       exportMessage = e.toString();
     } finally {
@@ -336,6 +349,7 @@ class FinancialReportViewModel extends BaseViewModel {
       notifyListeners();
     }
   }
+
   static String _date(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
   void setFrom(String v) {
