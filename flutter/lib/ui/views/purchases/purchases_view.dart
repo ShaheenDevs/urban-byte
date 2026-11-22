@@ -19,7 +19,7 @@ class _PurchasesViewState extends State<PurchasesView>{
   void initState(){super.initState();_load();}
   Future<void> _load() async{
     setState(()=>_loading=true);
-    try{final r=await Future.wait([_service.purchases(),_service.suppliers(),_service.branches(),_service.items()]);if(!mounted)return;setState(()=>{_purchases=r[0] as List<Map<String,dynamic>>,_suppliers=r[1] as List<Map<String,dynamic>>,_branches=r[2] as List<RestaurantBranch>,_items=r[3] as List<InventoryItem>,_branchId:_branchId??(r[2] as List<RestaurantBranch>).firstOrNull?.id});}
+    try{final r=await Future.wait([_service.purchases(),_service.suppliers(),_service.branches(),_service.items()]);if(!mounted)return;final branches=r[2] as List<RestaurantBranch>;setState((){_purchases=r[0] as List<Map<String,dynamic>>;_suppliers=r[1] as List<Map<String,dynamic>>;_branches=branches;_items=r[3] as List<InventoryItem>;_branchId ??= branches.isNotEmpty ? branches.first.id : null;});}
     catch(e){if(mounted)setState(()=>_error=e.toString());}
     finally{if(mounted)setState(()=>_loading=false);}
   }
