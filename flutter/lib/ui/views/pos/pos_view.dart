@@ -3,6 +3,7 @@ import '../../../app/app.locator.dart';
 import '../../../services/inventory_service.dart';
 import '../../../services/operations_service.dart';
 import '../../../services/printing_service.dart';
+import '../../../services/payment_service.dart';
 
 class PosView extends StatefulWidget {
   const PosView({super.key});
@@ -14,6 +15,7 @@ class _PosViewState extends State<PosView> {
   final _ops = locator<OperationsService>();
   final _inventory = locator<InventoryService>();
   final _printing = PrintingService();
+  final _payments = PaymentService();
   final _cart = <String, Map<String, dynamic>>{};
   final _table = TextEditingController();
   final _customer = TextEditingController();
@@ -93,38 +95,82 @@ class _PosViewState extends State<PosView> {
       setState(() { _cart.clear(); _saving = false; });
       final orderId = result['id']?.toString();
       final orderNumber = result['orderNumber']?.toString() ?? orderId ?? '';
+      final total = double.tryParse((result['grandTotal'] ?? result['total'] ?? _total).toString()) ?? _total;
       if (orderId != null) {
-        await showDialog<void>(
-          context: context,
-          builder: (dialogContext) => AlertDialog(
-            title: const Text('Order created successfully'),
-            content: Text('Order $orderNumber has been saved. Would you like to add a receipt to the print queue?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Not now'),
-              ),
-              FilledButton.icon(
-                onPressed: () async {
-                  Navigator.pop(dialogContext);
-                  try {
-                    await _printing.enqueueReceipt(orderId);
-                    if (mounted) _message('Receipt added to the print queue. Configure a local print bridge to print physically.');
-                  } catch (e) {
-                    if (mounted) _message('Order saved, but receipt could not be queued: $e');
-                  }
-                },
-                icon: const Icon(Icons.print),
-                label: const Text('Queue receipt'),
-              ),
-            ],
-          ),
-        );
+        await _checkoutDialog(orderId, orderNumber, total);
       } else {
         _message('Order created: $orderNumber');
       }
     } catch (e) {
       if (mounted) { setState(() => _saving = false); _message(e.toString()); }
+    }
+  }
+
+  Future<void> _checkoutDialog(String orderId, String orderNumber, double total) async {
+    final amount = TextEditingController(text: total.toStringAsFixed(2));
+    final reference = TextEditingController();
+    String method = 'cash';
+    bool saving = false;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('Checkout · $orderNumber'),
+          content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Text('Order total: PKR ${total.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: method,
+              decoration: const InputDecoration(labelText: 'Payment method'),
+              items: const [
+                DropdownMenuItem(value: 'cash', child: Text('Cash')),
+                DropdownMenuItem(value: 'easypaisa', child: Text('Easypaisa')),
+                DropdownMenuItem(value: 'jazzcash', child: Text('JazzCash')),
+                DropdownMenuItem(value: 'card', child: Text('Card')),
+                DropdownMenuItem(value: 'bank_transfer', child: Text('Bank transfer')),
+                DropdownMenuItem(value: 'cod', child: Text('Cash on delivery')),
+              ],
+              onChanged: saving ? null : (v) => setDialogState(() => method = v ?? 'cash'),
+            ),
+            TextField(controller: amount, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Amount received (PKR)')),
+            if (method != 'cash') TextField(controller: reference, decoration: const InputDecoration(labelText: 'Transaction reference (optional)')),
+            const SizedBox(height: 8),
+            const Text('Payment is recorded as pending until verified by an authorized user.', style: TextStyle(fontSize: 12)),
+          ])),
+          actions: [
+            TextButton(onPressed: saving ? null : () => Navigator.pop(dialogContext), child: const Text('Skip payment')),
+            FilledButton(
+              onPressed: saving ? null : () async {
+                final paid = double.tryParse(amount.text.trim());
+                if (paid == null || paid <= 0 || paid > total) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a valid amount not exceeding the order total.')));
+                  return;
+                }
+                setDialogState(() => saving = true);
+                try {
+                  await _payments.record(orderId: orderId, amount: paid, method: method, reference: reference.text);
+                  if (dialogContext.mounted) Navigator.pop(dialogContext);
+                  if (mounted) _message('Payment recorded. Verification is required before the order is marked paid.');
+                } catch (e) {
+                  setDialogState(() => saving = false);
+                  if (dialogContext.mounted) ScaffoldMessenger.of(dialogContext).showSnackBar(SnackBar(content: Text(e.toString())));
+                }
+              },
+              child: saving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Record payment'),
+            ),
+          ],
+        ),
+      ),
+    );
+    amount.dispose();
+    reference.dispose();
+    if (!mounted) return;
+    try {
+      await _printing.enqueueReceipt(orderId);
+      if (mounted) _message('Receipt added to print queue. Physical printing requires a configured printer bridge.');
+    } catch (_) {
+      // Printing is optional; order and payment remain saved.
     }
   }
 
