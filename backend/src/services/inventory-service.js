@@ -70,4 +70,64 @@ async function deductOrderStock(order,transaction){
 async function recordPurchasePayment(restaurantId,user,purchaseId,input={}){const amount=money(input.amount,'Payment amount');if(amount<=0)throw fail('Payment amount must be greater than zero.');const method=input.method;if(!['cash','bank_transfer','easypaisa','jazzcash','card'].includes(method))throw fail('Unsupported supplier payment method.');return sequelize.transaction(async t=>{const purchase=await Purchase.findOne({where:{id:id(purchaseId),restaurantId},transaction:t,lock:t.LOCK.UPDATE});if(!purchase)throw fail('Purchase not found.',404,'PURCHASE_NOT_FOUND');if(purchase.status!=='received'||!purchase.supplierId)throw fail('Only received purchases linked to a supplier can be paid.',409,'PURCHASE_NOT_PAYABLE');const paid=Number(await PurchasePayment.sum('amount',{where:{restaurantId,purchaseId:purchase.id},transaction:t})||0);const due=Math.max(0,Number(purchase.totalCost)-paid);if(amount>due+0.0001)throw fail('Payment exceeds the outstanding purchase balance.',409,'PAYMENT_EXCEEDS_DUE');const payment=await PurchasePayment.create({restaurantId,purchaseId:purchase.id,supplierId:purchase.supplierId,amount:amount.toFixed(2),method,reference:input.reference?String(input.reference).trim().slice(0,120):null,notes:input.notes?String(input.notes).trim().slice(0,500):null,recordedByUserId:user.id},{transaction:t});return {payment,paidAmount:paid+amount,dueAmount:Math.max(0,Number(purchase.totalCost)-paid-amount)};});}
 async function supplierLedger(restaurantId,supplierId){const supplier=await Supplier.findOne({where:{id:id(supplierId),restaurantId}});if(!supplier)throw fail('Supplier not found.',404,'SUPPLIER_NOT_FOUND');const purchases=await Purchase.findAll({where:{restaurantId,supplierId:supplier.id,status:'received'},include:[{model:PurchaseItem,as:'items'}],order:[['receivedAt','DESC'],['id','DESC']]});const payments=await PurchasePayment.findAll({where:{restaurantId,supplierId:supplier.id},order:[['createdAt','DESC']]});const paidByPurchase=new Map();for(const p of payments)paidByPurchase.set(String(p.purchaseId),(paidByPurchase.get(String(p.purchaseId))||0)+Number(p.amount));const entries=purchases.map(p=>({type:'purchase',purchaseId:p.id,purchaseNumber:p.purchaseNumber,date:p.receivedAt,total:Number(p.totalCost),paid:Number((paidByPurchase.get(String(p.id))||0).toFixed(2)),due:Number(Math.max(0,Number(p.totalCost)-(paidByPurchase.get(String(p.id))||0)).toFixed(2)),items:p.items}));const purchaseTotal=entries.reduce((s,e)=>s+e.total,0),paidTotal=payments.reduce((s,p)=>s+Number(p.amount),0);return {supplier,purchaseTotal:Number(purchaseTotal.toFixed(2)),paidTotal:Number(paidTotal.toFixed(2)),outstanding:Number((purchaseTotal-paidTotal).toFixed(2)),purchases:entries,payments};}
 
-module.exports={recordPurchasePayment,supplierLedger,createItem,listBranches,listItems,listStock,adjustStock,movements,createSupplier,listSuppliers,setReorderLevel,lowStock,setBranchAutoDeduct,createPurchase,receivePurchase,listPurchases,saveRecipe,listRecipes,deductOrderStock};
+
+async function transferStock(restaurantId,user,input){
+ const fromId=id(input.fromBranchId),toId=id(input.toBranchId),itemId=id(input.inventoryItemId),qty=quantity(input.quantity);
+ if(fromId===toId)throw fail('Source and destination branches must be different.');
+ return sequelize.transaction(async t=>{
+  await branchFor(restaurantId,fromId,t);await branchFor(restaurantId,toId,t);
+  const item=await InventoryItem.findOne({where:{id:itemId,restaurantId,isActive:true},transaction:t});
+  if(!item)throw fail('Inventory item not found.',404,'ITEM_NOT_FOUND');
+  const stocks=await BranchStock.findAll({where:{branchId:[fromId,toId],inventoryItemId:itemId},transaction:t,lock:t.LOCK.UPDATE});
+  let source=stocks.find(s=>Number(s.branchId)===fromId),dest=stocks.find(s=>Number(s.branchId)===toId);
+  if(!source||Number(source.quantity)<qty)throw fail('Insufficient source branch stock.',409,'INSUFFICIENT_STOCK');
+  if(!dest)dest=await BranchStock.create({branchId:toId,inventoryItemId:itemId,quantity:0,reorderLevel:Number(item.lowStockThreshold||0)},{transaction:t});
+  const sourceAfter=Number((Number(source.quantity)-qty).toFixed(3)),destAfter=Number((Number(dest.quantity)+qty).toFixed(3));
+  await source.update({quantity:sourceAfter},{transaction:t});await dest.update({quantity:destAfter},{transaction:t});
+  const reference='TRANSFER-'+Date.now()+'-'+crypto.randomBytes(2).toString('hex').toUpperCase();
+  await StockMovement.bulkCreate([
+   {restaurantId,branchId:fromId,inventoryItemId:itemId,movementType:'adjustment',quantityChange:-qty,quantityAfter:sourceAfter,referenceType:'stock_transfer',referenceId:null,note:reference+' to branch '+toId,createdByUserId:user.id},
+   {restaurantId,branchId:toId,inventoryItemId:itemId,movementType:'adjustment',quantityChange:qty,quantityAfter:destAfter,referenceType:'stock_transfer',referenceId:null,note:reference+' from branch '+fromId,createdByUserId:user.id}
+  ],{transaction:t});
+  return {reference,inventoryItemId:itemId,quantity:qty,fromBranchId:fromId,fromQuantity:sourceAfter,toBranchId:toId,toQuantity:destAfter};
+ });
+}
+async function returnPurchaseStock(restaurantId,user,purchaseId,input){
+ const purchaseItemId=id(input.purchaseItemId),qty=quantity(input.quantity);
+ return sequelize.transaction(async t=>{
+  const purchase=await Purchase.findOne({where:{id:id(purchaseId),restaurantId,status:'received'},include:[{model:PurchaseItem,as:'items'}],transaction:t,lock:t.LOCK.UPDATE});
+  if(!purchase)throw fail('Received purchase not found.',404,'PURCHASE_NOT_FOUND');
+  const line=purchase.items.find(x=>Number(x.id)===purchaseItemId);
+  if(!line)throw fail('Purchase line not found.',404,'PURCHASE_LINE_NOT_FOUND');
+  const previous=await StockMovement.sum('quantityChange',{where:{restaurantId,branchId:purchase.branchId,inventoryItemId:line.inventoryItemId,movementType:'return',referenceType:'purchase_return',referenceId:purchase.id},transaction:t});
+  const alreadyReturned=Math.abs(Math.min(0,Number(previous||0)));
+  if(qty>Number(line.quantity)-alreadyReturned+0.0001)throw fail('Return quantity exceeds received quantity remaining.',409,'RETURN_EXCEEDS_RECEIVED');
+  const stock=await BranchStock.findOne({where:{branchId:purchase.branchId,inventoryItemId:line.inventoryItemId},transaction:t,lock:t.LOCK.UPDATE});
+  if(!stock||Number(stock.quantity)<qty)throw fail('Insufficient current stock to return this quantity.',409,'INSUFFICIENT_STOCK');
+  const after=Number((Number(stock.quantity)-qty).toFixed(3));
+  await stock.update({quantity:after},{transaction:t});
+  const movement=await StockMovement.create({restaurantId,branchId:purchase.branchId,inventoryItemId:line.inventoryItemId,movementType:'return',quantityChange:-qty,quantityAfter:after,unitCost:line.unitCost,referenceType:'purchase_return',referenceId:purchase.id,note:input.note?String(input.note).slice(0,500):'Returned to supplier',createdByUserId:user.id},{transaction:t});
+  return {purchaseId:purchase.id,purchaseItemId:line.id,returnedQuantity:alreadyReturned+qty,remainingReturnable:Number(line.quantity)-alreadyReturned-qty,stock,movement};
+ });
+}
+async function inventoryValuation(restaurantId,branchId){
+ const where={restaurantId};if(branchId)await branchFor(restaurantId,branchId);
+ const items=await InventoryItem.findAll({where,isActive:true,order:[['name','ASC']]});
+ const rows=[];
+ for(const item of items){
+  const stockWhere={inventoryItemId:item.id};if(branchId)stockWhere.branchId=id(branchId);
+  const stocks=await BranchStock.findAll({where:stockWhere});
+  const quantityTotal=stocks.reduce((s,x)=>s+Number(x.quantity),0);
+  const movementWhere={restaurantId,inventoryItemId:item.id,movementType:'purchase'};
+  if(branchId)movementWhere.branchId=id(branchId);
+  const purchases=await StockMovement.findAll({where:movementWhere,attributes:['quantityChange','unitCost'],raw:true});
+  const priced=purchases.filter(x=>x.unitCost!==null&&x.unitCost!==undefined&&Number(x.quantityChange)>0);
+  const pricedQty=priced.reduce((s,x)=>s+Number(x.quantityChange),0);
+  const avg=pricedQty?priced.reduce((s,x)=>s+Number(x.quantityChange)*Number(x.unitCost),0)/pricedQty:null;
+  rows.push({inventoryItemId:item.id,name:item.name,unit:item.baseUnit,quantity:Number(quantityTotal.toFixed(3)),averageUnitCost:avg===null?null:Number(avg.toFixed(2)),valuation:avg===null?null:Number((quantityTotal*avg).toFixed(2)),costStatus:avg===null?'missing_cost':'estimated'});
+ }
+ const total=rows.every(x=>x.valuation!==null)?Number(rows.reduce((s,x)=>s+x.valuation,0).toFixed(2)):null;
+ return {items:rows,totalValuation:total,costStatus:total===null?'incomplete':'estimated',note:'Estimated weighted average based on recorded purchase movements; historical layers and returns are not a full perpetual FIFO ledger.'};
+}
+
+module.exports={transferStock,returnPurchaseStock,inventoryValuation,recordPurchasePayment,supplierLedger,createItem,listBranches,listItems,listStock,adjustStock,movements,createSupplier,listSuppliers,setReorderLevel,lowStock,setBranchAutoDeduct,createPurchase,receivePurchase,listPurchases,saveRecipe,listRecipes,deductOrderStock};
