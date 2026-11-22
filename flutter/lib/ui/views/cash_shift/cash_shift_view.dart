@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:urban_byte/models/inventory_item.dart';
 import '../../../services/cash_shift_service.dart';
 import '../../../services/inventory_service.dart';
 

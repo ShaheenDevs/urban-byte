@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:urban_byte/models/inventory_item.dart';
 import '../../../app/app.locator.dart';
 import '../../../services/inventory_service.dart';
 import '../../../services/operations_service.dart';
