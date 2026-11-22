@@ -17,8 +17,12 @@ class OperationsService {
     return Map<String, dynamic>.from(data as Map);
   }
 
-  Future<List<Map<String, dynamic>>> menu() async =>
-      _list(await _request('GET', '/menu/products'));
+  Future<List<Map<String, dynamic>>> menu({String? branchId}) async {
+    final suffix = branchId == null || branchId.isEmpty
+        ? ''
+        : '?branchId=${Uri.encodeQueryComponent(branchId)}';
+    return _list(await _request('GET', '/menu/products$suffix'));
+  }
   Future<List<Map<String, dynamic>>> orders(
       {String? status, String? branchId}) async {
     final query = <String, String>{
