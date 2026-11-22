@@ -12,6 +12,8 @@ import '../payments/payment_verification_view.dart';
 import '../cash_shift/cash_shift_view.dart';
 import '../reports/financial_reports_view.dart';
 import '../expenses/expenses_view.dart';
+import '../suppliers/suppliers_view.dart';
+import '../purchases/purchases_view.dart';
 
 /// Role-aware starting workspace. Full navigation modules are added incrementally.
 class RoleDashboardPlaceholder extends StatelessWidget {
@@ -177,6 +179,30 @@ class RoleDashboardPlaceholder extends StatelessWidget {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const FinancialReportsView()),
+                ),
+              ),
+            ),
+          if (permissions.contains('inventory.view'))
+            Card(
+              child: ListTile(
+                leading: const CircleAvatar(child: Icon(Icons.local_shipping_outlined)),
+                title: const Text('Suppliers'),
+                subtitle: const Text('Supplier directory and outstanding ledger'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const SuppliersView()),
+                ),
+              ),
+            ),
+          if (permissions.contains('inventory.view') || permissions.contains('inventory.manage'))
+            Card(
+              child: ListTile(
+                leading: const CircleAvatar(child: Icon(Icons.shopping_cart_checkout_outlined)),
+                title: const Text('Purchases & supplier payments'),
+                subtitle: const Text('Create invoices, receive stock and record payments'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const PurchasesView()),
                 ),
               ),
             ),
