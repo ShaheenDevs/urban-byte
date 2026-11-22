@@ -54,7 +54,7 @@ class PrintingView extends StackedView<PrintingViewModel> {
                         trailing: Wrap(mainAxisSize: MainAxisSize.min, children: [
                           IconButton(
                             tooltip: 'Test print',
-                            onPressed: vm.isBusy ? null : () => vm.testPrint(p),
+                            onPressed: vm.isBusy ? null : () async { final ok = await vm.testPrint(p); if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ok ? 'Test print sent to network printer.' : vm.loadingError ?? 'Test print failed.'))); },
                             icon: const Icon(Icons.print_outlined),
                           ),
                           Icon(
@@ -260,13 +260,15 @@ class PrintingViewModel extends BaseViewModel {
     }
   }
 
-  Future<void> testPrint(Map<String, dynamic> printer) async {
+  Future<bool> testPrint(Map<String, dynamic> printer) async {
     setBusy(true);
     loadingError = null;
     try {
       await service.testNetworkPrinter(printer);
+      return true;
     } catch (e) {
       loadingError = e.toString();
+      return false;
     } finally {
       setBusy(false);
       notifyListeners();
