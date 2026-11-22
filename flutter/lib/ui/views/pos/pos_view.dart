@@ -22,6 +22,7 @@ class _PosViewState extends State<PosView> {
   final _customer = TextEditingController();
   final _phone = TextEditingController();
   final _address = TextEditingController();
+  final _discount = TextEditingController(text: '0');
   List<RestaurantBranch> _branches = [];
   List<Map<String, dynamic>> _products = [];
   String? _branchId;
@@ -43,6 +44,7 @@ class _PosViewState extends State<PosView> {
     _customer.dispose();
     _phone.dispose();
     _address.dispose();
+    _discount.dispose();
     super.dispose();
   }
 
@@ -140,6 +142,7 @@ class _PosViewState extends State<PosView> {
         customerName:
             _customer.text.trim().isEmpty ? null : _customer.text.trim(),
         customerPhone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
+        discountAmount: double.tryParse(_discount.text.trim()) ?? 0,
         items: _cart.values
             .map((i) => {
                   'variantId': int.parse(i['variantId'].toString()),
