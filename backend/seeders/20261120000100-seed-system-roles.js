@@ -17,11 +17,11 @@ const permissionKeys = [
 module.exports = {
   async up(queryInterface) {
     const now = new Date();
-    await queryInterface.bulkInsert('roles', roles.map(([name, slug, description]) => ({ name, slug, description, is_system: true, created_at: now, updated_at: now })));
+    await queryInterface.bulkInsert('roles', roles.map(([name, slug, description]) => ({ name, slug, description, is_system: true, created_at: now, updated_at: now })), { ignoreDuplicates: true });
     await queryInterface.bulkInsert('permissions', permissionKeys.map((permission_key) => ({
       name: permission_key.split('.').map((part) => part.replace(/_/g, ' ')).join(' ').replace(/\b\w/g, (c) => c.toUpperCase()),
       permission_key, module: permission_key.split('.')[0], created_at: now, updated_at: now,
-    })));
+    })), { ignoreDuplicates: true });
     const [roleRows] = await queryInterface.sequelize.query('SELECT id, slug FROM roles');
     const [permissionRows] = await queryInterface.sequelize.query('SELECT id, permission_key FROM permissions');
     const roleIdBySlug = Object.fromEntries(roleRows.map((row) => [row.slug, row.id]));
@@ -34,7 +34,7 @@ module.exports = {
       delivery: ['dashboard.view','delivery.view_assigned','delivery.status.update','payments.cod.collect'],
     };
     const rows = Object.entries(grants).flatMap(([slug, keys]) => keys.map((key) => ({ role_id: roleIdBySlug[slug], permission_id: permissionIdByKey[key], created_at: now, updated_at: now })));
-    await queryInterface.bulkInsert('role_permissions', rows);
+    await queryInterface.bulkInsert('role_permissions', rows, { ignoreDuplicates: true });
   },
   async down(queryInterface) {
     await queryInterface.bulkDelete('role_permissions', null, {});
