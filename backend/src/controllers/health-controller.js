@@ -1,6 +1,7 @@
 'use strict';
 const { success } = require('../utils/api-response');
-const { sequelize, Restaurant, Branch, User, Role, Permission, MenuCategory, Product, InventoryItem, Supplier } = require('../models');
+const { sequelize } = require('../config/database-connection');
+const { Restaurant, Branch, User, Role, Permission, MenuCategory, Product, InventoryItem, Supplier } = require('../models');
 
 async function health(req, res, next) {
   try {
