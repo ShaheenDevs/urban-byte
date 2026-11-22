@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:urban_byte/app/api_config.dart';
+import '../auth/login_view.dart';
 
 class SetupWizardView extends StatefulWidget {
   const SetupWizardView({super.key});
@@ -78,8 +79,7 @@ class _SetupWizardViewState extends State<SetupWizardView> {
           ? const Center(child: CircularProgressIndicator())
           : error != null
               ? _message(context, error!, true)
-              : Expanded(
-                child: SingleChildScrollView(
+              : SingleChildScrollView(
                   child: Padding(
                       padding: const EdgeInsets.all(20),
                       child: Column(children: [
@@ -128,14 +128,20 @@ class _SetupWizardViewState extends State<SetupWizardView> {
                               'Database counts: ${(result!['counts'] as Map).entries.map((e) => '${e.key}: ${e.value}').join('  •  ')}',
                               style: Theme.of(context).textTheme.bodySmall),
                         const SizedBox(height: 16),
-                        OutlinedButton.icon(
+                        if (ready)
+                          FilledButton.icon(
+                            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LoginView())),
+                            icon: const Icon(Icons.login),
+                            label: const Text('Continue to Owner / Staff Login'),
+                          )
+                        else
+                          OutlinedButton.icon(
                             onPressed: refresh,
                             icon: const Icon(Icons.refresh),
                             label: const Text('Check again')),
                       ]),
                     ),
                 ),
-              ),
     );
   }
 
