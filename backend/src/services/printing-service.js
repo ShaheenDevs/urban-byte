@@ -1,6 +1,6 @@
 'use strict';
 const {Op}=require('sequelize');
-const {PrintJob,PrinterDevice,Order,OrderItem,Branch,sequelize}=require('../models');
+const {PrintJob,PrinterDevice,Order,OrderItem,Branch,RestaurantSetting,sequelize}=require('../models');
 const {renderOrder}=require('./print-renderer');
 function fail(message,status=400,code='PRINT_ERROR'){const e=new Error(message);e.statusCode=status;e.code=code;return e;}
 async function registerPrinter(restaurantId,input={}){
@@ -20,7 +20,7 @@ async function enqueue(restaurantId,user,orderId,jobType,input={}){
  const paperWidth=printer?.paperWidth||input.paperWidth||'80mm';
  const plain=order.get({plain:true});
  const payload={orderId:order.id,orderNumber:order.orderNumber,jobType,paperWidth,items:plain.items,totals:{subtotal:plain.subtotal,discount:plain.discountAmount,tax:plain.taxAmount,delivery:plain.deliveryFee,total:plain.grandTotal}};
- return PrintJob.create({restaurantId,branchId:order.branchId,printerId:printer?.id||null,orderId:order.id,jobType,status:'queued',payload,renderedText:renderOrder(plain,jobType,paperWidth),requestedByUserId:user.id});
+ return PrintJob.create({restaurantId,branchId:order.branchId,printerId:printer?.id||null,orderId:order.id,jobType,status:'queued',payload,renderedText:renderOrder(plain,jobType,paperWidth,settings?.get({plain:true})||{}),requestedByUserId:user.id});
 }
 async function listJobs(restaurantId,query={}){const where={restaurantId};if(query.branchId)where.branchId=Number(query.branchId);if(query.status)where.status=query.status;return PrintJob.findAll({where,order:[['createdAt','DESC']],limit:Math.min(Math.max(Number(query.limit)||50,1),100)});}
 async function claimNext(restaurantId,branchId,printerId){
