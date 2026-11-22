@@ -12,7 +12,9 @@ if (string.IsNullOrWhiteSpace(cfg.AccessToken) || cfg.AccessToken.StartsWith("PA
 using var http = new HttpClient { BaseAddress = new Uri(cfg.ApiBaseUrl.TrimEnd('/') + "/"), Timeout = TimeSpan.FromSeconds(20) };
 http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", cfg.AccessToken);
 Console.WriteLine("Urban Byte local printer bridge started. Ctrl+C to stop.");
-while (!Console.CancelKeyPress.HasDelegate)
+var stopping = false;
+Console.CancelKeyPress += (_, eventArgs) => { eventArgs.Cancel = true; stopping = true; };
+while (!stopping)
 {
     try
     {
