@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
+// import 'package:share_plus/share_plus.dart';
 import 'package:stacked/stacked.dart';
 import '../../../app/app.locator.dart';
 import '../../../models/inventory_item.dart';
@@ -12,7 +12,9 @@ class StockOperationsView extends StackedView<StockOperationsViewModel> {
   const StockOperationsView({super.key});
   @override
   StockOperationsViewModel viewModelBuilder(BuildContext context) =>
-      StockOperationsViewModel(locator<InventoryService>(), locator<FinancialReportService>())..load();
+      StockOperationsViewModel(
+          locator<InventoryService>(), locator<FinancialReportService>())
+        ..load();
   @override
   Widget builder(
           BuildContext context, StockOperationsViewModel vm, Widget? child) =>
@@ -291,7 +293,7 @@ class _Suppliers extends StatelessWidget {
           content: SizedBox(
             width: 480,
             child: error != null
-                ? Text(error!)
+                ? Text(error)
                 : ledger == null
                     ? const CircularProgressIndicator()
                     : SingleChildScrollView(
@@ -300,14 +302,14 @@ class _Suppliers extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                  'Purchases: PKR ${ledger!['purchaseTotal'] ?? 0}'),
-                              Text('Paid: PKR ${ledger!['paidTotal'] ?? 0}'),
+                                  'Purchases: PKR ${ledger['purchaseTotal'] ?? 0}'),
+                              Text('Paid: PKR ${ledger['paidTotal'] ?? 0}'),
                               Text(
-                                  'Outstanding: PKR ${ledger!['outstanding'] ?? 0}',
+                                  'Outstanding: PKR ${ledger['outstanding'] ?? 0}',
                                   style: const TextStyle(
                                       fontWeight: FontWeight.bold)),
                               const Divider(),
-                              ...((ledger!['purchases'] as List? ?? []).map(
+                              ...((ledger['purchases'] as List? ?? []).map(
                                   (p) => ListTile(
                                       contentPadding: EdgeInsets.zero,
                                       title: Text('${p['purchaseNumber']}'),
@@ -330,10 +332,12 @@ class _Suppliers extends StatelessWidget {
           ),
           actions: [
             TextButton(
-                onPressed: ledger == null ? null : () => _shareLedgerXlsx(ledger!, supplier),
+                onPressed: ledger == null
+                    ? null
+                    : () => _shareLedgerXlsx(ledger!, supplier, context),
                 child: const Text('Excel')),
             TextButton(
-                onPressed: () => _shareLedgerPdf(supplierId, supplier),
+                onPressed: () => _shareLedgerPdf(supplierId, supplier, context),
                 child: const Text('PDF')),
             TextButton(
                 onPressed: () => Navigator.pop(ctx), child: const Text('Close'))
@@ -341,29 +345,40 @@ class _Suppliers extends StatelessWidget {
     );
   }
 
-  Future<void> _shareLedgerXlsx(
-      Map<String, dynamic> ledger, Map<String, dynamic> supplier) async {
+  Future<void> _shareLedgerXlsx(Map<String, dynamic> ledger,
+      Map<String, dynamic> supplier, dynamic context) async {
     try {
-      final bytes = await vm.reports.buildSupplierLedgerWorkbook(ledger: ledger);
+      final bytes =
+          await vm.reports.buildSupplierLedgerWorkbook(ledger: ledger);
       final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/urban_byte_supplier_${supplier['id']}_ledger.xlsx');
+      final file =
+          File('${dir.path}/urban_byte_supplier_${supplier['id']}_ledger.xlsx');
       await file.writeAsBytes(bytes, flush: true);
-      await Share.shareXFiles([XFile(file.path)], text: 'Supplier ledger - ${supplier['name']}');
+      // await Share.shareXFiles([XFile(file.path)],
+      //     text: 'Supplier ledger - ${supplier['name']}');
     } catch (e) {
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     }
   }
 
-  Future<void> _shareLedgerPdf(
-      String supplierId, Map<String, dynamic> supplier) async {
+  Future<void> _shareLedgerPdf(String supplierId, Map<String, dynamic> supplier,
+      BuildContext context) async {
     try {
       final bytes = await vm.reports.exportSupplierLedgerPdf(supplierId);
       final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/urban_byte_supplier_${supplierId}_ledger.pdf');
+      final file =
+          File('${dir.path}/urban_byte_supplier_${supplierId}_ledger.pdf');
       await file.writeAsBytes(bytes, flush: true);
-      await Share.shareXFiles([XFile(file.path)], text: 'Supplier ledger - ${supplier['name']}');
+      // await Share.shareXFiles([XFile(file.path)],
+      //     text: 'Supplier ledger - ${supplier['name']}');
     } catch (e) {
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     }
   }
 

@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
+// import 'package:share_plus/share_plus.dart';
 import 'package:stacked/stacked.dart';
 import '../../../app/app.locator.dart';
 import '../../../services/financial_report_service.dart';
@@ -326,8 +326,8 @@ class FinancialReportViewModel extends BaseViewModel {
       final stamp = DateTime.now().toIso8601String().replaceAll(':', '-');
       final file = File('${directory.path}/urban_byte_${report}_${stamp}.${format == 'csv' ? 'csv' : 'pdf'}');
       await file.writeAsBytes(bytes, flush: true);
-      await Share.shareXFiles([XFile(file.path)],
-          text: 'Urban Byte ${report} report (${from} to ${to})');
+      // await Share.shareXFiles([XFile(file.path)],
+      //     text: 'Urban Byte ${report} report (${from} to ${to})');
       exportMessage = 'Report prepared. Choose Save or Share in the system sheet.';
     } catch (e) {
       exportMessage = e.toString();
