@@ -40,7 +40,7 @@ async function me(req, res, next) {
 async function publicRoles(req, res, next) {
   try {
     const roles = await staffService.roles();
-    return success(res, roles.map(({ id, name, slug, description }) => ({ id, name, slug, description })), 'Available roles loaded.');
+    return success(res, roles.map(({ id, name, slug, description, permissions }) => ({ id, name, slug, description, permissionKeys: (permissions || []).map((permission) => permission.permissionKey) })), 'Available roles loaded.');
   } catch (error) { return next(error); }
 }
 
