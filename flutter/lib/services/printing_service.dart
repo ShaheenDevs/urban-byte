@@ -52,6 +52,30 @@ class PrintingService {
     });
   }
 
+  Future<void> updatePrinter(String id, {
+    required String branchId,
+    required String name,
+    required String connectionType,
+    required String paperWidth,
+    required String purpose,
+    String? address,
+    String? deviceIdentifier,
+  }) async {
+    await _request('PATCH', '/printing/printers/$id', body: {
+      'branchId': int.parse(branchId),
+      'name': name,
+      'connectionType': connectionType,
+      'paperWidth': paperWidth,
+      'purpose': purpose,
+      'address': address ?? '',
+      'deviceIdentifier': deviceIdentifier ?? '',
+    });
+  }
+
+  Future<void> deletePrinter(String id) async {
+    await _request('DELETE', '/printing/printers/$id');
+  }
+
   Future<void> _ensureBluetoothPermission() async {
     if (Platform.isAndroid) {
       final statuses = await [
@@ -202,6 +226,8 @@ class PrintingService {
     final response = switch (method) {
       'GET' => await _client.get(uri, headers: headers),
       'POST' => await _client.post(uri, headers: headers, body: encoded),
+      'PATCH' => await _client.patch(uri, headers: headers, body: encoded),
+      'DELETE' => await _client.delete(uri, headers: headers),
       _ => throw const PrintingException('Unsupported request.'),
     };
     Map<String, dynamic> payload;
