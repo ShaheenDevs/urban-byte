@@ -27,6 +27,8 @@ function serialize(row) {
     maxDiscountPercent: Number(row.maxDiscountPercent),
     receiptHeader: row.receiptHeader,
     receiptFooter: row.receiptFooter,
+    diningTables: row.diningTables || [],
+    orderTypes: row.orderTypes || [{ key: 'dine_in', name: 'Dine In' }, { key: 'takeaway', name: 'Takeaway' }, { key: 'delivery', name: 'Delivery' }],
   };
 }
 
@@ -46,10 +48,15 @@ async function update(restaurantId, input = {}) {
     maxDiscountPercent: rate(input.maxDiscountPercent ?? 20, 'Maximum discount', 100),
     receiptHeader: input.receiptHeader == null ? null : String(input.receiptHeader).trim().slice(0, 250),
     receiptFooter: input.receiptFooter == null ? null : String(input.receiptFooter).trim().slice(0, 500),
+    diningTables: Array.isArray(input.diningTables) ? input.diningTables.map((t) => ({ id: String(t.id || '').slice(0, 40), name: String(t.name || '').trim().slice(0, 80), branchId: t.branchId ? Number(t.branchId) : null, isActive: t.isActive !== false })).filter((t) => t.id && t.name).slice(0, 200) : undefined,
+    orderTypes: Array.isArray(input.orderTypes) ? input.orderTypes.map((t) => ({ key: String(t.key || '').trim().toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 40), name: String(t.name || '').trim().slice(0, 80) })).filter((t) => t.key && t.name).slice(0, 30) : undefined,
   };
   if (values.taxEnabled && Number(values.taxRate) <= 0) throw fail('Enable a tax rate greater than zero, or disable tax.');
   if (values.serviceChargeEnabled && Number(values.serviceChargeRate) <= 0) throw fail('Enable a service charge rate greater than zero, or disable service charge.');
   const [row] = await RestaurantSetting.findOrCreate({ where: { restaurantId }, defaults: { restaurantId, ...values } });
+  if (values.diningTables === undefined) delete values.diningTables;
+  if (values.orderTypes === undefined) delete values.orderTypes;
+  if (values.orderTypes && !values.orderTypes.some((t) => t.key === 'takeaway')) throw fail('At least one Takeaway order type must remain configured.');
   if (row.changed()) await row.update(values);
   else await row.update(values);
   return serialize(row);
