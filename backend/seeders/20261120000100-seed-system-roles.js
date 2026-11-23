@@ -29,7 +29,7 @@ module.exports = {
     const grants = {
       admin: permissionKeys,
       supervisor: ['delivery.assignments.view_all','delivery.assign','dashboard.view','branches.view','orders.view_all','orders.create','orders.edit','orders.cancel','orders.status.update','menu.view','customers.view','customers.manage','customers.history.view','inventory.view','inventory.adjust','payments.view','payments.record','payments.verify','cash_shifts.view','cash_shifts.open','cash_shifts.manage','cash_shifts.close','payments.cod.collect','expenses.view','expenses.create','expenses.approve','ai.view','ai.conversations.view','ai.orders.approve','kitchen.orders.view','delivery.view_assigned','delivery.status.update','reports.view','printers.manage','printers.view','printing.receipt','printing.kitchen','printing.view','printing.bridge','printing.retry'],
-      waiter: ['dashboard.view','branches.view','orders.view_own','orders.create','orders.edit','orders.status.update','menu.view','customers.view','customers.manage','customers.history.view','printing.receipt','cash_shifts.view','cash_shifts.open','cash_shifts.manage','cash_shifts.close'],
+      waiter: ['dashboard.view','branches.view','orders.view_own','orders.create','orders.edit','orders.status.update','menu.view','customers.view','customers.manage','customers.history.view','payments.record','printing.receipt','cash_shifts.view','cash_shifts.open','cash_shifts.manage','cash_shifts.close'],
       kitchen: ['dashboard.view','kitchen.orders.view','kitchen.orders.prepare','kitchen.orders.ready','printing.kitchen'],
       delivery: ['dashboard.view','delivery.view_assigned','delivery.status.update','payments.cod.collect'],
     };
