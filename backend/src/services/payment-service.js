@@ -2,6 +2,7 @@
 const {Op}=require('sequelize');
 const {Payment,PaymentEvent,Order,sequelize}=require('../models');
 function fail(message,status=400,code='PAYMENT_ERROR'){const e=new Error(message);e.statusCode=status;e.code=code;return e;}
+function assertBranch(user,branchId){if((user.roles||[]).includes('admin'))return;const allowed=(user.branchIds||[]).map(Number);if(!allowed.includes(Number(branchId)))throw fail('You are not assigned to this branch.',403,'BRANCH_FORBIDDEN');}
 function money(value){const n=Number(value);if(!Number.isFinite(n)||n<=0||n>9999999999.99)throw fail('Payment amount must be greater than zero.');return n.toFixed(2);}
 async function record(restaurantId,user,input={}){
  const method=input.method;
@@ -10,6 +11,7 @@ async function record(restaurantId,user,input={}){
  return sequelize.transaction(async transaction=>{
   const order=await Order.findOne({where:{id:Number(input.orderId),restaurantId},transaction,lock:transaction.LOCK.UPDATE});
   if(!order)throw fail('Order not found.',404,'ORDER_NOT_FOUND');
+  assertBranch(user,order.branchId);
   if(order.paymentStatus==='paid'||order.paymentStatus==='refunded')throw fail('This order cannot accept another payment.',409);
   if(Number(amount)>Number(order.grandTotal))throw fail('Payment cannot exceed the outstanding order total.');
   const markReceived = input.markReceived === true && user.permissions.includes('payments.record');
@@ -33,6 +35,7 @@ async function verify(restaurantId,user,paymentId){
   if(payment.status!=='pending')throw fail('Only pending payments can be verified.',409);
   const order=await Order.findOne({where:{id:payment.orderId,restaurantId},transaction,lock:transaction.LOCK.UPDATE});
   if(!order)throw fail('Order not found.',404);
+  assertBranch(user,order.branchId);
   const alreadyPaid=await Payment.sum('amount',{where:{orderId:order.id,restaurantId,status:'verified'},transaction})||0;
   if(Number(alreadyPaid)+Number(payment.amount)>Number(order.grandTotal))throw fail('Verified payments would exceed the order total.',409);
   const now=new Date();
@@ -44,16 +47,16 @@ async function verify(restaurantId,user,paymentId){
   return payment;
  });
 }
-async function list(restaurantId,query={}){
- const where={restaurantId};if(query.branchId)where.branchId=Number(query.branchId);if(query.status)where.status=query.status;
+async function list(restaurantId,user,query={}){
+ const where={restaurantId};if((user.roles||[]).includes('admin')){if(query.branchId)where.branchId=Number(query.branchId);}else{const allowed=(user.branchIds||[]).map(Number);if(query.branchId&&!allowed.includes(Number(query.branchId)))throw fail('You are not assigned to this branch.',403,'BRANCH_FORBIDDEN');where.branchId=query.branchId?Number(query.branchId):{[Op.in]:allowed.length?allowed:[-1]};}if(query.status)where.status=query.status;
  return Payment.findAll({where,order:[['createdAt','DESC']],limit:Math.min(Math.max(Number(query.limit)||50,1),100)});
 }
-async function dailySummary(restaurantId,query={}){
+async function dailySummary(restaurantId,user,query={}){
  const start=query.date?new Date(query.date+'T00:00:00.000Z'):new Date(new Date().toISOString().slice(0,10)+'T00:00:00.000Z');
  if(Number.isNaN(start.getTime()))throw fail('Invalid date.');
  const end=new Date(start.getTime()+86400000);
  const where={restaurantId,status:'verified',verifiedAt:{[Op.gte]:start,[Op.lt]:end}};
- if(query.branchId)where.branchId=Number(query.branchId);
+ if((user.roles||[]).includes('admin')){if(query.branchId)where.branchId=Number(query.branchId);}else{const allowed=(user.branchIds||[]).map(Number);if(query.branchId&&!allowed.includes(Number(query.branchId)))throw fail('You are not assigned to this branch.',403,'BRANCH_FORBIDDEN');where.branchId=query.branchId?Number(query.branchId):{[Op.in]:allowed.length?allowed:[-1]};}
  const rows=await Payment.findAll({where,attributes:['method','amount']});
  const totals={cash:0,card:0,easypaisa:0,jazzcash:0,bank_transfer:0,cod:0};
  for(const row of rows)totals[row.method]+=Number(row.amount);
