@@ -5,6 +5,7 @@ import '../../../services/inventory_service.dart';
 import '../../../services/operations_service.dart';
 import '../../../services/printing_service.dart';
 import '../../../services/payment_service.dart';
+import '../../../services/restaurant_settings_service.dart';
 
 class PosView extends StatefulWidget {
   const PosView({super.key});
@@ -17,14 +18,17 @@ class _PosViewState extends State<PosView> {
   final _inventory = locator<InventoryService>();
   final _printing = PrintingService();
   final _payments = PaymentService();
+  final _settingsService = RestaurantSettingsService();
   final _cart = <String, Map<String, dynamic>>{};
-  final _table = TextEditingController();
+  String? _tableId;
   final _customer = TextEditingController();
   final _phone = TextEditingController();
   final _address = TextEditingController();
   final _discount = TextEditingController(text: '0');
   List<RestaurantBranch> _branches = [];
   List<Map<String, dynamic>> _products = [];
+  List<Map<String, dynamic>> _tables = [];
+  List<Map<String, dynamic>> _orderTypes = [];
   String? _branchId;
   String? _categoryId;
   String _type = 'takeaway';
@@ -40,7 +44,6 @@ class _PosViewState extends State<PosView> {
 
   @override
   void dispose() {
-    _table.dispose();
     _customer.dispose();
     _phone.dispose();
     _address.dispose();
@@ -57,7 +60,11 @@ class _PosViewState extends State<PosView> {
       final branches = await _inventory.branches();
       if (branches.isEmpty) throw Exception('No active branch found.');
       final branchId = _branchId ?? branches.first.id;
-      final products = await _ops.menu(branchId: branchId);
+      final results = await Future.wait<dynamic>([_ops.menu(branchId: branchId), _settingsService.load()]);
+      final products = results[0] as List<Map<String, dynamic>>;
+      final settings = results[1] as Map<String, dynamic>;
+      final tables = (settings['diningTables'] as List? ?? []).map((e) => Map<String,dynamic>.from(e as Map)).where((t) => t['isActive'] != false && (t['branchId'] == null || t['branchId'].toString() == branchId)).toList();
+      final orderTypes = (settings['orderTypes'] as List? ?? const [{'key':'dine_in','name':'Dine In'},{'key':'takeaway','name':'Takeaway'},{'key':'delivery','name':'Delivery'}]).map((e) => Map<String,dynamic>.from(e as Map)).toList();
       if (!mounted) return;
       setState(() {
         _branches = branches;
@@ -65,6 +72,10 @@ class _PosViewState extends State<PosView> {
         _products = products
             .where((p) => p['isActive'] != false && p['isAvailable'] != false)
             .toList();
+        _tables = tables;
+        _orderTypes = orderTypes;
+        if (!_orderTypes.any((t) => t['key'] == _type)) _type = _orderTypes.isNotEmpty ? _orderTypes.first['key'].toString() : 'takeaway';
+        if (_tableId != null && !_tables.any((t) => t['id'].toString() == _tableId)) _tableId = null;
         _loading = false;
       });
     } catch (e) {
@@ -124,8 +135,8 @@ class _PosViewState extends State<PosView> {
 
   Future<void> _place() async {
     if (_cart.isEmpty || _branchId == null) return;
-    if (_type == 'dine_in' && _table.text.trim().isEmpty) {
-      _message('Enter table label.');
+    if (_type == 'dine_in' && (_tableId == null || _tableId!.isEmpty)) {
+      _message('Select a configured dining table.');
       return;
     }
     if (_type == 'delivery' && _address.text.trim().isEmpty) {
@@ -137,7 +148,7 @@ class _PosViewState extends State<PosView> {
       final result = await _ops.createOrder(
         branchId: _branchId!,
         orderType: _type,
-        tableLabel: _type == 'dine_in' ? _table.text.trim() : null,
+        tableLabel: _type == 'dine_in' ? _tableId : null,
         deliveryAddress: _type == 'delivery' ? _address.text.trim() : null,
         customerName:
             _customer.text.trim().isEmpty ? null : _customer.text.trim(),
@@ -468,18 +479,20 @@ class _PosViewState extends State<PosView> {
                         ]));
                   }).toList())),
         DropdownButtonFormField<String>(
-            value: _type,
+            value: _orderTypes.any((t) => t['key'] == _type) ? _type : null,
             decoration: const InputDecoration(labelText: 'Order type'),
-            items: const [
-              DropdownMenuItem(value: 'takeaway', child: Text('Takeaway')),
-              DropdownMenuItem(value: 'dine_in', child: Text('Dine-in')),
-              DropdownMenuItem(value: 'delivery', child: Text('Delivery'))
-            ],
-            onChanged: (v) => setState(() => _type = v ?? 'takeaway')),
+            items: _orderTypes.map((t) => DropdownMenuItem<String>(
+              value: t['key'].toString(), child: Text(t['name'].toString()))).toList(),
+            onChanged: (v) => setState(() { _type = v ?? _type; if (_type != 'dine_in') _tableId = null; })),
         if (_type == 'dine_in')
-          TextField(
-              controller: _table,
-              decoration: const InputDecoration(labelText: 'Table label')),
+          DropdownButtonFormField<String>(
+            value: _tables.any((t) => t['id'].toString() == _tableId) ? _tableId : null,
+            decoration: const InputDecoration(labelText: 'Select dining table'),
+            items: _tables.map((t) => DropdownMenuItem<String>(
+              value: t['id'].toString(), child: Text(t['name'].toString()))).toList(),
+            onChanged: (v) => setState(() => _tableId = v)),
+        if (_type == 'dine_in' && _tables.isEmpty)
+          const Text('No active dining tables. Add tables in Restaurant Settings first.'),
         if (_type == 'delivery')
           TextField(
               controller: _address,
