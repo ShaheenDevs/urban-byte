@@ -25,10 +25,15 @@ class OperationsService {
   }
 
   Future<List<Map<String, dynamic>>> orders(
-      {String? status, String? branchId}) async {
+      {String? status, String? branchId, String? statusGroup, String? paymentStatus, String? paymentStatusGroup, String? startDate, String? endDate}) async {
     final query = <String, String>{
       if (status != null) 'status': status,
-      if (branchId != null && branchId.isNotEmpty) 'branchId': branchId
+      if (branchId != null && branchId.isNotEmpty) 'branchId': branchId,
+      if (statusGroup != null) 'statusGroup': statusGroup,
+      if (paymentStatus != null) 'paymentStatus': paymentStatus,
+      if (paymentStatusGroup != null) 'paymentStatusGroup': paymentStatusGroup,
+      if (startDate != null) 'startDate': startDate,
+      if (endDate != null) 'endDate': endDate
     };
     final q = query.isEmpty ? '' : '?' + Uri(queryParameters: query).query;
     final data = await _request('GET', '/orders$q');
