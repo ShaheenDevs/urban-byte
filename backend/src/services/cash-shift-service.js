@@ -14,7 +14,7 @@ const { amount, dateRange } = require('./cash-shift-validation');
 async function audit(transaction, restaurantId, userId, shift, action, metadata = {}) {
   await AuditLog.create({
     restaurantId, branchId: shift.branchId, actorUserId: userId, entityType: 'cash_shift', entityId: String(shift.id),
-    action, metadata: { branchId: shift.branchId, status: shift.status, reconciliationStatus: shift.reconciliationStatus, ...metadata },
+    action, metadata: { branchId: shift.branchId, status: shift.status, reconciliationStatus: shift.reconciliationStatus, ...metadata }, afterData: { branchId: shift.branchId, status: shift.status, openingCash: shift.openingCash, expectedCash: shift.expectedCash, actualCash: shift.actualCash, cashVariance: shift.cashVariance, reconciliationStatus: shift.reconciliationStatus, ...metadata }, 
   }, { transaction });
 }
 async function open(restaurantId, user, input = {}) {
