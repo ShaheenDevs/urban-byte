@@ -14,7 +14,7 @@
     "admin:create": "node scripts/create-admin.js",
     "test:db": "RUN_DB_INTEGRATION=1 node --test test/database.integration.test.js",
     "admin:repair": "node scripts/repair-admin.js",
-    "db:seed:urban-byte": "node seeders/20261122000100-seed-urban-byte-demo.js"
+    "db:seed:urban-byte": "node scripts/seed-urban-byte-demo.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
