@@ -23,6 +23,14 @@ async function enqueue(restaurantId,user,orderId,jobType,input={}){
  const payload={orderId:order.id,orderNumber:order.orderNumber,jobType,paperWidth,items:plain.items,totals:{subtotal:plain.subtotal,discount:plain.discountAmount,tax:plain.taxAmount,delivery:plain.deliveryFee,total:plain.grandTotal}};
  return PrintJob.create({restaurantId,branchId:order.branchId,printerId:printer?.id||null,orderId:order.id,jobType,status:'queued',payload,renderedText:renderOrder(plain,jobType,paperWidth,settings?.get({plain:true})||{}),requestedByUserId:user.id});
 }
+async function enqueueTestPrint(restaurantId,user,printerId){
+ const printer=await PrinterDevice.findOne({where:{id:Number(printerId),restaurantId,isActive:true}});
+ if(!printer)throw fail('Printer not found.',404,'PRINTER_NOT_FOUND');
+ const width=printer.paperWidth==='58mm'?32:48;
+ const now=new Date().toLocaleString('en-PK',{timeZone:'Asia/Karachi'});
+ const renderedText=['URBAN BYTE','PRINTER CONNECTION TEST','-'.repeat(width),'Connection: '+printer.connectionType.toUpperCase(),'Printer: '+printer.name,'Paper: '+printer.paperWidth,'Time: '+now,'-'.repeat(width),'If you can read this,','the local print bridge is working.','',''].join('\\n');
+ return PrintJob.create({restaurantId,branchId:printer.branchId,printerId:printer.id,orderId:null,jobType:'receipt',status:'queued',payload:{test:true,printerId:printer.id},renderedText,requestedByUserId:user.id});
+}
 async function listJobs(restaurantId,query={}){const where={restaurantId};if(query.branchId)where.branchId=Number(query.branchId);if(query.status)where.status=query.status;return PrintJob.findAll({where,order:[['createdAt','DESC']],limit:Math.min(Math.max(Number(query.limit)||50,1),100)});}
 async function claimNext(restaurantId,branchId,printerId){
  return sequelize.transaction(async transaction=>{
@@ -48,4 +56,4 @@ async function retry(restaurantId,jobId){
  await job.update({status:'queued',lastError:null,printedAt:null});
  return job;
 }
-module.exports={registerPrinter,listPrinters,enqueue,listJobs,claimNext,updateStatus,retry};
+module.exports={registerPrinter,listPrinters,enqueue,enqueueTestPrint,listJobs,claimNext,updateStatus,retry};
