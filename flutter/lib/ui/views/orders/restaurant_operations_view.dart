@@ -171,7 +171,7 @@ class _Orders extends StatelessWidget {
         DropdownButtonFormField<String>(value: method, decoration: const InputDecoration(labelText: 'Payment method'), items: const [
           DropdownMenuItem(value:'cash',child:Text('Cash')), DropdownMenuItem(value:'card',child:Text('Card')),
           DropdownMenuItem(value:'easypaisa',child:Text('Easypaisa')), DropdownMenuItem(value:'jazzcash',child:Text('JazzCash')),
-          DropdownMenuItem(value:'bank_transfer',child:Text('Bank transfer')), DropdownMenuItem(value:'cod',child:Text('Cash on delivery')),
+          DropdownMenuItem(value:'bank_transfer',child:Text('Bank transfer')),
         ], onChanged:(v)=>setDialogState(()=>method=v??'cash')),
         TextField(controller: amount, keyboardType: const TextInputType.numberWithOptions(decimal:true), decoration: const InputDecoration(labelText:'Amount received (PKR)')),
         if(method!='cash') TextField(controller:reference,decoration:const InputDecoration(labelText:'Transaction reference')),
