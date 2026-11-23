@@ -184,7 +184,10 @@ Customer records, verified payment workflow, delivery workflow, thermal printing
 - Individual permission overrides support Allow, Deny and Use role default. Allow cannot grant a permission the acting non-admin does not already possess. Changes are recorded in immutable audit history.
 - Staff API: `GET /staff/branches`, `GET /staff/permissions`, `PUT /staff/:userId/permissions`, `DELETE /staff/:userId/permissions/:permissionId`, and `GET /staff/audit?userId=:id`.
 - Flutter Staff Management includes branch checkboxes, per-staff permission controls and audit history.
-- Cash shift opening, current-shift listing, entries, closing and reports also enforce assigned branch scope. Inventory and printer configuration, plus any remaining branch-specific workflows, still need the same scope review before multi-branch production rollout.
+- Cash shift opening, current-shift listing, entries, closing and reports enforce assigned branch scope.
+- Inventory stock views, adjustments, reorder levels, low-stock lists, stock movements, purchase creation/receiving/payments/returns, transfers, supplier ledgers and stock valuation enforce assigned branch scope. Shared restaurant-level catalog items, suppliers and recipes remain restaurant-wide.
+- Printer registration, edits, deletion, test jobs, printer lists, receipt/kitchen print queues, print-job history, bridge claiming, status updates and retries enforce assigned branch scope.
+- Multi-branch rollout still needs a final review of any remaining branch-specific features and end-to-end tests with at least two branches and non-admin staff.
 
 ## Staff administration controls
 - Flutter Staff Management supports search, add, edit, role reassignment, optional password reset, and activate/deactivate actions.
