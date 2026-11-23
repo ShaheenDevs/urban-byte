@@ -19,12 +19,12 @@ class _ConsolidatedOwnerDashboardViewState
   String? _error;
 
   String _date(DateTime value) =>
-      '\${value.year.toString().padLeft(4, '0')}-\${value.month.toString().padLeft(2, '0')}-\${value.day.toString().padLeft(2, '0')}';
+      '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
   double _number(dynamic value) =>
       double.tryParse(value?.toString() ?? '') ?? 0;
   String _money(dynamic value) => value == null
       ? 'N/A'
-      : 'PKR \${_number(value).toStringAsFixed(2)}';
+      : 'PKR ${_number(value).toStringAsFixed(2)}';
 
   @override
   void initState() {
@@ -131,7 +131,7 @@ class _ConsolidatedOwnerDashboardViewState
                   child: OutlinedButton.icon(
                     onPressed: _loading ? null : () => _pickDate(true),
                     icon: const Icon(Icons.calendar_today),
-                    label: Text('From \${_date(_from)}'),
+                    label: Text('From ${_date(_from)}'),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -139,7 +139,7 @@ class _ConsolidatedOwnerDashboardViewState
                   child: OutlinedButton.icon(
                     onPressed: _loading ? null : () => _pickDate(false),
                     icon: const Icon(Icons.event),
-                    label: Text('To \${_date(_to)}'),
+                    label: Text('To ${_date(_to)}'),
                   ),
                 ),
               ],
@@ -176,7 +176,7 @@ class _ConsolidatedOwnerDashboardViewState
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '\${data['branchCount'] ?? branches.length} active branches · Pakistan time',
+                              '${data['branchCount'] ?? branches.length} active branches · Pakistan time',
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                             GridView.count(
@@ -250,7 +250,7 @@ class _ConsolidatedOwnerDashboardViewState
                                         'Branch',
                                   ),
                                   subtitle: Text(
-                                    '\${branch['ordersCompleted'] ?? 0} completed orders · $status',
+                                    '${branch['ordersCompleted'] ?? 0} completed orders · $status',
                                   ),
                                   children: [
                                     _detail('Sales revenue',
