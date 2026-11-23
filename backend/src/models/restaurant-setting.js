@@ -3,6 +3,7 @@
 module.exports = (sequelize, DataTypes) => sequelize.define('RestaurantSetting', {
   id: { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
   restaurantId: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false, unique: true, field: 'restaurant_id' },
+  defaultDeliveryUserId: { type: DataTypes.BIGINT.UNSIGNED, allowNull: true, field: 'default_delivery_user_id' },
   taxEnabled: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: 'tax_enabled' },
   taxRate: { type: DataTypes.DECIMAL(7, 4), allowNull: false, defaultValue: 0, field: 'tax_rate' },
   taxInclusive: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: 'tax_inclusive' },
