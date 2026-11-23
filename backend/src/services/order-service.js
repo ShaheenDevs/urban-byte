@@ -14,13 +14,24 @@ async function getScopedOrder(restaurantId,orderId,user,transaction){const where
 async function createOrder(restaurantId,user,input,idempotencyKey,options={}){
  if(!input||!Array.isArray(input.items)||input.items.length<1||input.items.length>50)throw error('Provide between 1 and 50 order items.');
  const branchId=numericId(input.branchId);
- if(!['dine_in','takeaway','delivery'].includes(input.orderType))throw error('orderType must be dine_in, takeaway or delivery.');
- if(input.orderType==='dine_in'&&(typeof input.tableLabel!=='string'||!input.tableLabel.trim()))throw error('A table label is required for dine-in orders.');
- if(input.orderType==='delivery'&&(typeof input.deliveryAddress!=='string'||!input.deliveryAddress.trim()))throw error('Delivery address is required.');
+ const settings = await RestaurantSetting.findOne({ where: { restaurantId } });
+ const orderTypes = settings?.orderTypes || [{key:'dine_in',name:'Dine In'},{key:'takeaway',name:'Takeaway'},{key:'delivery',name:'Delivery'}];
+ const selectedType = orderTypes.find((t) => t.key === input.orderType);
+ if (!selectedType) throw error('This order type is not configured or is inactive.', 400, 'ORDER_TYPE_UNAVAILABLE');
+ const isDineIn = input.orderType === 'dine_in';
+ const isDelivery = input.orderType === 'delivery';
+ if(isDineIn && (typeof input.tableLabel!=='string'||!input.tableLabel.trim()))throw error('A table must be selected for dine-in orders.');
+ if(isDelivery && (typeof input.deliveryAddress!=='string'||!input.deliveryAddress.trim()))throw error('Delivery address is required.');
  const paymentMethod=input.paymentMethod??null;
  if(paymentMethod!==null&&!['cash','card','easypaisa','jazzcash','bank_transfer','cod'].includes(paymentMethod))throw error('Invalid payment method.');
  if(idempotencyKey!==undefined&&(typeof idempotencyKey!=='string'||idempotencyKey.length<8||idempotencyKey.length>100))throw error('Idempotency-Key must contain 8 to 100 characters.');
  const branch=await Branch.findOne({where:{id:branchId,restaurantId,isActive:true}});if(!branch)throw error('Branch not found for this restaurant.',404,'BRANCH_NOT_FOUND');
+ if (isDineIn) {
+  const table = (settings?.diningTables || []).find((t) => t.id === String(input.tableLabel) && t.isActive !== false && (!t.branchId || Number(t.branchId) === branchId));
+  if (!table) throw error('Selected dining table is not configured for this branch.', 400, 'TABLE_UNAVAILABLE');
+  const occupied = await Order.findOne({where:{restaurantId,branchId,orderType:'dine_in',tableLabel:table.id,status:{[require('sequelize').Op.notIn]:['completed','cancelled']}},attributes:['id']});
+  if (occupied) throw error('This table already has an active order.', 409, 'TABLE_OCCUPIED');
+ }
  const prepared=[];let subtotalPaisa=0;
  for(const item of input.items){
   const variantId=numericId(item.variantId),quantity=Number(item.quantity);
@@ -34,7 +45,6 @@ async function createOrder(restaurantId,user,input,idempotencyKey,options={}){
   if(!Number.isSafeInteger(subtotalPaisa)||subtotalPaisa>999999999999)throw error('Order total is too large.');
   prepared.push({productVariantId:variant.id,productName:variant.product.name,variantName:variant.name,skuSnapshot:variant.sku,quantity:quantity.toFixed(3),unitPrice:asMoney(pricePaisa),lineTotal:asMoney(linePaisa),notes:item.notes?String(item.notes).slice(0,500):null});
  }
- const settings = await RestaurantSetting.findOne({ where: { restaurantId } });
  const discountPaisa = amount(input.discountAmount ?? 0, 'Discount');
  const maxDiscountPaisa = settings?.discountEnabled
    ? Math.floor(subtotalPaisa * Number(settings.maxDiscountPercent || 0) / 100)
@@ -53,7 +63,7 @@ async function createOrder(restaurantId,user,input,idempotencyKey,options={}){
  const orderNumber='UB-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-'+crypto.randomBytes(3).toString('hex').toUpperCase();
  try{const created=await sequelize.transaction(async transaction=>{
   if(idempotencyKey){const existing=await Order.findOne({where:{restaurantId,idempotencyKey},include:[{model:OrderItem,as:'items'}],transaction,lock:transaction.LOCK.UPDATE});if(existing)return existing;}
-  const order=await Order.create({restaurantId,branchId,orderNumber,idempotencyKey:idempotencyKey||null,createdByUserId:user.id,customerName:input.customerName?String(input.customerName).trim().slice(0,150):null,customerPhone:input.customerPhone?String(input.customerPhone).trim().slice(0,30):null,orderType:input.orderType,source:options.source==='ai'?'ai':'staff',tableLabel:input.orderType==='dine_in'?input.tableLabel.trim().slice(0,40):null,deliveryAddress:input.orderType==='delivery'?input.deliveryAddress.trim():null,notes:input.notes?String(input.notes).slice(0,2000):null,status:'placed',paymentMethod,paymentStatus:'unpaid',subtotal:asMoney(subtotalPaisa),discountAmount:asMoney(discountPaisa),taxAmount:asMoney(taxPaisa),deliveryFee:asMoney(deliveryPaisa),grandTotal:asMoney(grandPaisa),placedAt:new Date()},{transaction});
+  const order=await Order.create({restaurantId,branchId,orderNumber,idempotencyKey:idempotencyKey||null,createdByUserId:user.id,customerName:input.customerName?String(input.customerName).trim().slice(0,150):null,customerPhone:input.customerPhone?String(input.customerPhone).trim().slice(0,30):null,orderType:input.orderType,source:options.source==='ai'?'ai':'staff',tableLabel:isDineIn?input.tableLabel.trim().slice(0,40):null,deliveryAddress:input.orderType==='delivery'?input.deliveryAddress.trim():null,notes:input.notes?String(input.notes).slice(0,2000):null,status:'placed',paymentMethod,paymentStatus:'unpaid',subtotal:asMoney(subtotalPaisa),discountAmount:asMoney(discountPaisa),taxAmount:asMoney(taxPaisa),deliveryFee:asMoney(deliveryPaisa),grandTotal:asMoney(grandPaisa),placedAt:new Date()},{transaction});
   await OrderItem.bulkCreate(prepared.map(item=>({...item,orderId:order.id})),{transaction});
   await OrderStatusHistory.create({orderId:order.id,fromStatus:null,toStatus:'placed',changedByUserId:user.id,note:'Order created'},{transaction});
   return Order.findByPk(order.id,{include:[{model:OrderItem,as:'items'},{model:OrderStatusHistory,as:'statusHistory'}],transaction});
