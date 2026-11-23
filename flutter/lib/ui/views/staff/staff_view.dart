@@ -59,7 +59,7 @@ class StaffView extends StackedView<StaffViewModel> {
                                               .toUpperCase())),
                                       title: Text(user['name'] ?? 'Unnamed'),
                                       subtitle: Text(
-                                          '${user['email'] ?? user['phone'] ?? ''}\n$roles'),
+                                          '${user['email'] ?? user['phone'] ?? ''}\n$roles\nBranches: ${branchNames.isEmpty ? 'None assigned' : branchNames}'),
                                       isThreeLine: true,
                                       trailing: PopupMenuButton<String>(
                                         tooltip: 'Staff actions',
