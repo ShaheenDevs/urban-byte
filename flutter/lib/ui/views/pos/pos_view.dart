@@ -363,6 +363,7 @@ class _PosViewState extends State<PosView> {
         'Subtotal: PKR ${order['subtotal'] ?? ''}',
         'Discount: PKR ${order['discountAmount'] ?? 0}',
         'Tax: PKR ${order['taxAmount'] ?? 0}',
+        'Service charge: PKR ${order['serviceChargeAmount'] ?? 0}',
         'TOTAL: PKR ${order['grandTotal'] ?? ''}',
         'Payment: ${order['paymentStatus'] ?? 'unpaid'}',
         '',
