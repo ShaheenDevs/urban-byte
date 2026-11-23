@@ -164,7 +164,7 @@ class _Orders extends StatelessWidget {
     final amount = TextEditingController(text: due.toStringAsFixed(2));
     final reference = TextEditingController();
     String method = 'cash';
-    await showDialog<void>(context: context, builder: (dialogContext) => StatefulBuilder(builder: (context, setDialogState) => AlertDialog(
+    final confirmed = await showDialog<bool>(context: context, builder: (dialogContext) => StatefulBuilder(builder: (context, setDialogState) => AlertDialog(
       title: Text('Receive payment • ${order['orderNumber'] ?? order['id']}'),
       content: Column(mainAxisSize: MainAxisSize.min, children: [
         Text('Remaining: PKR ${due.toStringAsFixed(2)}'),
@@ -180,8 +180,8 @@ class _Orders extends StatelessWidget {
         TextButton(onPressed:()=>Navigator.pop(dialogContext),child:const Text('Cancel')),
         FilledButton(onPressed:()=>Navigator.pop(dialogContext,true),child:const Text('Confirm received')),
       ],
-    ))).then((confirmed) async {
-      if(confirmed != true)return;
+    ));
+    if(confirmed != true){ amount.dispose(); reference.dispose(); return; }
       final value=double.tryParse(amount.text.trim());
       if(value==null||value<=0||value>due){if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Enter an amount within the remaining balance.')));return;}
       try {
@@ -189,7 +189,6 @@ class _Orders extends StatelessWidget {
         await vm.load();
         if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Payment received and updated.')));
       } catch(e) { if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(e.toString()))); }
-    });
     amount.dispose(); reference.dispose();
   }
 
