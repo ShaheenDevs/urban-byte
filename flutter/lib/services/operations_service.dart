@@ -98,7 +98,8 @@ class OperationsService {
       String? customerName,
       String? customerPhone,
       String? deliveryAddress,
-      String? paymentMethod,\n      double? discountAmount}) async {
+      String? paymentMethod,
+      double? discountAmount}) async {
     final key = 'ub-' + DateTime.now().microsecondsSinceEpoch.toString();
     final data = await _request('POST', '/orders', body: {
       'branchId': int.parse(branchId),
@@ -108,7 +109,8 @@ class OperationsService {
       if (customerName != null) 'customerName': customerName,
       if (customerPhone != null) 'customerPhone': customerPhone,
       if (deliveryAddress != null) 'deliveryAddress': deliveryAddress,
-      if (paymentMethod != null) 'paymentMethod': paymentMethod,\n      if (discountAmount != null && discountAmount > 0) 'discountAmount': discountAmount
+      if (paymentMethod != null) 'paymentMethod': paymentMethod,
+      if (discountAmount != null && discountAmount > 0) 'discountAmount': discountAmount
     }, extraHeaders: {
       'Idempotency-Key': key
     });
@@ -128,8 +130,9 @@ class OperationsService {
   Future<dynamic> _request(String method, String path,
       {Map<String, dynamic>? body, Map<String, String>? extraHeaders}) async {
     final token = await _storage.read(key: 'access_token');
-    if (token == null || token.isEmpty)
+    if (token == null || token.isEmpty) {
       throw const OperationsException('Please sign in again.');
+    }
     final headers = {
       'Authorization': 'Bearer $token',
       'Content-Type': 'application/json',
@@ -151,9 +154,10 @@ class OperationsService {
     }
     if (response.statusCode < 200 ||
         response.statusCode >= 300 ||
-        payload['success'] != true)
+        payload['success'] != true) {
       throw OperationsException(
           payload['message'] as String? ?? 'Request failed.');
+    }
     return payload['data'];
   }
 }
