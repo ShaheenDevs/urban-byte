@@ -10,7 +10,7 @@ function summary(req, res, next) {
     error.code = 'RESTAURANT_NOT_ASSIGNED';
     return next(error);
   }
-  return dashboardService.getDashboardSummary(restaurantId, req.user, req.query.branchId)
+  return dashboardService.getDashboardSummary(restaurantId, req.user, req.query.branchId, req.query)
     .then((data) => success(res, data, 'Dashboard summary loaded.'))
     .catch(next);
 }
