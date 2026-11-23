@@ -57,4 +57,40 @@ class ReportService {
     }
     return Map<String, dynamic>.from(payload['data'] as Map);
   }
+  Future<Map<String, dynamic>> consolidated({
+    required String from,
+    required String to,
+  }) async {
+    final token = await _storage.read(key: 'access_token');
+    if (token == null || token.isEmpty) {
+      throw Exception('Please sign in again.');
+    }
+    final uri = Uri.parse('$apiBaseUrl/reports/consolidated').replace(
+      queryParameters: {'from': from, 'to': to},
+    );
+    final response = await _client.get(
+      uri,
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    Map<String, dynamic> payload;
+    try {
+      payload = jsonDecode(response.body) as Map<String, dynamic>;
+    } catch (_) {
+      throw Exception('Unable to read consolidated report response.');
+    }
+    if (response.statusCode < 200 ||
+        response.statusCode >= 300 ||
+        payload['success'] != true) {
+      throw Exception(
+        payload['message']?.toString() ??
+            'Unable to load consolidated owner report.',
+      );
+    }
+    final data = payload['data'];
+    if (data is! Map) {
+      throw Exception('Invalid consolidated report response.');
+    }
+    return Map<String, dynamic>.from(data);
+  }
+
 }
