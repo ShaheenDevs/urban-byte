@@ -112,7 +112,7 @@ class _RestaurantSettingsViewState extends State<RestaurantSettingsView> {
     final saved = await showDialog<bool>(context: context, builder: (dialogContext) => StatefulBuilder(builder: (context, setDialogState) => AlertDialog(
       title: Text(existing == null ? 'Add kitchen print group' : 'Edit kitchen print group'),
       content: SizedBox(width: 520, child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        TextField(controller: name, decoration: const InputDecoration(labelText: 'Group name (e.g. Kitchen, Pizza, Drinks)')),
+        TextField(controller: name, onChanged: (_) => setDialogState(() {}), decoration: const InputDecoration(labelText: 'Group name (e.g. Kitchen, Pizza, Drinks)')),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
           value: activePrinters.any((p) => p['id'].toString() == printerId) ? printerId : null,
