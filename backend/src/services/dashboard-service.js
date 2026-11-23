@@ -69,7 +69,7 @@ async function getDashboardSummary(restaurantId, user, branchId, query = {}) {
     where.branchId = id;
   }
 
-  const { start, end, startDate, endDate } = parsePeriod(query);
+  const { start, end, startDate, endDate, startTime, endTime } = parsePeriod(query);
   const todayWhere = { ...where, placedAt: { [Op.gte]: start, [Op.lt]: end } };
   const [todayOrders, openOrders, completedToday, pendingPayments, paidRevenue, statusRows, recentOrders] = await Promise.all([
     Order.count({ where: todayWhere }),
