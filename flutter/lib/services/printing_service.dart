@@ -101,8 +101,14 @@ class PrintingService {
 
   Future<List<Map<String, String>>> pairedBluetoothDevices() async {
     await _ensureBluetoothPermission();
-    final devices = await PrintBluetoothThermal.pairedBluetooths;
-    return devices.map((d) => {'name': d.name, 'mac': d.macAdress}).toList();
+    final List<BluetoothInfo> listResult = await PrintBluetoothThermal.pairedBluetooths;
+    final devices = <Map<String, String>>[];
+    await Future.forEach(listResult, (BluetoothInfo bluetooth) {
+      final String name = bluetooth.name;
+      final String mac = bluetooth.macAdress;
+      devices.add({'name': name, 'mac': mac});
+    });
+    return devices;
   }
 
   Future<void> printBluetoothText(String mac, String text) async {
