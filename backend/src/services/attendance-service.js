@@ -1,7 +1,7 @@
 'use strict';
 
 const { Op } = require('sequelize');
-const { AttendanceRecord, User, UserBranch, UserRole, Role, Branch, AuditLog, sequelize } = require('../models');
+const { AttendanceRecord, User, UserBranch, Role, Branch, AuditLog, sequelize } = require('../models');
 
 function fail(message, status = 400, code = 'ATTENDANCE_ERROR') {
   const error = new Error(message); error.statusCode = status; error.code = code; return error;
@@ -9,10 +9,8 @@ function fail(message, status = 400, code = 'ATTENDANCE_ERROR') {
 async function assertBranchAccess(restaurantId, userId, branchId, transaction) {
   const branch = await Branch.findOne({ where: { id: branchId, restaurantId, isActive: true }, transaction });
   if (!branch) throw fail('Branch not found or inactive.', 404, 'BRANCH_NOT_FOUND');
-  const adminRole = await UserRole.findOne({
-    where: { userId }, include: [{ model: Role, as: 'role', where: { slug: 'admin' }, required: true }], transaction,
-  });
-  if (adminRole) return branch;
+  const account = await User.findByPk(userId, { include: [{ model: Role, as: 'roles', through: { attributes: [] } }], transaction });
+  if ((account?.roles || []).some((role) => role.slug === 'admin')) return branch;
   const assignment = await UserBranch.findOne({ where: { userId, branchId }, transaction });
   if (!assignment) throw fail('You are not assigned to this branch.', 403, 'BRANCH_FORBIDDEN');
   return branch;
