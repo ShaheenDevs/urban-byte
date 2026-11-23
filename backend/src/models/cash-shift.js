@@ -11,5 +11,9 @@ module.exports=(s,D)=>s.define('CashShift',{
  cashVariance:{type:D.DECIMAL(12,2),allowNull:true,field:'cash_variance'},
  status:{type:D.ENUM('open','closed'),allowNull:false,defaultValue:'open'},
  openedAt:{type:D.DATE,allowNull:false,field:'opened_at'},closedAt:{type:D.DATE,allowNull:true,field:'closed_at'},
- closingNotes:{type:D.STRING(500),allowNull:true,field:'closing_notes'}
+ closingNotes:{type:D.STRING(500),allowNull:true,field:'closing_notes'},
+ reconciliationStatus:{type:D.ENUM('not_submitted','pending_approval','approved','rejected'),allowNull:false,defaultValue:'not_submitted',field:'reconciliation_status'},
+ reconciliationReviewedByUserId:{type:D.BIGINT.UNSIGNED,allowNull:true,field:'reconciliation_reviewed_by_user_id'},
+ reconciliationReviewedAt:{type:D.DATE,allowNull:true,field:'reconciliation_reviewed_at'},
+ reconciliationNote:{type:D.STRING(500),allowNull:true,field:'reconciliation_note'}
 },{tableName:'cash_shifts',underscored:true});
