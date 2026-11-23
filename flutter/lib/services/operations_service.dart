@@ -9,8 +9,8 @@ class OperationsService {
         _storage = storage ?? const FlutterSecureStorage();
   final http.Client _client;
   final FlutterSecureStorage _storage;
-  Future<Map<String, dynamic>> dashboardSummary({String? branchId, String? startDate, String? endDate}) async {
-    final query = <String,String>{if (branchId != null && branchId.isNotEmpty) 'branchId': branchId, if (startDate != null) 'startDate': startDate, if (endDate != null) 'endDate': endDate};
+  Future<Map<String, dynamic>> dashboardSummary({String? branchId, String? startDate, String? endDate, String? startTime, String? endTime}) async {
+    final query = <String,String>{if (branchId != null && branchId.isNotEmpty) 'branchId': branchId, if (startDate != null) 'startDate': startDate, if (endDate != null) 'endDate': endDate, if (startTime != null) 'startTime': startTime, if (endTime != null) 'endTime': endTime, if (startTime != null) 'startTime': startTime, if (endTime != null) 'endTime': endTime};
     final suffix = query.isEmpty ? '' : '?' + Uri(queryParameters: query).query;
     final data = await _request('GET', '/dashboard/summary$suffix');
     return Map<String, dynamic>.from(data as Map);
@@ -24,7 +24,7 @@ class OperationsService {
   }
 
   Future<List<Map<String, dynamic>>> orders(
-      {String? status, String? branchId, String? statusGroup, String? paymentStatus, String? paymentStatusGroup, String? startDate, String? endDate}) async {
+      {String? status, String? branchId, String? statusGroup, String? paymentStatus, String? paymentStatusGroup, String? startDate, String? endDate, String? startTime, String? endTime}) async {
     final query = <String, String>{
       if (status != null) 'status': status,
       if (branchId != null && branchId.isNotEmpty) 'branchId': branchId,
