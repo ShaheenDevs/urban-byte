@@ -54,4 +54,4 @@ async function list(restaurantId, user, query = {}) {
     filters: { branchId: query.branchId || null, actorUserId: query.actorUserId || null, action: query.action || null, entityType: query.entityType || null, from: query.from || null, to: query.to || null },
   };
 }
-module.exports = { list };
+module.exports = { list, scope };
