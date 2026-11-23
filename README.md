@@ -97,6 +97,22 @@ All menu and order data is scoped to the restaurant in the signed access token. 
 - Run `dotnet run` from the bridge directory on the Windows PC connected to the printer. The worker claims jobs from `POST /api/v1/printing/jobs/claim` and reports `printed` or `failed` to `PATCH /api/v1/printing/jobs/:jobId/status`. The bridge currently uses a configured access token; because normal JWT access tokens expire, renew/update that token when required during development. Automated refresh-token rotation for the bridge is not part of this first version.
 - Keep the bridge PC awake and reachable to the API. Never commit `appsettings.json` or a bridge access token. Use a dedicated account with only the required `printing.bridge` permission.
 
+
+## POS dining tables, order types and payment collection
+- Restaurant Settings stores branch-aware dining table definitions and configurable order types. At least one Takeaway type must remain available.
+- Dine-in orders must select an active table configured for the selected branch. The API rejects a table already attached to an active dine-in order; completing or cancelling the order releases it.
+- POS loads the configured order types and dining tables from `GET /api/v1/settings`. Menu category chips retain the All filter and category-specific filtering.
+- Checkout immediately after order creation supports full or partial payment, or Skip payment. A later collection action is available on the Orders tab and shows verified, pending and remaining amounts.
+- The cashier must tap Confirm received only after the customer has actually paid. POS sends `markReceived=true`; the backend verifies that payment for users with `payments.record`. Cash-on-delivery remains pending until collected. Unconfirmed payment records remain pending for the Payment Verification workflow.
+- Orders include their payment records so the mobile Orders screen can calculate verified, pending and outstanding amounts.
+
+## Mobile Bluetooth thermal printing
+- Flutter uses `print_bluetooth_thermal` and `permission_handler` for phone-side Bluetooth thermal printing. Pair the printer in Android Bluetooth settings first, then select it in Printer Management using the paired-device picker; its MAC address is stored as the printer device identifier.
+- The printer Test action connects and prints directly from the phone. POS receipts are also sent directly from the phone to the configured active Bluetooth receipt printer.
+- Android requires Nearby devices / Bluetooth runtime permission. Classic Bluetooth SPP is supported by the package on Android. iOS support is BLE/MFi dependent; standard Classic SPP printers are not supported by iOS.
+- This mobile implementation does not provide direct Android USB printing. USB remains a separate transport and is not routed through the mobile Bluetooth implementation.
+- Run `flutter pub get` after pulling changes. Physical printer compatibility still needs verification against the exact printer model and Android device.
+
 ## WhatsApp Cloud API webhook
 - Configure `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET`, `WHATSAPP_RESTAURANT_ID`, and `WHATSAPP_BRANCH_ID` in the backend environment. Never commit real secrets.
 - Set the Meta webhook callback URL to `https://YOUR_API_HOST/api/v1/webhooks/whatsapp/webhook` and subscribe to the `messages` field.
