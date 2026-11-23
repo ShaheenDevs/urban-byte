@@ -1,6 +1,6 @@
 'use strict';
 
-const { RestaurantSetting } = require('../models');
+const { RestaurantSetting, User, Role } = require('../models');
 
 function fail(message) {
   const error = new Error(message);
@@ -30,6 +30,7 @@ function serialize(row) {
     diningTables: row.diningTables || [],
     orderTypes: row.orderTypes || [{ key: 'dine_in', name: 'Dine In' }, { key: 'takeaway', name: 'Takeaway' }, { key: 'delivery', name: 'Delivery' }],
     kitchenPrintGroups: row.kitchenPrintGroups || [],
+    defaultDeliveryUserId: row.defaultDeliveryUserId == null ? null : String(row.defaultDeliveryUserId),
   };
 }
 
@@ -62,6 +63,17 @@ async function update(restaurantId, input = {}) {
       isActive: g.isActive !== false,
     })).filter((g) => g.id && g.name && (g.categoryIds.length || g.productIds.length)).slice(0, 50) : undefined,
   };
+  if (input.defaultDeliveryUserId !== undefined) {
+    if (input.defaultDeliveryUserId === null || input.defaultDeliveryUserId === '') {
+      values.defaultDeliveryUserId = null;
+    } else {
+      const driverId = Number(input.defaultDeliveryUserId);
+      if (!Number.isSafeInteger(driverId) || driverId < 1) throw fail('Select a valid default delivery staff member.');
+      const driver = await User.findOne({ where: { id: driverId, restaurantId, isActive: true }, include: [{ model: Role, as: 'roles', where: { slug: 'delivery' }, through: { attributes: [] }, required: true }] });
+      if (!driver) throw fail('Default delivery staff must be an active Delivery-role employee of this restaurant.');
+      values.defaultDeliveryUserId = driver.id;
+    }
+  }
   if (values.taxEnabled && Number(values.taxRate) <= 0) throw fail('Enable a tax rate greater than zero, or disable tax.');
   if (values.serviceChargeEnabled && Number(values.serviceChargeRate) <= 0) throw fail('Enable a service charge rate greater than zero, or disable service charge.');
   const [row] = await RestaurantSetting.findOrCreate({ where: { restaurantId }, defaults: { restaurantId, ...values } });
