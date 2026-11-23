@@ -44,7 +44,7 @@ class DeliveryView extends StackedView<DeliveryViewModel> {
                     final order =
                         Map<String, dynamic>.from(a['order'] as Map? ?? {});
                     final status = '${a['status']}';
-                    final cod = int.tryParse('${a['codAmount'] ?? 0}') ?? 0;
+                    final cod = double.tryParse('${a['codAmount'] ?? 0}') ?? 0.0;
                     final collected = a['codCollected'] == true;
                     return Card(
                         child: Padding(
