@@ -40,6 +40,7 @@ module.exports={
  transfer:wrap((r,id)=>service.transferStock(id,r.user||{id:r.auth.sub},r.body||{}),'Stock transferred.'),
  returnPurchase:wrap((r,id)=>service.returnPurchaseStock(id,r.user||{id:r.auth.sub},r.params.purchaseId,r.body||{}),'Purchase stock returned.'),
  valuation:wrap((r,id)=>service.inventoryValuation(id,r.user,r.query.branchId),'Inventory valuation loaded.'),
+ purchaseAnalytics:wrap((r,id)=>service.purchaseAnalytics(id,r.user,r.query),'Purchase analytics loaded.'),
  createItem:wrap((r,id)=>service.createItem(id,r.body||{}),'Inventory item created.',201),
  listItems:wrap((r,id)=>service.listItems(id),'Inventory items loaded.'),
  branches:wrap((r,id)=>service.listBranches(id,r.user),'Branches loaded.'),
