@@ -4,6 +4,7 @@ function restaurant(req){const n=Number(req.auth?.restaurantId);if(!Number.isSaf
 const wrap=(fn,msg,status=200)=>(req,res,next)=>Promise.resolve().then(()=>fn(req,restaurant(req))).then(data=>success(res,data,msg,status)).catch(next);
 module.exports={
  register:wrap((r,id)=>service.registerPrinter(id,r.body||{}),'Printer registered.',201),
+ test:wrap((r,id)=>service.enqueueTestPrint(id,r.user,r.params.printerId),'Printer test job queued.',201),
  printers:wrap((r,id)=>service.listPrinters(id,r.query.branchId),'Printers loaded.'),
  receipt:wrap((r,id)=>service.enqueue(id,r.user,r.params.orderId,'receipt',r.body||{}),'Receipt queued.',201),
  kitchen:wrap((r,id)=>service.enqueue(id,r.user,r.params.orderId,'kitchen_ticket',r.body||{}),'Kitchen ticket queued.',201),
