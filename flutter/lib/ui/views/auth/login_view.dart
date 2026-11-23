@@ -6,6 +6,9 @@ import '../../../services/public_role_service.dart';
 import '../dashboard/role_dashboard_placeholder.dart';
 import 'login_viewmodel.dart';
 
+final Future<List<Map<String, dynamic>>> _availableRolesFuture =
+    PublicRoleService().fetchRoles();
+
 class LoginView extends StackedView<LoginViewModel> {
   const LoginView({super.key});
   @override
@@ -50,7 +53,7 @@ class LoginView extends StackedView<LoginViewModel> {
                       style: TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   FutureBuilder<List<Map<String, dynamic>>>(
-                    future: PublicRoleService().fetchRoles(),
+                    future: _availableRolesFuture,
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Padding(
