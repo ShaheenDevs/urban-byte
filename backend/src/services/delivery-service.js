@@ -1,6 +1,6 @@
 'use strict';
 const {Op}=require('sequelize');
-const {DeliveryAssignment,Order,Payment,PaymentEvent,User,Role,OrderStatusHistory,sequelize}=require('../models');
+const {DeliveryAssignment,Order,Payment,PaymentEvent,User,Role,UserBranch,OrderStatusHistory,sequelize}=require('../models');
 const {validateTransition}=require('./order-lifecycle');
 function fail(message,status=400,code='DELIVERY_ERROR'){const e=new Error(message);e.statusCode=status;e.code=code;return e;}
 function id(value){const n=Number(value);if(!Number.isSafeInteger(n)||n<1)throw fail('A valid ID is required.');return n;}
@@ -14,12 +14,29 @@ async function assign(restaurantId,actor,orderId,input={}){
   if(!['placed','confirmed','ready'].includes(order.status))throw fail('Order is not eligible for delivery assignment.',409);
   const driver=await User.findOne({where:{id:targetId,restaurantId,isActive:true},include:[{model:Role,as:'roles',where:{slug:'delivery'},through:{attributes:[]},required:true}],transaction:t});
   if(!driver)throw fail('Active delivery staff member not found.',404,'DELIVERY_USER_NOT_FOUND');
+  const branchMembership=await UserBranch.findOne({where:{userId:driver.id,branchId:order.branchId},transaction:t});
+  if(!branchMembership)throw fail('Selected delivery staff member is not assigned to this order branch.',403,'DELIVERY_DRIVER_BRANCH_MISMATCH');
   let assignment=await DeliveryAssignment.findOne({where:{restaurantId,orderId:order.id},transaction:t,lock:t.LOCK.UPDATE});
   const now=new Date();
   if(assignment){if(['delivered','cancelled'].includes(assignment.status))throw fail('This delivery assignment is already closed.',409);await assignment.update({deliveryUserId:driver.id,assignedByUserId:actor.id,status:'assigned',assignedAt:now,pickedUpAt:null,outForDeliveryAt:null,deliveredAt:null},{transaction:t});}
   else assignment=await DeliveryAssignment.create({restaurantId,branchId:order.branchId,orderId:order.id,deliveryUserId:driver.id,assignedByUserId:actor.id,status:'assigned',assignedAt:now,codAmount:order.paymentMethod==='cod'?order.grandTotal:0},{transaction:t});
   return assignment;
  });
+}
+async function drivers(restaurantId,user,filters={}) {
+ const where={restaurantId,isActive:true};
+ if(filters.branchId) {
+  const branchId=id(filters.branchId);
+  assertBranch(user,branchId);
+  const memberships=await UserBranch.findAll({where:{branchId},attributes:['userId']});
+  where.id=memberships.map(row=>row.userId);
+ } else if(!(user.permissions||[]).includes('settings.manage')) {
+  const branchIds=(user.branchIds||[]).map(Number).filter(n=>Number.isSafeInteger(n)&&n>0);
+  const memberships=await UserBranch.findAll({where:{branchId:{[Op.in]:branchIds.length?branchIds:[-1]}},attributes:['userId']});
+  where.id=memberships.map(row=>row.userId);
+ }
+ const rows=await User.findAll({where,attributes:['id','name','phone'],include:[{model:Role,as:'roles',where:{slug:'delivery'},attributes:['slug'],through:{attributes:[]},required:true}],order:[['name','ASC']]});
+ return rows.map(row=>({id:String(row.id),name:row.name,phone:row.phone}));
 }
 async function list(restaurantId,user,filters={}){
  const where={restaurantId};
@@ -69,4 +86,4 @@ async function updateStatus(restaurantId,user,assignmentId,input={}){
   return DeliveryAssignment.findByPk(assignment.id,{include:[{model:Order,as:'order'}],transaction:t});
  });
 }
-module.exports={assign,list,updateStatus};
+module.exports={assign,list,drivers,updateStatus};
