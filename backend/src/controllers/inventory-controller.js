@@ -4,7 +4,7 @@ function restaurant(req){const n=Number(req.auth?.restaurantId);if(!Number.isSaf
 const wrap=(fn,message,status=200)=>(req,res,next)=>Promise.resolve().then(()=>fn(req,restaurant(req))).then(data=>success(res,data,message,status)).catch(next);
 
 async function supplierLedgerCsv(req,res,next){try{
- const data=await service.supplierLedger(restaurant(req),req.params.supplierId);
+ const data=await service.supplierLedger(restaurant(req),req.user,req.params.supplierId);
  const supplier=data.supplier;
  const rows=[
   {section:'summary',name:'Purchase total',amount:data.purchaseTotal},
