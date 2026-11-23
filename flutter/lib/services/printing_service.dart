@@ -50,10 +50,15 @@ class PrintingService {
     });
   }
 
-  Future<void> testNetworkPrinter(Map<String, dynamic> printer) async {
-    if (printer['connectionType'] != 'network') {
-      throw const PrintingException(
-          'Direct test print currently supports network ESC/POS printers only. USB, Bluetooth and Windows bridge need their local print bridge.');
+  Future<void> testPrinter(Map<String, dynamic> printer) async {
+    final connection = printer['connectionType']?.toString();
+    if (connection != 'network') {
+      final id = printer['id']?.toString();
+      if (id == null || id.isEmpty) {
+        throw const PrintingException('Printer ID is missing.');
+      }
+      await _request('POST', '/printing/printers/$id/test');
+      return;
     }
     final address = printer['address']?.toString().trim() ?? '';
     if (address.isEmpty) {
