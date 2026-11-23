@@ -54,6 +54,36 @@ class StaffService {
         .toList();
   }
 
+  Future<void> updateStaff({
+    required String id,
+    required String name,
+    required String contact,
+    required List<int> roleIds,
+    required bool isActive,
+    String? password,
+  }) async {
+    final email = contact.contains('@') ? contact.trim().toLowerCase() : null;
+    final phone = email == null ? contact.trim() : null;
+    final body = <String, dynamic>{
+      'name': name.trim(),
+      'email': email,
+      'phone': phone,
+      'roleIds': roleIds,
+      'isActive': isActive,
+      if (password != null && password.isNotEmpty) 'password': password,
+    };
+    final response = await http.patch(
+      Uri.parse('$_baseUrl/staff/$id'),
+      headers: await _headers,
+      body: jsonEncode(body),
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final decoded = jsonDecode(response.body);
+      final message = decoded is Map ? decoded['message'] : null;
+      throw Exception(message ?? 'Unable to update staff (${response.statusCode}).');
+    }
+  }
+
   Future<void> createStaff(
       {required String name,
       required String contact,
