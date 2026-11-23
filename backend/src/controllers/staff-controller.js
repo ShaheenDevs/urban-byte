@@ -2,7 +2,7 @@
 const service=require('../services/staff-service');
 const {success}=require('../utils/api-response');
 function restaurant(req){const n=Number(req.auth?.restaurantId);if(!Number.isSafeInteger(n)||n<1){const e=new Error('Staff account is not assigned to a restaurant.');e.statusCode=403;throw e;}return n;}
-function actor(req){return {id:req.auth?.sub,ipAddress:req.ip};}
+function actor(req){return {id:req.auth?.sub,ipAddress:req.ip,permissions:req.user?.permissions||[],roles:req.user?.roles||[]};}
 module.exports={
  list(req,res,next){Promise.resolve().then(()=>service.list(restaurant(req),req.query)).then(data=>success(res,data,'Staff loaded.')).catch(next);},
  create(req,res,next){Promise.resolve().then(()=>service.create(restaurant(req),req.body||{},actor(req))).then(data=>success(res,data,'Staff member created.',201)).catch(next);},
