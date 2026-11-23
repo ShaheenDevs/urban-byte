@@ -8,9 +8,9 @@ import '../../../services/auth_service.dart';
 class LoginViewModel extends BaseViewModel {
   LoginViewModel(this._authService);
   final AuthService _authService;
-  final identifierController = TextEditingController(text: "abc@gmail.com");
+  final identifierController = TextEditingController();
   final passwordController =
-      TextEditingController(text: "YourOwnStrongPassword123!");
+      TextEditingController();
   String? message;
 
   Future<AuthSession?> login() async {
