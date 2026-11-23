@@ -2,6 +2,8 @@
 const router=require('express').Router();const {authenticate}=require('../middleware/auth');const {requirePermission}=require('../middleware/require-permission');const {requireAnyPermission}=require('../middleware/require-any-permission');const c=require('../controllers/printing-controller');
 router.use(authenticate);
 router.post('/printers',requirePermission('printers.manage'),c.register);
+router.patch('/printers/:printerId',requirePermission('printers.manage'),c.update);
+router.delete('/printers/:printerId',requirePermission('printers.manage'),c.remove);
 router.post('/printers/:printerId/test',requirePermission('printers.manage'),c.test);
 router.get('/printers',requireAnyPermission('printers.view','printing.receipt'),c.printers);
 router.post('/orders/:orderId/receipt',requirePermission('printing.receipt'),c.receipt);
