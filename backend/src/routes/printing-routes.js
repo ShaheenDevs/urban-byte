@@ -1,9 +1,9 @@
 'use strict';
-const router=require('express').Router();const {authenticate}=require('../middleware/auth');const {requirePermission}=require('../middleware/require-permission');const c=require('../controllers/printing-controller');
+const router=require('express').Router();const {authenticate}=require('../middleware/auth');const {requirePermission}=require('../middleware/require-permission');const {requireAnyPermission}=require('../middleware/require-any-permission');const c=require('../controllers/printing-controller');
 router.use(authenticate);
 router.post('/printers',requirePermission('printers.manage'),c.register);
 router.post('/printers/:printerId/test',requirePermission('printers.manage'),c.test);
-router.get('/printers',requirePermission('printers.view'),c.printers);
+router.get('/printers',requireAnyPermission('printers.view','printing.receipt'),c.printers);
 router.post('/orders/:orderId/receipt',requirePermission('printing.receipt'),c.receipt);
 router.post('/orders/:orderId/kitchen-ticket',requirePermission('printing.kitchen'),c.kitchen);
 router.get('/jobs',requirePermission('printing.view'),c.jobs);
