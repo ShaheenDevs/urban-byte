@@ -230,16 +230,18 @@ class _PosViewState extends State<PosView> {
                   decoration: const InputDecoration(
                       labelText: 'Transaction reference (optional)')),
             const SizedBox(height: 8),
-            const Text(
-                'Confirm only after the customer has actually paid. Unconfirmed payments remain pending.',
-                style: TextStyle(fontSize: 12)),
+            Text(
+                method == 'cod'
+                    ? 'Cash on delivery: skip payment now and receive it later from the Orders tab.'
+                    : 'Confirm only after the customer has actually paid.',
+                style: const TextStyle(fontSize: 12)),
           ])),
           actions: [
             TextButton(
                 onPressed: saving ? null : () => Navigator.pop(dialogContext),
-                child: const Text('Skip payment')),
+                child: const Text('Save order / pay later')),
             FilledButton(
-              onPressed: saving
+              onPressed: saving || method == 'cod'
                   ? null
                   : () async {
                       final paid = double.tryParse(amount.text.trim());
@@ -276,7 +278,7 @@ class _PosViewState extends State<PosView> {
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('Record payment'),
+                  : const Text('Confirm received'),
             ),
           ],
         ),
