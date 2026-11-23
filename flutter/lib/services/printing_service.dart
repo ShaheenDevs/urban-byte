@@ -126,8 +126,11 @@ class PrintingService {
           'Could not connect to the selected Bluetooth printer. Pair it in phone settings first.');
     }
     try {
+      // ESC/POS: feed paper, then full cut (GS V 0). Printer must have a cutter installed.
+      final cutCommand = String.fromCharCodes([0x1D, 0x56, 0x00]);
+      final payload = '$text\n\n$cutCommand';
       final ok = await PrintBluetoothThermal.writeString(
-          printText: PrintTextSize(size: 1, text: text));
+          printText: PrintTextSize(size: 1, text: payload));
       if (!ok) {
         throw const PrintingException(
             'Bluetooth printer did not accept the receipt data.');
