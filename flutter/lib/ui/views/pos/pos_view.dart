@@ -174,7 +174,10 @@ class _PosViewState extends State<PosView> {
       if (orderId != null) {
         await _printBluetoothKitchenTickets(result);
         final printReceipt = await _checkoutDialog(orderId, orderNumber, total);
-        if (printReceipt) await _printBluetoothReceipt(result);
+        if (printReceipt) {
+          result['paymentStatus'] = 'paid';
+          await _printBluetoothReceipt(result);
+        }
       } else {
         _message('Order created: $orderNumber');
       }
@@ -293,6 +296,7 @@ class _PosViewState extends State<PosView> {
   }
 
   Future<void> _printBluetoothKitchenTickets(Map<String,dynamic> order) async {
+    if (order['kitchenPrintError'] != null && mounted) _message(order['kitchenPrintError'].toString());
     final tickets = (order['kitchenPrints'] as List? ?? []);
     for (final ticket in tickets) {
       try {
