@@ -34,8 +34,22 @@ async function createOrder(restaurantId,user,input,idempotencyKey,options={}){
   if(!Number.isSafeInteger(subtotalPaisa)||subtotalPaisa>999999999999)throw error('Order total is too large.');
   prepared.push({productVariantId:variant.id,productName:variant.product.name,variantName:variant.name,skuSnapshot:variant.sku,quantity:quantity.toFixed(3),unitPrice:asMoney(pricePaisa),lineTotal:asMoney(linePaisa),notes:item.notes?String(item.notes).slice(0,500):null});
  }
- // Discount, tax and delivery charges remain server-controlled until business rules are configured.
- const discountPaisa=0,taxPaisa=0,deliveryPaisa=0,grandPaisa=subtotalPaisa;
+ const settings = await RestaurantSetting.findOne({ where: { restaurantId } });
+ const discountPaisa = amount(input.discountAmount ?? 0, 'Discount');
+ const maxDiscountPaisa = settings?.discountEnabled
+   ? Math.floor(subtotalPaisa * Number(settings.maxDiscountPercent || 0) / 100)
+   : 0;
+ if (discountPaisa > 0 && (!settings?.discountEnabled || !user.permissions.some((p) => ['settings.manage', 'deals.manage'].includes(p)))) {
+  throw error('You are not authorized to apply discounts.', 403, 'DISCOUNT_FORBIDDEN');
+ }
+ if (discountPaisa > maxDiscountPaisa || discountPaisa > subtotalPaisa) throw error('Discount exceeds the configured limit.', 400, 'DISCOUNT_LIMIT_EXCEEDED');
+ const deliveryPaisa=0;
+ const taxablePaisa=subtotalPaisa-discountPaisa;
+ const taxRate=settings?.taxEnabled ? Number(settings.taxRate) : 0;
+ const taxPaisa=taxRate > 0
+   ? (settings.taxInclusive ? Math.round(taxablePaisa*taxRate/(100+taxRate)) : Math.round(taxablePaisa*taxRate/100))
+   : 0;
+ const grandPaisa=taxablePaisa + (settings?.taxEnabled && !settings.taxInclusive ? taxPaisa : 0) + deliveryPaisa;
  const orderNumber='UB-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-'+crypto.randomBytes(3).toString('hex').toUpperCase();
  try{const created=await sequelize.transaction(async transaction=>{
   if(idempotencyKey){const existing=await Order.findOne({where:{restaurantId,idempotencyKey},include:[{model:OrderItem,as:'items'}],transaction,lock:transaction.LOCK.UPDATE});if(existing)return existing;}
