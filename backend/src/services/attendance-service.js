@@ -18,7 +18,7 @@ async function assertBranchAccess(restaurantId, userId, branchId, transaction) {
 async function audit(transaction, restaurantId, userId, record, action, ipAddress) {
   await AuditLog.create({
     restaurantId, branchId: record.branchId, actorUserId: userId, entityType: 'attendance', entityId: String(record.id),
-    action, metadata: { branchId: record.branchId, checkInAt: record.checkInAt, checkOutAt: record.checkOutAt }, ipAddress: ipAddress || null,
+    action, metadata: { branchId: record.branchId, checkInAt: record.checkInAt, checkOutAt: record.checkOutAt }, afterData: { branchId: record.branchId, userId: record.userId, checkInAt: record.checkInAt, checkOutAt: record.checkOutAt }, ipAddress: ipAddress || null,
   }, { transaction });
 }
 async function checkIn(restaurantId, userId, input = {}, ipAddress) {
