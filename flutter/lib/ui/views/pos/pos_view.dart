@@ -391,9 +391,19 @@ class _PosViewState extends State<PosView> {
                       : variants.firstWhere(
                           (v) => (v as Map)['isDefault'] == true,
                           orElse: () => variants.first) as Map;
+                  final branchPrices = variant == null
+                      ? <Map<String, dynamic>>[]
+                      : (variant['branchPrices'] as List? ?? [])
+                          .map((value) => Map<String, dynamic>.from(value as Map))
+                          .toList();
+                  final selectedBranchPrices = branchPrices
+                      .where((value) => value['branchId']?.toString() == _branchId)
+                      .toList();
                   final price = variant == null
                       ? '—'
-                      : (variant['basePrice']?.toString() ?? '—');
+                      : (selectedBranchPrices.isNotEmpty
+                          ? selectedBranchPrices.first['salePrice']?.toString() ?? variant['basePrice']?.toString() ?? '—'
+                          : variant['basePrice']?.toString() ?? '—');
                   return Card(
                       child: InkWell(
                           onTap: () => _add(p),
