@@ -22,6 +22,10 @@ test('MySQL migrations, seeded RBAC and Sequelize models are usable',{skip:!enab
   const [auditTables] = await sequelize.query("SHOW TABLES LIKE 'audit_logs'");
   assert.equal(userBranchTables.length, 1, 'user_branches should exist');
   assert.equal(auditTables.length, 1, 'audit_logs should exist');
+  const cashShiftColumns=await sequelize.getQueryInterface().describeTable('cash_shifts');
+  assert.ok(cashShiftColumns.reconciliation_status && cashShiftColumns.reconciliation_reviewed_by_user_id,'cash reconciliation review columns should exist');
+  assert.ok(cashShiftColumns.cash_variance && cashShiftColumns.expected_cash && cashShiftColumns.actual_cash,'cash reconciliation totals should exist');
+  assert.ok(await Permission.findOne({where:{permissionKey:'cash_shifts.reconcile.approve'}}),'cash reconciliation approval permission should be seeded by migration');
   assert.ok(orderColumns.idempotency_key,'orders.idempotency_key should exist');
   assert.ok(orderColumns.inventory_deducted_at,'orders.inventory_deducted_at should exist');
   const branchColumns=await sequelize.getQueryInterface().describeTable('branches');
