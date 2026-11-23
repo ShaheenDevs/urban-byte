@@ -142,7 +142,7 @@ class _PosViewState extends State<PosView> {
         customerName:
             _customer.text.trim().isEmpty ? null : _customer.text.trim(),
         customerPhone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
-        // discountAmount: double.tryParse(_discount.text.trim()) ?? 0, // The named parameter 'discountAmount' isn't defined. Try correcting the name to an existing named parameter's name, or defining a named parameter with the name 'discountAmount'.
+        discountAmount: double.tryParse(_discount.text.trim()) ?? 0,
         items: _cart.values
             .map((i) => {
                   'variantId': int.parse(i['variantId'].toString()),
