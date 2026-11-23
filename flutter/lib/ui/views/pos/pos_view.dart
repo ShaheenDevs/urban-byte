@@ -29,6 +29,8 @@ class _PosViewState extends State<PosView> {
   List<Map<String, dynamic>> _products = [];
   List<Map<String, dynamic>> _tables = [];
   List<Map<String, dynamic>> _orderTypes = [];
+  List<Map<String, dynamic>> _deliveryDrivers = [];
+  String? _selectedDeliveryUserId;
   String? _branchId;
   String? _categoryId;
   String _type = 'takeaway';
@@ -64,6 +66,8 @@ class _PosViewState extends State<PosView> {
           [_ops.menu(branchId: branchId), _settingsService.load()]);
       final products = results[0] as List<Map<String, dynamic>>;
       final settings = results[1] as Map<String, dynamic>;
+      final drivers = await _ops.deliveryDrivers(branchId: branchId);
+      final configuredDefault = settings['defaultDeliveryUserId']?.toString();
       final tables = (settings['diningTables'] as List? ?? [])
           .map((e) => Map<String, dynamic>.from(e as Map))
           .where((t) =>
@@ -86,6 +90,10 @@ class _PosViewState extends State<PosView> {
             .where((p) => p['isActive'] != false && p['isAvailable'] != false)
             .toList();
         _tables = tables;
+        _deliveryDrivers = drivers;
+        _selectedDeliveryUserId = drivers.any((d) => d['id'].toString() == configuredDefault)
+            ? configuredDefault
+            : null;
         _orderTypes = orderTypes;
         if (!_orderTypes.any((t) => t['key'] == _type))
           _type = _orderTypes.isNotEmpty
@@ -162,6 +170,13 @@ class _PosViewState extends State<PosView> {
       _message('Enter delivery address.');
       return;
     }
+    if (_type == 'delivery' && (_selectedDeliveryUserId == null ||
+        !_deliveryDrivers.any((d) => d['id'].toString() == _selectedDeliveryUserId))) {
+      _message(_deliveryDrivers.isEmpty
+          ? 'No active delivery staff is assigned to this branch. Add a Delivery employee first.'
+          : 'Select a delivery rider before confirming this order.');
+      return;
+    }
     setState(() => _saving = true);
     try {
       final result = await _ops.createOrder(
@@ -191,6 +206,13 @@ class _PosViewState extends State<PosView> {
       });
       final orderId = result['id']?.toString();
       final orderNumber = result['orderNumber']?.toString() ?? orderId ?? '';
+      if (_type == 'delivery' && orderId != null && _selectedDeliveryUserId != null) {
+        try {
+          await _ops.assignDelivery(orderId, _selectedDeliveryUserId!);
+        } catch (assignmentError) {
+          if (mounted) _message('Order $orderNumber saved, but rider assignment failed: $assignmentError');
+        }
+      }
       final total = double.tryParse(
               (result['grandTotal'] ?? result['total'] ?? _total).toString()) ??
           _total;
@@ -612,10 +634,28 @@ class _PosViewState extends State<PosView> {
         if (_type == 'dine_in' && _tables.isEmpty)
           const Text(
               'No active dining tables. Add tables in Restaurant Settings first.'),
-        if (_type == 'delivery')
+        if (_type == 'delivery') ...[
           TextField(
               controller: _address,
               decoration: const InputDecoration(labelText: 'Delivery address')),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            value: _deliveryDrivers.any((d) => d['id'].toString() == _selectedDeliveryUserId)
+                ? _selectedDeliveryUserId
+                : null,
+            decoration: const InputDecoration(labelText: 'Assign delivery rider'),
+            items: _deliveryDrivers.map((driver) => DropdownMenuItem<String>(
+              value: driver['id'].toString(),
+              child: Text('${driver['name'] ?? 'Delivery staff'}${driver['phone'] == null ? '' : ' • ${driver['phone']}'}'),
+            )).toList(),
+            onChanged: _saving ? null : (value) => setState(() => _selectedDeliveryUserId = value),
+          ),
+          if (_deliveryDrivers.isEmpty)
+            const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Text('No active Delivery-role employee is assigned to this branch. Add one in Staff Management.'),
+            ),
+        ],
         TextField(
             controller: _customer,
             decoration:
