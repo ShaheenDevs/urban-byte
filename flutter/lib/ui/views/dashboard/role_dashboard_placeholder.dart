@@ -12,6 +12,7 @@ import '../payments/payment_verification_view.dart';
 import '../cash_shift/cash_shift_view.dart';
 import '../reports/financial_reports_view.dart';
 import '../branch_operations/branch_operations_view.dart';
+import '../attendance_shifts/attendance_shift_view.dart';
 import '../expenses/expenses_view.dart';
 import '../suppliers/suppliers_view.dart';
 import '../purchases/purchases_view.dart';
@@ -122,6 +123,18 @@ class RoleDashboardPlaceholder extends StatelessWidget {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const ExpensesView()),
+                ),
+              ),
+            ),
+          if (permissions.contains('staff.manage'))
+            Card(
+              child: ListTile(
+                leading: const CircleAvatar(child: Icon(Icons.fingerprint)),
+                title: const Text('Attendance & Employee Shifts'),
+                subtitle: const Text('Check-in, attendance history and shift scheduling'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const AttendanceShiftView()),
                 ),
               ),
             ),
