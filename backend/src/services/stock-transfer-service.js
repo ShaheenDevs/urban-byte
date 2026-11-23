@@ -32,7 +32,7 @@ async function activeBranch(restaurantId, branchId, transaction) {
 }
 async function audit(transaction, restaurantId, actorId, transfer, action, extra = {}) {
   await AuditLog.create({
-    restaurantId, actorUserId: actorId, entityType: 'stock_transfer', entityId: String(transfer.id),
+    restaurantId, branchId: transfer.sourceBranchId, actorUserId: actorId, entityType: 'stock_transfer', entityId: String(transfer.id),
     action, metadata: { reference: transfer.reference, sourceBranchId: transfer.sourceBranchId, destinationBranchId: transfer.destinationBranchId, status: transfer.status, ...extra },
   }, { transaction });
 }
