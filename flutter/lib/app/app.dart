@@ -1,6 +1,7 @@
 import 'package:stacked/stacked_annotations.dart';
 import 'package:stacked_services/stacked_services.dart';
 import '../services/auth_service.dart';
+import '../services/attendance_shift_service.dart';
 import '../services/branch_operations_service.dart';
 import '../services/expense_service.dart';
 import '../services/financial_report_service.dart';
@@ -30,6 +31,7 @@ import '../ui/views/staff/staff_view.dart';
     LazySingleton(classType: ExpenseService),
     LazySingleton(classType: FinancialReportService),
     LazySingleton(classType: BranchOperationsService),
+    LazySingleton(classType: AttendanceShiftService),
   ],
 )
 class App {}
