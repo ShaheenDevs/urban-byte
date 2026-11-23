@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../app/api_config.dart';
 
 class PrintingService {
@@ -51,9 +52,21 @@ class PrintingService {
     });
   }
 
+  Future<void> _ensureBluetoothPermission() async {
+    if (Platform.isAndroid) {
+      final statuses = await [Permission.bluetoothScan, Permission.bluetoothConnect].request();
+      if (statuses.values.any((status) => !status.isGranted)) {
+        throw const PrintingException('Allow Nearby devices / Bluetooth permission for Urban Byte in Android app settings.');
+      }
+    } else if (Platform.isIOS) {
+      final status = await Permission.bluetooth.request();
+      if (!status.isGranted) throw const PrintingException('Allow Bluetooth permission for Urban Byte in iPhone settings.');
+    }
+    await _ensureBluetoothPermission();
+  }
+
   Future<List<Map<String, String>>> pairedBluetoothDevices() async {
-    final granted = await PrintBluetoothThermal.isPermissionBluetoothGranted;
-    if (!granted) throw const PrintingException('Bluetooth permission is required. Allow Nearby devices permission for Urban Byte.');
+    await _ensureBluetoothPermission();
     final devices = await PrintBluetoothThermal.pairedBluetooths;
     return devices.map((d) => {'name': d.name, 'mac': d.macAdress}).toList();
   }
