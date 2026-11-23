@@ -176,6 +176,16 @@ Customer records, verified payment workflow, delivery workflow, thermal printing
 - Only approved expenses are included in the expense summary. Expense records are not automatically posted as cash-shift movements, preventing double-counting; cash reconciliation integration remains a separate accounting task.
 
 
+## Staff branch assignments, permissions and audit history
+- Migration `20261123000600-create-staff-branch-audit` creates `user_branches` and `audit_logs`; apply migrations before using the new Staff Management controls.
+- Staff create/edit supports assigning zero or more active branches. The first selected branch is marked primary. Branches must belong to the same restaurant.
+- Login/current-user permission context includes assigned branch IDs. Order create/list/detail/status updates and dashboard metrics are restricted to assigned branches for non-admin staff. Payment collection/verification/listing/summary and expense create/review/listing/summary also enforce branch assignment.
+- Admin role retains restaurant-wide branch access. Non-admin staff with no assigned branches cannot access branch-scoped records.
+- Individual permission overrides support Allow, Deny and Use role default. Allow cannot grant a permission the acting non-admin does not already possess. Changes are recorded in immutable audit history.
+- Staff API: `GET /staff/branches`, `GET /staff/permissions`, `PUT /staff/:userId/permissions`, `DELETE /staff/:userId/permissions/:permissionId`, and `GET /staff/audit?userId=:id`.
+- Flutter Staff Management includes branch checkboxes, per-staff permission controls and audit history.
+- Branch scoping for cash shifts, inventory, printer configuration and other branch-specific workflows remains a follow-up before multi-branch production rollout.
+
 ## Staff administration controls
 - Flutter Staff Management supports search, add, edit, role reassignment, optional password reset, and activate/deactivate actions.
 - Creating staff requires an explicit Create confirmation; cancelling the dialog does not submit the form.
