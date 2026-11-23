@@ -64,6 +64,7 @@ async function enqueueKitchenForOrder(restaurantId,user,orderId){
  });
  const variantMap=new Map(variants.map(v=>[Number(v.id),v]));
  const jobs=[];
+ const directPrints=[];
  for(const group of groups){
   const excluded=new Set((group.excludedProductIds||[]).map(Number));
   const products=new Set((group.productIds||[]).map(Number));
@@ -81,15 +82,18 @@ async function enqueueKitchenForOrder(restaurantId,user,orderId){
   if(!printer)continue;
   const plain=order.get({plain:true});
   const filteredOrder={...plain,items:items.map(i=>i.get({plain:true}))};
+  const renderedText=renderOrder(filteredOrder,'kitchen_ticket',printer.paperWidth,settings?.get({plain:true})||{});
+  if(printer.connectionType==='bluetooth'){
+   directPrints.push({groupId:group.id,groupName:group.name,printerName:printer.name,printerMac:printer.deviceIdentifier,renderedText});
+   continue;
+  }
   const payload={orderId:order.id,orderNumber:order.orderNumber,jobType:'kitchen_ticket',groupId:group.id,groupName:group.name,paperWidth:printer.paperWidth,items:filteredOrder.items};
   jobs.push(await PrintJob.create({
    restaurantId,branchId:order.branchId,printerId:printer.id,orderId:order.id,
-   jobType:'kitchen_ticket',status:'queued',payload,
-   renderedText:renderOrder(filteredOrder,'kitchen_ticket',printer.paperWidth,settings?.get({plain:true})||{}),
-   requestedByUserId:user.id,
+   jobType:'kitchen_ticket',status:'queued',payload,renderedText,requestedByUserId:user.id,
   }));
  }
- return jobs;
+ return {jobs,directPrints};
 }
 async function listJobs(restaurantId,query={}){const where={restaurantId};if(query.branchId)where.branchId=Number(query.branchId);if(query.status)where.status=query.status;return PrintJob.findAll({where,order:[['createdAt','DESC']],limit:Math.min(Math.max(Number(query.limit)||50,1),100)});}
 async function claimNext(restaurantId,branchId,printerId){
