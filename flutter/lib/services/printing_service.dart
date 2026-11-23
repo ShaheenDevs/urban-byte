@@ -78,24 +78,27 @@ class PrintingService {
 
   Future<void> _ensureBluetoothPermission() async {
     if (Platform.isAndroid) {
-      final statuses = await [
-        Permission.bluetoothScan,
-        Permission.bluetoothConnect
-      ].request();
-      if (statuses.values.any((status) => !status.isGranted)) {
-        throw const PrintingException(
-            'Allow Nearby devices / Bluetooth permission for Urban Byte in Android app settings.');
+      // The plugin returns true automatically on Android versions before 12.
+      // Only request Nearby Devices permissions when Android 12+ actually needs them.
+      var granted = await PrintBluetoothThermal.isPermissionBluetoothGranted;
+      if (!granted) {
+        final statuses = await [
+          Permission.bluetoothScan,
+          Permission.bluetoothConnect,
+        ].request();
+        granted = statuses.values.every((status) => status.isGranted) &&
+            await PrintBluetoothThermal.isPermissionBluetoothGranted;
       }
-    } else if (Platform.isIOS) {
-      final status = await Permission.bluetooth.request();
-      if (!status.isGranted) {
+      if (!granted) {
         throw const PrintingException(
-            'Allow Bluetooth permission for Urban Byte in iPhone settings.');
+          'Allow Nearby devices / Bluetooth permission for Urban Byte in Android app settings.',
+        );
       }
-    }
-    final granted = await PrintBluetoothThermal.isPermissionBluetoothGranted;
-    if (!granted) {
-      throw const PrintingException('Bluetooth permission is not granted.');
+    } else {
+      final granted = await PrintBluetoothThermal.isPermissionBluetoothGranted;
+      if (!granted) {
+        throw const PrintingException('Allow Bluetooth permission for Urban Byte in device settings.');
+      }
     }
   }
 
