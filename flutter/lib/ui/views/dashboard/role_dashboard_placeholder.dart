@@ -16,6 +16,7 @@ import '../suppliers/suppliers_view.dart';
 import '../purchases/purchases_view.dart';
 import '../inventory/stock_control_view.dart';
 import '../settings/restaurant_settings_view.dart';
+import 'dashboard_orders_view.dart';
 
 /// Role-aware starting workspace. Full navigation modules are added incrementally.
 class RoleDashboardPlaceholder extends StatelessWidget {
@@ -85,6 +86,10 @@ class RoleDashboardPlaceholder extends StatelessWidget {
                 final metrics =
                     Map<String, dynamic>.from(data['metrics'] as Map? ?? {});
                 final money = metrics['paidRevenueToday']?.toString() ?? '0.00';
+                final pendingMoney = metrics['pendingRevenue']?.toString() ?? '0.00';
+                final period = Map<String,dynamic>.from(data['period'] as Map? ?? {});
+                final startDate = period['startDate']?.toString();
+                final endDate = period['endDate']?.toString();
                 return Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
@@ -100,18 +105,26 @@ class RoleDashboardPlaceholder extends StatelessWidget {
                           children: [
                             _MetricTile(
                                 label: 'Orders today',
-                                value: '${metrics['todayOrders'] ?? 0}'),
+                                value: '${metrics['todayOrders'] ?? 0}',
+                                onTap: _canOpenOrders ? () => _openHistory(context, 'Orders today', startDate: startDate, endDate: endDate) : null),
                             _MetricTile(
                                 label: 'Open orders',
-                                value: '${metrics['openOrders'] ?? 0}'),
+                                value: '${metrics['openOrders'] ?? 0}',
+                                onTap: _canOpenOrders ? () => _openHistory(context, 'Open orders', statusGroup: 'open') : null),
                             _MetricTile(
                                 label: 'Completed',
-                                value: '${metrics['completedToday'] ?? 0}'),
+                                value: '${metrics['completedToday'] ?? 0}',
+                                onTap: _canOpenOrders ? () => _openHistory(context, 'Completed orders', statusGroup: 'completed', startDate: startDate, endDate: endDate) : null),
                             _MetricTile(
                                 label: 'Pending payments',
-                                value: '${metrics['pendingPayments'] ?? 0}'),
+                                value: '${metrics['pendingPayments'] ?? 0}',
+                                onTap: _canOpenOrders ? () => _openHistory(context, 'Pending payments', paymentStatusGroup: 'pending', startDate: startDate, endDate: endDate) : null),
                             _MetricTile(
-                                label: 'Paid revenue', value: 'PKR $money'),
+                                label: 'Paid revenue', value: 'PKR $money',
+                                onTap: _canOpenOrders ? () => _openHistory(context, 'Paid revenue orders', paymentStatus: 'paid', startDate: startDate, endDate: endDate) : null),
+                            _MetricTile(
+                                label: 'Pending total revenue', value: 'PKR $pendingMoney',
+                                onTap: _canOpenOrders ? () => _openHistory(context, 'Pending revenue orders', paymentStatusGroup: 'pending', startDate: startDate, endDate: endDate) : null),
                           ],
                         ),
                         const SizedBox(height: 8),
@@ -317,10 +330,22 @@ class RoleDashboardPlaceholder extends StatelessWidget {
       );
 }
 
+
+void _openHistory(BuildContext context, String title, {
+  String? statusGroup, String? paymentStatusGroup, String? paymentStatus,
+  String? startDate, String? endDate,
+}) {
+  Navigator.of(context).push(MaterialPageRoute(builder: (_) => DashboardOrdersView(
+    title: title, statusGroup: statusGroup, paymentStatusGroup: paymentStatusGroup,
+    paymentStatus: paymentStatus, initialStartDate: startDate, initialEndDate: endDate,
+  )));
+}
+
 class _MetricTile extends StatelessWidget {
-  const _MetricTile({required this.label, required this.value});
+  const _MetricTile({required this.label, required this.value, this.onTap});
   final String label;
   final String value;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) => SizedBox(
@@ -330,7 +355,10 @@ class _MetricTile extends StatelessWidget {
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Padding(
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -340,6 +368,7 @@ class _MetricTile extends StatelessWidget {
                 Text(label, style: Theme.of(context).textTheme.bodySmall),
               ],
             ),
+          ),
           ),
         ),
       );
