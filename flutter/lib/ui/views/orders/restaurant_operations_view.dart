@@ -257,7 +257,7 @@ class _Orders extends StatelessWidget {
                               final payments = (o['payments'] as List? ?? []);
                               final paid = payments.where((p) => p['status'] == 'verified').fold<double>(0, (sum, p) => sum + (double.tryParse('${p['amount'] ?? 0}') ?? 0));
                               final pending = payments.where((p) => p['status'] == 'pending').fold<double>(0, (sum, p) => sum + (double.tryParse('${p['amount'] ?? 0}') ?? 0));
-                              final due = (total - paid - pending).clamp(0, total).toDouble();
+                              final due = (total - paid).clamp(0, total).toDouble();
                               return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                 Text('Order status: $status • Payment status: ${o['paymentStatus'] ?? 'unpaid'}'),
                                 Text('Order total: PKR ${total.toStringAsFixed(2)}'),
@@ -274,6 +274,20 @@ class _Orders extends StatelessWidget {
                                 .map((i) =>
                                     '${i['quantity']} × ${i['productName']}')
                                 .join(', ')),
+                            if (vm.canUpdate && (status == 'ready' || status == 'out_for_delivery') && o['paymentStatus'] == 'paid')
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: FilledButton.icon(
+                                  onPressed: vm.isBusy ? null : () async {
+                                    await vm.changeStatus(id, 'completed');
+                                    if (vm.loadError == null && context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order marked completed.')));
+                                    }
+                                  },
+                                  icon: const Icon(Icons.check_circle_outline),
+                                  label: const Text('Complete order'),
+                                ),
+                              )
                             if (vm.canUpdate && status == 'placed')
                               Align(
                                   alignment: Alignment.centerRight,
