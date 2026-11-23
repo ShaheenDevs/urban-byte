@@ -14,9 +14,11 @@ async function overview(restaurantId,query={}){
  const {from,to,start,end}=range(query);const branchId=query.branchId?Number(query.branchId):null;
  if(branchId!==null&&(!Number.isSafeInteger(branchId)||branchId<1))throw invalid('Invalid branchId.');
  const scope={restaurantId,placedAt:{[Op.gte]:start,[Op.lt]:end},status:{[Op.ne]:'cancelled'}};if(branchId)scope.branchId=branchId;
- const orders=await Order.findAll({where:scope,attributes:['id','grandTotal','paymentStatus','orderType','status'],raw:true});
- const paymentWhere={restaurantId,status:'verified',verifiedAt:{[Op.gte]:start,[Op.lt]:end}};if(branchId)paymentWhere.branchId=branchId;
- const payments=await Payment.findAll({where:paymentWhere,attributes:['method','amount'],raw:true});
+ const [orders,payments,approvedExpenses]=await Promise.all([
+  Order.findAll({where:scope,attributes:['id','grandTotal','paymentStatus','orderType','status'],raw:true}),
+  Payment.findAll({where:{restaurantId,status:'verified',verifiedAt:{[Op.gte]:start,[Op.lt]:end},...(branchId?{branchId}:{})},attributes:['method','amount'],raw:true}),
+  Expense.findAll({where:{restaurantId,status:'approved',expenseDate:{[Op.gte]:from,[Op.lte]:to},...(branchId?{branchId}:{})},attributes:['category','paymentMethod','amount'],raw:true})
+ ]);
  const methods={cash:0,card:0,easypaisa:0,jazzcash:0,bank_transfer:0,cod:0};
  for(const p of payments)methods[p.method]=(methods[p.method]||0)+Number(p.amount);
  const typeCounts={dine_in:0,takeaway:0,delivery:0};
@@ -31,8 +33,9 @@ async function overview(restaurantId,query={}){
  }
  const gross=orders.reduce((s,o)=>s+Number(o.grandTotal),0);
  const paidOrderValue=orders.filter(o=>o.paymentStatus==='paid').reduce((s,o)=>s+Number(o.grandTotal),0);
- const expenses=0;
- return {period:{from,to},timezone:'Asia/Karachi',currency:'PKR',orders:{count:orders.length,grossSales:gross.toFixed(2),paidOrderValue:paidOrderValue.toFixed(2),averageOrderValue:orders.length?(gross/orders.length).toFixed(2):'0.00',byType:typeCounts},verifiedPayments:{count:payments.length,total:payments.reduce((s,p)=>s+Number(p.amount),0).toFixed(2),byMethod:Object.fromEntries(Object.entries(methods).map(([k,v])=>[k,v.toFixed(2)]))},bestSellingProducts:topProducts.map(p=>({name:p.productName,quantity:Number(p.quantity),revenue:Number(p.revenue).toFixed(2)})),expenses:{tracked:false,total:expenses.toFixed(2)}};
+ const expenseTotal=approvedExpenses.reduce((sum,row)=>sum+Number(row.amount),0);
+ const expensesByCategory={};for(const expense of approvedExpenses)expensesByCategory[expense.category]=(expensesByCategory[expense.category]||0)+Number(expense.amount);
+ return {period:{from,to},timezone:'Asia/Karachi',currency:'PKR',orders:{count:orders.length,grossSales:gross.toFixed(2),paidOrderValue:paidOrderValue.toFixed(2),averageOrderValue:orders.length?(gross/orders.length).toFixed(2):'0.00',byType:typeCounts},verifiedPayments:{count:payments.length,total:payments.reduce((s,p)=>s+Number(p.amount),0).toFixed(2),byMethod:Object.fromEntries(Object.entries(methods).map(([k,v])=>[k,v.toFixed(2)]))},bestSellingProducts:topProducts.map(p=>({name:p.productName,quantity:Number(p.quantity),revenue:Number(p.revenue).toFixed(2)})),expenses:{tracked:true,count:approvedExpenses.length,total:expenseTotal.toFixed(2),byCategory:Object.fromEntries(Object.entries(expensesByCategory).map(([key,value])=>[key,value.toFixed(2)]))}};
 }
 
 async function financial(restaurantId,query={}){
