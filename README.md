@@ -162,7 +162,7 @@ Customer records, verified payment workflow, delivery workflow, thermal printing
 - Staff API calls read the access token from Flutter Secure Storage; no token is hardcoded.
 - The StaffView and StaffService are registered in `flutter/lib/app/app.dart`; the service locator registration is updated.
 - From `flutter/`, run `flutter pub get`, then `dart run build_runner build --delete-conflicting-outputs` to regenerate Stacked routes/locator after annotation changes, then `dart format lib`, `flutter analyze` and `flutter test`.
-- The current UI provides listing and creation. Editing/deactivation controls, branch membership, audit history and individual permission overrides remain follow-up work. Verify API response envelope compatibility against the deployed backend before production use.
+- The Flutter Staff Management screen supports listing/search, creation, editing name/contact, role reassignment, optional password reset, and activation/deactivation. Deactivation immediately blocks future authenticated access and refresh. Branch membership, audit history and individual permission override UI remain follow-up work. Verify API response envelope compatibility against the deployed backend before production use.
 
 
 ## Expense management
