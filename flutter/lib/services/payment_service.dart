@@ -53,6 +53,28 @@ class PaymentService {
     return Map<String, dynamic>.from(payload['data'] as Map);
   }
 
+  Future<void> setCashOnDelivery({required String orderId}) async {
+    final token = await _storage.read(key: 'access_token');
+    if (token == null || token.isEmpty) {
+      throw Exception('Please sign in again.');
+    }
+    final response = await _client.post(
+      Uri.parse('$apiBaseUrl/payments/cod-intent'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json'
+      },
+      body: jsonEncode({'orderId': int.parse(orderId)}),
+    );
+    final payload = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode < 200 ||
+        response.statusCode >= 300 ||
+        payload['success'] != true) {
+      throw Exception(payload['message']?.toString() ??
+          'Unable to select cash on delivery.');
+    }
+  }
+
   Future<Map<String, dynamic>> record({
     required String orderId,
     required double amount,
