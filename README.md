@@ -86,8 +86,9 @@ All menu and order data is scoped to the restaurant in the signed access token. 
 ## Restaurant settings, tax and discounts
 - `GET /api/v1/settings` — `settings.manage`; returns restaurant tax, discount cap and receipt header/footer configuration.
 - `PUT /api/v1/settings` — `settings.manage`; body supports `taxEnabled`, `taxRate` (percentage), `taxInclusive`, `discountEnabled`, `maxDiscountPercent`, `receiptHeader`, and `receiptFooter`.
-- Order creation reads the saved restaurant settings on the server. Tax is calculated server-side; inclusive tax is extracted from the discounted price, exclusive tax is added to it. A requested fixed discount amount is accepted only from staff with `settings.manage` or `deals.manage`, while discounts are enabled and within the configured cap.
-- Default tax is disabled and default maximum discount is 20%. Confirm the applicable tax rules with your accountant before enabling tax. Receipt header/footer fields are saved in settings; printer rendering customization is the next integration step.
+- Order creation reads saved restaurant settings on the server. Tax is calculated server-side; inclusive tax is extracted from the discounted price, exclusive tax is added to it. When enabled, the configured service charge is calculated on the discounted subtotal and added to the grand total; the amount is snapshotted on each order and shown on printed/mobile customer bills. A requested fixed discount amount is accepted only from staff with `settings.manage` or `deals.manage`, while discounts are enabled and within the configured cap.
+- Migration `20261123000500-add-service-charge-order-amount` adds the service-charge snapshot to orders. Apply migrations before enabling service charge.
+- Default tax and service charge are disabled and default maximum discount is 20%. Confirm the applicable tax rules with your accountant before enabling tax. Receipt header/footer fields are saved in settings; printer rendering customization is the next integration step.
 
 ## Windows USB / Bluetooth printer bridge
 - Project: `windows-printer-bridge/` (.NET 8 for Windows).
