@@ -13,6 +13,7 @@ import '../cash_shift/cash_shift_view.dart';
 import '../reports/financial_reports_view.dart';
 import '../branch_operations/branch_operations_view.dart';
 import '../attendance_shifts/attendance_shift_view.dart';
+import '../stock_transfers/stock_transfer_view.dart';
 import '../expenses/expenses_view.dart';
 import '../suppliers/suppliers_view.dart';
 import '../purchases/purchases_view.dart';
@@ -135,6 +136,18 @@ class RoleDashboardPlaceholder extends StatelessWidget {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const AttendanceShiftView()),
+                ),
+              ),
+            ),
+          if (permissions.contains('inventory.view') || permissions.contains('inventory.adjust'))
+            Card(
+              child: ListTile(
+                leading: const CircleAvatar(child: Icon(Icons.swap_horizontal_circle_outlined)),
+                title: const Text('Inter-Branch Stock Transfers'),
+                subtitle: const Text('Request, approve, dispatch and receive stock'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const StockTransferView()),
                 ),
               ),
             ),
