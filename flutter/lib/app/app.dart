@@ -8,6 +8,7 @@ import '../services/financial_report_service.dart';
 import '../services/inventory_service.dart';
 import '../services/operations_service.dart';
 import '../services/staff_service.dart';
+import '../services/stock_transfer_service.dart';
 import '../ui/views/auth/login_view.dart';
 import '../ui/views/expenses/expense_view.dart';
 import '../ui/views/reports/financial_report_view.dart';
@@ -32,6 +33,7 @@ import '../ui/views/staff/staff_view.dart';
     LazySingleton(classType: FinancialReportService),
     LazySingleton(classType: BranchOperationsService),
     LazySingleton(classType: AttendanceShiftService),
+    LazySingleton(classType: StockTransferService),
   ],
 )
 class App {}
