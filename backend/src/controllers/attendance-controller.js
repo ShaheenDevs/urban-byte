@@ -22,7 +22,7 @@ module.exports = {
       .then((data) => success(res, data, 'Current attendance loaded.')).catch(next);
   },
   list(req, res, next) {
-    service.list(restaurantId(req), req.query)
+    service.list(restaurantId(req), req.query, req.user || req.auth)
       .then((data) => success(res, data, 'Attendance history loaded.')).catch(next);
   },
 };
