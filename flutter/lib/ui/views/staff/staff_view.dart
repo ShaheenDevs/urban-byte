@@ -57,16 +57,134 @@ class StaffView extends StackedView<StaffViewModel> {
                                       subtitle: Text(
                                           '${user['email'] ?? user['phone'] ?? ''}\n$roles'),
                                       isThreeLine: true,
-                                      trailing: Icon(
-                                          user['isActive'] == true
-                                              ? Icons.check_circle
-                                              : Icons.block,
-                                          color: user['isActive'] == true
-                                              ? Colors.green
-                                              : Colors.grey));
+                                      trailing: PopupMenuButton<String>(
+                                        tooltip: 'Staff actions',
+                                        onSelected: (action) async {
+                                          if (action == 'edit') {
+                                            await _showEdit(context, model, user);
+                                          } else if (action == 'toggle') {
+                                            await model.setActive(user, user['isActive'] != true);
+                                          }
+                                        },
+                                        itemBuilder: (_) => [
+                                          const PopupMenuItem(value: 'edit', child: ListTile(
+                                            leading: Icon(Icons.edit_outlined), title: Text('Edit staff'), dense: true)),
+                                          PopupMenuItem(value: 'toggle', child: ListTile(
+                                            leading: Icon(user['isActive'] == true ? Icons.block : Icons.check_circle_outline),
+                                            title: Text(user['isActive'] == true ? 'Deactivate' : 'Activate'), dense: true)),
+                                        ],
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(8),
+                                          child: Icon(
+                                            user['isActive'] == true ? Icons.check_circle : Icons.block,
+                                            color: user['isActive'] == true ? Colors.green : Colors.grey,
+                                          ),
+                                        ),
+                                      ));
                                 }))),
       ]),
     );
+  }
+
+  Future<void> _showEdit(
+      BuildContext context, StaffViewModel model, Map<String, dynamic> user) async {
+    final form = GlobalKey<FormState>();
+    final name = TextEditingController(text: user['name']?.toString() ?? '');
+    final contact = TextEditingController(
+      text: (user['email'] ?? user['phone'] ?? '').toString(),
+    );
+    final password = TextEditingController();
+    final roles = await model.loadRoles();
+    if (!context.mounted) return;
+    final selected = <int>{};
+    for (final role in (user['roles'] as List? ?? const [])) {
+      final roleId = int.tryParse((role as Map)['id'].toString());
+      if (roleId != null) selected.add(roleId);
+    }
+    bool active = user['isActive'] == true;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text('Edit ${user['name'] ?? 'staff member'}'),
+          content: SizedBox(
+            width: 420,
+            child: SingleChildScrollView(
+              child: Form(
+                key: form,
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  TextFormField(
+                    controller: name,
+                    decoration: const InputDecoration(labelText: 'Full name'),
+                    validator: (v) => v == null || v.trim().length < 2 ? 'Enter a valid name' : null,
+                  ),
+                  TextFormField(
+                    controller: contact,
+                    decoration: const InputDecoration(labelText: 'Email or phone'),
+                    validator: (v) => v == null || v.trim().isEmpty ? 'Email or phone required' : null,
+                  ),
+                  TextFormField(
+                    controller: password,
+                    obscureText: true,
+                    decoration: const InputDecoration(labelText: 'New password (leave blank to keep current)'),
+                    validator: (v) => v != null && v.isNotEmpty && v.length < 12 ? 'Minimum 12 characters' : null,
+                  ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Account active'),
+                    value: active,
+                    onChanged: (value) => setState(() => active = value),
+                  ),
+                  const Align(alignment: Alignment.centerLeft, child: Text('Roles')),
+                  ...roles.map((role) {
+                    final id = int.tryParse(role['id'].toString());
+                    if (id == null) return const SizedBox.shrink();
+                    return CheckboxListTile(
+                      value: selected.contains(id),
+                      title: Text(role['name'] ?? role['slug'] ?? 'Role'),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      onChanged: (value) => setState(() {
+                        if (value == true) {
+                          selected.add(id);
+                        } else {
+                          selected.remove(id);
+                        }
+                      }),
+                    );
+                  }),
+                ]),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () {
+                if (form.currentState!.validate() && selected.isNotEmpty) {
+                  Navigator.pop(dialogContext, true);
+                }
+              },
+              child: const Text('Save changes'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!context.mounted) return;
+    if (confirmed == true) {
+      await model.update(
+        user,
+        name.text,
+        contact.text,
+        selected.toList(),
+        active,
+        password.text,
+      );
+    }
+    name.dispose();
+    contact.dispose();
+    password.dispose();
   }
 
   Future<void> _showAdd(BuildContext context, StaffViewModel model) async {
@@ -204,6 +322,47 @@ class StaffViewModel extends BaseViewModel {
       notifyListeners();
       return [];
     }
+  }
+
+  Future<void> update(
+    Map<String, dynamic> user,
+    String name,
+    String contact,
+    List<int> roles,
+    bool active,
+    String password,
+  ) async {
+    setBusy(true);
+    errorMessage = null;
+    try {
+      await _service.updateStaff(
+        id: user['id'].toString(),
+        name: name,
+        contact: contact,
+        roleIds: roles,
+        isActive: active,
+        password: password.trim().isEmpty ? null : password,
+      );
+      await load();
+    } catch (e) {
+      errorMessage = e.toString();
+    }
+    setBusy(false);
+    notifyListeners();
+  }
+
+  Future<void> setActive(Map<String, dynamic> user, bool active) async {
+    await update(
+      user,
+      user['name']?.toString() ?? '',
+      (user['email'] ?? user['phone'] ?? '').toString(),
+      (user['roles'] as List? ?? const [])
+          .map((role) => int.tryParse((role as Map)['id'].toString()))
+          .whereType<int>()
+          .toList(),
+      active,
+      '',
+    );
   }
 
   Future<void> create(
