@@ -28,10 +28,19 @@ function parsePeriod(query = {}) {
     const error = new Error('Provide a valid date range using YYYY-MM-DD; start must not be after end.');
     error.statusCode = 400; error.code = 'INVALID_DATE_RANGE'; throw error;
   }
+  const validTime = (value) => typeof value === 'string' && /^\\d{2}:\\d{2}$/.test(value) && Number(value.slice(0,2)) < 24 && Number(value.slice(3,5)) < 60;
+  const startTime = query.startTime || null;
+  const endTime = query.endTime || null;
+  if ((startTime && !validTime(startTime)) || (endTime && !validTime(endTime)) || (!!startTime !== !!endTime)) {
+    const error = new Error('Provide both startTime and endTime using HH:mm format.');
+    error.statusCode = 400; error.code = 'INVALID_TIME_RANGE'; throw error;
+  }
   return {
-    startDate, endDate,
-    start: new Date(startDate + 'T00:00:00+05:00'),
-    end: new Date(new Date(endDate + 'T00:00:00+05:00').getTime() + 86400000),
+    startDate, endDate, startTime, endTime,
+    start: new Date(startDate + 'T' + (startTime || '00:00') + ':00+05:00'),
+    end: startTime
+      ? new Date(new Date(endDate + 'T' + endTime + ':00+05:00').getTime() + 60000)
+      : new Date(new Date(endDate + 'T00:00:00+05:00').getTime() + 86400000),
   };
 }
 
@@ -88,7 +97,7 @@ async function getDashboardSummary(restaurantId, user, branchId, query = {}) {
 
   return {
     timezone: 'Asia/Karachi',
-    period: { startDate, endDate, startsAt: start.toISOString(), endsAt: end.toISOString() },
+    period: { startDate, endDate, startTime, endTime, startsAt: start.toISOString(), endsAt: end.toISOString() },
     metrics: {
       todayOrders,
       openOrders,
