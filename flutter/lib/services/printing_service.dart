@@ -62,7 +62,8 @@ class PrintingService {
       final status = await Permission.bluetooth.request();
       if (!status.isGranted) throw const PrintingException('Allow Bluetooth permission for Urban Byte in iPhone settings.');
     }
-    await _ensureBluetoothPermission();
+    final granted = await PrintBluetoothThermal.isPermissionBluetoothGranted;
+    if (!granted) throw const PrintingException('Bluetooth permission is not granted.');
   }
 
   Future<List<Map<String, String>>> pairedBluetoothDevices() async {
