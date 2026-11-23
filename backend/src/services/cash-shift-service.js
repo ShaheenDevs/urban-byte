@@ -13,7 +13,7 @@ function assertBranch(user, branchId) {
 const { amount, dateRange } = require('./cash-shift-validation');
 async function audit(transaction, restaurantId, userId, shift, action, metadata = {}) {
   await AuditLog.create({
-    restaurantId, actorUserId: userId, entityType: 'cash_shift', entityId: String(shift.id),
+    restaurantId, branchId: shift.branchId, actorUserId: userId, entityType: 'cash_shift', entityId: String(shift.id),
     action, metadata: { branchId: shift.branchId, status: shift.status, reconciliationStatus: shift.reconciliationStatus, ...metadata },
   }, { transaction });
 }
