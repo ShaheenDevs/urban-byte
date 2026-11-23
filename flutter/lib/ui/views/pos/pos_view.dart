@@ -97,15 +97,14 @@ class _PosViewState extends State<PosView> {
     final prices = (variant['branchPrices'] as List? ?? [])
         .map((v) => Map<String, dynamic>.from(v as Map))
         .toList();
-    if (prices.isNotEmpty && prices.first['isAvailable'] == false) {
+    final branchPrice = prices.where((p) =>
+        p['branchId']?.toString() == _branchId).firstOrNull;
+    if (branchPrice != null && branchPrice['isAvailable'] == false) {
       _message('Product unavailable at this branch.');
       return;
     }
-    final price = double.tryParse((prices.isNotEmpty
-                ? prices.first['salePrice']
-                : variant['basePrice'])
-            .toString()) ??
-        0;
+    final price = double.tryParse((branchPrice?['salePrice'] ??
+                variant['basePrice']).toString()) ?? 0;
     final id = variant['id'].toString();
     setState(() {
       if (_cart.containsKey(id)) {
@@ -480,8 +479,12 @@ class _PosViewState extends State<PosView> {
             keyboardType: TextInputType.phone,
             decoration:
                 const InputDecoration(labelText: 'Customer phone (optional)')),
+        TextField(
+            controller: _discount,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(labelText: 'Discount amount (PKR)')),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          const Text('Estimated total'),
+          const Text('Subtotal preview (before tax/discount)'),
           Text('PKR ' + _total.toStringAsFixed(2),
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18))
         ]),
