@@ -31,6 +31,7 @@ class _DashboardOrdersViewState extends State<DashboardOrdersView> {
   String _period = 'Today';
   String _status = 'all';
   String _payment = 'all';
+  bool _allDates = false;
   late DateTime _start;
   late DateTime _end;
 
@@ -40,6 +41,7 @@ class _DashboardOrdersViewState extends State<DashboardOrdersView> {
     final now = DateTime.now();
     _start = DateTime.tryParse(widget.initialStartDate ?? '') ?? DateTime(now.year, now.month, now.day);
     _end = DateTime.tryParse(widget.initialEndDate ?? '') ?? DateTime(now.year, now.month, now.day);
+    _allDates = widget.statusGroup == 'open';
     _load();
   }
 
@@ -77,7 +79,7 @@ class _DashboardOrdersViewState extends State<DashboardOrdersView> {
       default:
         start = end;
     }
-    setState(() { _period = value; _start = start; _end = end; });
+    setState(() { _period = value; _start = start; _end = end; _allDates = false; });
     await _load();
   }
 
@@ -88,8 +90,8 @@ class _DashboardOrdersViewState extends State<DashboardOrdersView> {
         statusGroup: widget.statusGroup ?? (_status == 'open' || _status == 'completed' ? _status : null),
         paymentStatusGroup: widget.paymentStatusGroup ?? (_payment == 'pending' ? 'pending' : null),
         paymentStatus: widget.paymentStatus ?? (_payment == 'paid' ? 'paid' : null),
-        startDate: _date(_start),
-        endDate: _date(_end),
+        startDate: _allDates ? null : _date(_start),
+        endDate: _allDates ? null : _date(_end),
       );
     } catch (e) {
       _error = e.toString();
@@ -113,7 +115,7 @@ class _DashboardOrdersViewState extends State<DashboardOrdersView> {
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         child: Row(children: [
-          Expanded(child: Text('${_date(_start)}  →  ${_date(_end)}')),
+          Expanded(child: Text(_allDates ? 'All dates' : '${_date(_start)}  →  ${_date(_end)}')),
           if (widget.statusGroup == null)
             DropdownButton<String>(
               value: _status,
