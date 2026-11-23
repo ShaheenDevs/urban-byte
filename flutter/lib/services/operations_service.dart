@@ -92,6 +92,13 @@ class OperationsService {
         });
   }
 
+  Future<List<Map<String, dynamic>>> deliveryDrivers({String? branchId}) async {
+    final suffix = branchId == null || branchId.isEmpty
+        ? ''
+        : '?branchId=${Uri.encodeQueryComponent(branchId)}';
+    return _list(await _request('GET', '/delivery/drivers$suffix'));
+  }
+
   Future<void> assignDelivery(String orderId, String deliveryUserId) async {
     await _request('POST', '/delivery/orders/$orderId/assign',
         body: {'deliveryUserId': int.parse(deliveryUserId)});
