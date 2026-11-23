@@ -58,13 +58,14 @@ class PrintingView extends StackedView<PrintingViewModel> {
                                 ? null
                                 : () async {
                                     final ok = await vm.testPrint(p);
-                                    if (context.mounted)
+                                    if (context.mounted) {
                                       ScaffoldMessenger.of(context)
                                           .showSnackBar(SnackBar(
                                               content: Text(ok
                                                   ? 'Test print sent to network printer.'
                                                   : vm.loadingError ??
                                                       'Test print failed.')));
+                                    }
                                   },
                             icon: const Icon(Icons.print_outlined),
                           ),
@@ -137,7 +138,7 @@ class PrintingView extends StackedView<PrintingViewModel> {
                         decoration:
                             const InputDecoration(labelText: 'Branch ID')),
                     DropdownButtonFormField(
-                        value: connection,
+                        initialValue: connection,
                         decoration:
                             const InputDecoration(labelText: 'Connection'),
                         items: const [
@@ -153,7 +154,7 @@ class PrintingView extends StackedView<PrintingViewModel> {
                         onChanged: (v) =>
                             setState(() => connection = v ?? connection)),
                     DropdownButtonFormField(
-                        value: width,
+                        initialValue: width,
                         decoration:
                             const InputDecoration(labelText: 'Paper width'),
                         items: const [
@@ -162,7 +163,7 @@ class PrintingView extends StackedView<PrintingViewModel> {
                         ],
                         onChanged: (v) => setState(() => width = v ?? width)),
                     DropdownButtonFormField(
-                        value: purpose,
+                        initialValue: purpose,
                         decoration: const InputDecoration(labelText: 'Purpose'),
                         items: const [
                           DropdownMenuItem(
