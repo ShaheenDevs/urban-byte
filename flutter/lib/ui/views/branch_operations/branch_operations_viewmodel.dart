@@ -17,7 +17,7 @@ class BranchOperationsViewModel extends BaseViewModel {
 
   String get fromDate => _date(from);
   String get toDate => _date(to);
-  String _date(DateTime value) => '\${value.year.toString().padLeft(4, '0')}-\${value.month.toString().padLeft(2, '0')}-\${value.day.toString().padLeft(2, '0')}';
+  String _date(DateTime value) => '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
 
   Future<void> initialise() async {
     setBusy(true); errorMessage = '';
