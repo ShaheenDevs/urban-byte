@@ -82,8 +82,8 @@ class AttendanceShiftView extends StackedView<AttendanceShiftViewModel> {
           ]),
           const SizedBox(height: 12),
           if (checkedIn) ...[
-            Text('Branch: \${branch ?? current['branchId'] ?? '—'}'),
-            Text('Check-in: \${current['checkInAt'] ?? '—'}'),
+            Text('Branch: ${branch ?? current['branchId'] ?? '—'}'),
+            Text('Check-in: ${current['checkInAt'] ?? '—'}'),
           ] else
             const Text('Select your assigned branch and record your attendance.'),
           const SizedBox(height: 16),
@@ -125,7 +125,7 @@ class AttendanceShiftView extends StackedView<AttendanceShiftViewModel> {
             if (range != null) await model.selectRange(range.start, range.end);
           },
           icon: const Icon(Icons.date_range),
-          label: Text('\${model.fromDate} – \${model.toDate}'),
+          label: Text('${model.fromDate} – ${model.toDate}'),
         ),
         const SizedBox(height: 8),
         if (model.attendanceRows.isEmpty)
@@ -137,7 +137,7 @@ class AttendanceShiftView extends StackedView<AttendanceShiftViewModel> {
             return Card(child: ListTile(
               leading: const CircleAvatar(child: Icon(Icons.person_outline)),
               title: Text(staff?.toString() ?? 'Employee'),
-              subtitle: Text('\${branch ?? 'Branch'} · In: \${row['checkInAt'] ?? '—'}\nOut: \${row['checkOutAt'] ?? 'Still working'}'),
+              subtitle: Text('${branch ?? 'Branch'} · In: ${row['checkInAt'] ?? '—'}\nOut: ${row['checkOutAt'] ?? 'Still working'}'),
               isThreeLine: true,
             ));
           }),
@@ -159,7 +159,7 @@ class AttendanceShiftView extends StackedView<AttendanceShiftViewModel> {
             return Card(child: ListTile(
               leading: CircleAvatar(child: Icon(cancelled ? Icons.event_busy : Icons.event_available)),
               title: Text(staff?.toString() ?? 'Employee'),
-              subtitle: Text('\${shift['shiftDate']} · \${shift['startTime']} – \${shift['endTime']}\n\${branch ?? 'Branch'} · \${shift['status'] ?? 'scheduled'}'),
+              subtitle: Text('${shift['shiftDate']} · ${shift['startTime']} – ${shift['endTime']}\n${branch ?? 'Branch'} · ${shift['status'] ?? 'scheduled'}'),
               isThreeLine: true,
               trailing: cancelled ? null : PopupMenuButton<String>(
                 onSelected: (value) async {
@@ -175,7 +175,7 @@ class AttendanceShiftView extends StackedView<AttendanceShiftViewModel> {
                         ],
                       ),
                     );
-                    if (confirm == true) await model.cancelShift('\${shift['id']}');
+                    if (confirm == true) await model.cancelShift('${shift['id']}');
                   }
                 },
                 itemBuilder: (_) => const [PopupMenuItem(value: 'cancel', child: Text('Cancel shift'))],
@@ -213,14 +213,14 @@ class AttendanceShiftView extends StackedView<AttendanceShiftViewModel> {
               DropdownButtonFormField<String>(
                 value: employeeId,
                 decoration: const InputDecoration(labelText: 'Employee'),
-                items: model.staff.map((s) => DropdownMenuItem(value: '\${s['id']}', child: Text(s['name']?.toString() ?? 'Employee'))).toList(),
+                items: model.staff.map((s) => DropdownMenuItem(value: '${s['id']}', child: Text(s['name']?.toString() ?? 'Employee'))).toList(),
                 onChanged: (value) => setState(() => employeeId = value),
                 validator: (value) => value == null ? 'Select an employee' : null,
               ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Shift date'),
-                subtitle: Text('\${date.year}-\${date.month.toString().padLeft(2, '0')}-\${date.day.toString().padLeft(2, '0')}'),
+                subtitle: Text('${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}'),
                 trailing: const Icon(Icons.calendar_today),
                 onTap: () async {
                   final picked = await showDatePicker(context: context, firstDate: DateTime.now(), lastDate: DateTime.now().add(const Duration(days: 365)), initialDate: date);
@@ -260,7 +260,7 @@ class AttendanceShiftView extends StackedView<AttendanceShiftViewModel> {
       )),
     );
     if (created == true && branchId != null && employeeId != null) {
-      String timeText(TimeOfDay t) => '\${t.hour.toString().padLeft(2, '0')}:\${t.minute.toString().padLeft(2, '0')}';
+      String timeText(TimeOfDay t) => '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
       await model.createShift(
         employeeId: employeeId!,
         selectedBranch: branchId!,
