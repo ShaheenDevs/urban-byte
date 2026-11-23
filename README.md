@@ -299,3 +299,13 @@ npm run db:seed:urban-byte
 ```
 This runs only `20261122000100-seed-urban-byte-demo.js`; it does not rerun the legacy role seeder, reset the database, or delete business records. Restart the backend and tap **Check again** in Flutter. Expected starter counts are 6 menu categories, 10 products, 8 inventory items and 3 suppliers (existing records are reused).
 If this command fails, share the complete terminal output from the first error line through the stack trace, with credentials redacted. Do not run `db:migrate:undo`, drop tables, or delete rows to fix this.
+
+
+## Kitchen print groups, customer receipts and paper cutting
+- Configure kitchen print groups in Restaurant Settings. Each group selects an active Kitchen/Both printer, one or more menu categories and/or individual products, plus explicit ignored products. Ignored products take precedence over category selection.
+- When an order is placed, the backend resolves each group's selected products and generates a kitchen ticket containing only matching items. Bluetooth groups return a rendered slip for direct printing from the POS phone; network/bridge groups create queued print jobs.
+- Customer bills are not printed when an order is merely placed or payment is skipped. POS prints the bill after a full verified payment. When an existing unpaid order is later fully settled in Orders, the app prints its customer bill then.
+- Printer Test sends a dedicated dummy connection-test slip, never a real customer order.
+- Mobile Bluetooth printing sends raw ESC/POS bytes after text: feed 3 lines and full cut (`GS V 0`). The printer must have a physical auto-cutter and support that cut command; printers without a cutter cannot cut paper.
+- Dashboard metric tiles open filtered order history. History supports Today, Week, Month, Year and Custom date range with start/end times. Open orders can be viewed across all dates; pending payment history shows outstanding balances after verified payments.
+- Dashboard and order-history date/time filters use Pakistan time (UTC+05:00).
