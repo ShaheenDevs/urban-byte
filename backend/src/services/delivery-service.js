@@ -1,6 +1,6 @@
 'use strict';
 const {Op}=require('sequelize');
-const {DeliveryAssignment,Order,User,Role,OrderStatusHistory,sequelize}=require('../models');
+const {DeliveryAssignment,Order,Payment,PaymentEvent,User,Role,OrderStatusHistory,sequelize}=require('../models');
 const {validateTransition}=require('./order-lifecycle');
 function fail(message,status=400,code='DELIVERY_ERROR'){const e=new Error(message);e.statusCode=status;e.code=code;return e;}
 function id(value){const n=Number(value);if(!Number.isSafeInteger(n)||n<1)throw fail('A valid ID is required.');return n;}
@@ -44,7 +44,17 @@ async function updateStatus(restaurantId,user,assignmentId,input={}){
    if(order.paymentMethod==='cod'&&Number(assignment.codAmount)>0&&!assignment.codCollected){
     if(input.codCollected!==true)throw fail('Confirm COD collection before marking delivered.',409,'COD_NOT_COLLECTED');
     if(!user.permissions.includes('payments.cod.collect'))throw fail('You do not have permission to record COD collection.',403,'FORBIDDEN');
+    const existingPaid=Number(await Payment.sum('amount',{where:{orderId:order.id,restaurantId,status:'verified'},transaction:t})||0);
+    const codDue=Math.max(0,Number(order.grandTotal)-existingPaid);
+    if(codDue>0){
+     const payment=await Payment.create({restaurantId,branchId:order.branchId,orderId:order.id,method:'cod',status:'verified',amount:codDue.toFixed(2),recordedByUserId:user.id,verifiedByUserId:user.id,verifiedAt:now,notes:'Cash on delivery collected by assigned delivery staff.'},{transaction:t});
+     await PaymentEvent.create({paymentId:payment.id,eventType:'recorded',actorUserId:user.id,notes:'COD collected by delivery staff.'},{transaction:t});
+     await PaymentEvent.create({paymentId:payment.id,eventType:'verified',actorUserId:user.id,notes:'COD collection verified at delivery.'},{transaction:t});
+     await order.update({paymentStatus:'paid',paymentMethod:'cod'},{transaction:t});
+    }
     changes.codCollected=true;changes.codCollectedAt=now;
+   } else if(order.paymentStatus!=='paid') {
+    throw fail('Verify full payment before marking this delivery complete.',409,'PAYMENT_REQUIRED');
    }
    if(order.status==='out_for_delivery'){validateTransition('out_for_delivery','completed');await order.update({status:'completed',completedAt:now},{transaction:t});await OrderStatusHistory.create({orderId:order.id,fromStatus:'out_for_delivery',toStatus:'completed',changedByUserId:user.id,note:'Delivery completed'},{transaction:t});}
    else if(order.status!=='completed')throw fail('Order must be out for delivery before completion.',409);
