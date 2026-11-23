@@ -11,6 +11,8 @@ class DashboardOrdersView extends StatefulWidget {
     this.paymentStatus,
     this.initialStartDate,
     this.initialEndDate,
+    this.initialStartTime,
+    this.initialEndTime,
   });
   final String title;
   final String? statusGroup;
@@ -18,6 +20,8 @@ class DashboardOrdersView extends StatefulWidget {
   final String? paymentStatus;
   final String? initialStartDate;
   final String? initialEndDate;
+  final String? initialStartTime;
+  final String? initialEndTime;
 
   @override
   State<DashboardOrdersView> createState() => _DashboardOrdersViewState();
@@ -43,6 +47,9 @@ class _DashboardOrdersViewState extends State<DashboardOrdersView> {
     final now = DateTime.now();
     _start = DateTime.tryParse(widget.initialStartDate ?? '') ?? DateTime(now.year, now.month, now.day);
     _end = DateTime.tryParse(widget.initialEndDate ?? '') ?? DateTime(now.year, now.month, now.day);
+    _startTime = widget.initialStartTime;
+    _endTime = widget.initialEndTime;
+    if (_startTime != null) _period = 'Custom';
     _allDates = widget.statusGroup == 'open';
     _load();
   }
