@@ -60,12 +60,17 @@ async function current(restaurantId, userId) {
     order: [['checkInAt', 'DESC']],
   });
 }
-async function list(restaurantId, query = {}) {
+async function list(restaurantId, query = {}, actor = {}) {
   const where = { restaurantId };
+  const isAdmin = (actor.roles || []).includes('admin');
+  const allowedBranches = (actor.branchIds || []).map(Number);
   if (query.branchId) {
     const branchId = Number(query.branchId);
     if (!Number.isSafeInteger(branchId) || branchId < 1) throw fail('Invalid branchId.');
+    if (!isAdmin && !allowedBranches.includes(branchId)) throw fail('You are not assigned to this branch.', 403, 'BRANCH_FORBIDDEN');
     where.branchId = branchId;
+  } else if (!isAdmin) {
+    where.branchId = { [Op.in]: allowedBranches.length ? allowedBranches : [-1] };
   }
   if (query.userId) where.userId = Number(query.userId);
   if (query.from || query.to) {
