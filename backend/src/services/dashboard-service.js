@@ -19,7 +19,23 @@ function orderScope(user) {
   return { id: -1 };
 }
 
-async function getDashboardSummary(restaurantId, user, branchId) {
+function parsePeriod(query = {}) {
+  const valid = (value) => typeof value === 'string' && /^\\d{4}-\\d{2}-\\d{2}$/.test(value) && !Number.isNaN(Date.parse(value + 'T00:00:00+05:00'));
+  const today = new Date(Date.now() + KARACHI_OFFSET_MINUTES * 60_000).toISOString().slice(0, 10);
+  const startDate = query.startDate || today;
+  const endDate = query.endDate || today;
+  if (!valid(startDate) || !valid(endDate) || startDate > endDate) {
+    const error = new Error('Provide a valid date range using YYYY-MM-DD; start must not be after end.');
+    error.statusCode = 400; error.code = 'INVALID_DATE_RANGE'; throw error;
+  }
+  return {
+    startDate, endDate,
+    start: new Date(startDate + 'T00:00:00+05:00'),
+    end: new Date(new Date(endDate + 'T00:00:00+05:00').getTime() + 86400000),
+  };
+}
+
+async function getDashboardSummary(restaurantId, user, branchId, query = {}) {
   const scope = orderScope(user);
   const where = { restaurantId, ...scope };
   if (branchId !== undefined && branchId !== null && branchId !== '') {
@@ -40,13 +56,14 @@ async function getDashboardSummary(restaurantId, user, branchId) {
     where.branchId = id;
   }
 
-  const { start, end } = localDayBounds();
+  const { start, end, startDate, endDate } = parsePeriod(query);
   const todayWhere = { ...where, placedAt: { [Op.gte]: start, [Op.lt]: end } };
-  const [todayOrders, openOrders, completedToday, pendingPayments, paidRevenue, statusRows, recentOrders] = await Promise.all([
+  const [todayOrders, openOrders, completedToday, pendingPayments, pendingRevenue, paidRevenue, statusRows, recentOrders] = await Promise.all([
     Order.count({ where: todayWhere }),
     Order.count({ where: { ...where, status: { [Op.in]: OPEN_STATUSES } } }),
     Order.count({ where: { ...todayWhere, status: 'completed' } }),
     Order.count({ where: { ...where, paymentStatus: { [Op.in]: ['unpaid', 'pending'] } } }),
+    Order.sum('grandTotal', { where: { ...todayWhere, paymentStatus: { [Op.in]: ['unpaid','pending','partially_paid'] } } }),
     Order.sum('grandTotal', { where: { ...todayWhere, paymentStatus: 'paid' } }),
     Order.findAll({ where, attributes: ['status', [fn('COUNT', col('id')), 'count']], group: ['status'], raw: true }),
     Order.findAll({
@@ -60,12 +77,13 @@ async function getDashboardSummary(restaurantId, user, branchId) {
 
   return {
     timezone: 'Asia/Karachi',
-    period: { startsAt: start.toISOString(), endsAt: end.toISOString() },
+    period: { startDate, endDate, startsAt: start.toISOString(), endsAt: end.toISOString() },
     metrics: {
       todayOrders,
       openOrders,
       completedToday,
       pendingPayments,
+      pendingRevenue: Number(pendingRevenue || 0).toFixed(2),
       paidRevenueToday: Number(paidRevenue || 0).toFixed(2),
     },
     statusBreakdown: statusRows.map((row) => ({ status: row.status, count: Number(row.count) })),
