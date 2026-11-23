@@ -126,14 +126,19 @@ class PrintingService {
           'Could not connect to the selected Bluetooth printer. Pair it in phone settings first.');
     }
     try {
-      // ESC/POS: feed paper, then full cut (GS V 0). Printer must have a cutter installed.
-      final cutCommand = String.fromCharCodes([0x1D, 0x56, 0x00]);
-      final payload = '$text\n\n$cutCommand';
       final ok = await PrintBluetoothThermal.writeString(
-          printText: PrintTextSize(size: 1, text: payload));
+          printText: PrintTextSize(size: 1, text: text));
       if (!ok) {
         throw const PrintingException(
             'Bluetooth printer did not accept the receipt data.');
+      }
+      // Raw ESC/POS bytes: feed 3 lines, then full cut (GS V 0).
+      // The printer must physically include and support an auto-cutter.
+      final cutOk = await PrintBluetoothThermal.writeBytes(
+          [0x1B, 0x64, 0x03, 0x1D, 0x56, 0x00]);
+      if (!cutOk) {
+        throw const PrintingException(
+            'Receipt printed, but the printer rejected the paper-cut command.');
       }
     } finally {
       await PrintBluetoothThermal.disconnect;
