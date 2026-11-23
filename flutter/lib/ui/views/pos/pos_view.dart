@@ -256,7 +256,7 @@ class _PosViewState extends State<PosView> {
                             amount: paid,
                             method: method,
                             reference: reference.text,
-                            markReceived: true);
+                            markReceived: method != 'cod');
                         final verified = payment['status'] == 'verified';
                         if (dialogContext.mounted) Navigator.pop(dialogContext);
                         if (mounted) {
@@ -556,6 +556,6 @@ class _PosViewState extends State<PosView> {
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.point_of_sale),
-            label: Text(_saving ? 'Placing order...' : 'Place order'))
+            label: Text(_saving ? 'Confirming order...' : 'Confirm order'))
       ]));
 }
