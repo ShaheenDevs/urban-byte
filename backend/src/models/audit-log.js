@@ -9,3 +9,9 @@ module.exports = (sequelize, DataTypes) => sequelize.define('AuditLog', {
   metadata: { type: DataTypes.JSON, allowNull: false, defaultValue: {} },
   ipAddress: { type: DataTypes.STRING(45), allowNull: true, field: 'ip_address' },
 }, { tableName: 'audit_logs', underscored: true, updatedAt: false });
+const define = module.exports;
+module.exports = (sequelize, DataTypes) => {
+  const AuditLog = define(sequelize, DataTypes);
+  AuditLog.associate = (models) => AuditLog.belongsTo(models.User, { foreignKey: 'actorUserId', as: 'actor' });
+  return AuditLog;
+};
