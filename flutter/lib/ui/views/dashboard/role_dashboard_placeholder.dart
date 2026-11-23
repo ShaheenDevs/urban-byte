@@ -11,6 +11,7 @@ import '../pos/pos_view.dart';
 import '../payments/payment_verification_view.dart';
 import '../cash_shift/cash_shift_view.dart';
 import '../reports/financial_reports_view.dart';
+import '../branch_operations/branch_operations_view.dart';
 import '../expenses/expenses_view.dart';
 import '../suppliers/suppliers_view.dart';
 import '../purchases/purchases_view.dart';
@@ -121,6 +122,18 @@ class RoleDashboardPlaceholder extends StatelessWidget {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const ExpensesView()),
+                ),
+              ),
+            ),
+          if (permissions.contains('audit.view') || permissions.contains('inventory.analytics.view'))
+            Card(
+              child: ListTile(
+                leading: const CircleAvatar(child: Icon(Icons.account_tree_outlined)),
+                title: const Text('Multi-Branch Operations'),
+                subtitle: const Text('Purchase analytics, branch costs and audit history'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const BranchOperationsView()),
                 ),
               ),
             ),
