@@ -56,7 +56,7 @@ module.exports={
  supplierLedger:wrap((r,id)=>service.supplierLedger(id,r.user,r.params.supplierId),'Supplier ledger loaded.'),
  supplierLedgerCsv,
  supplierLedgerPdf,
- createSupplier:wrap((r,id)=>service.createSupplier(id,r.body||{}),'Supplier created.',201),
+ createSupplier:wrap((r,id)=>service.createSupplier(id,r.user,r.body||{}),'Supplier created.',201),
  listSuppliers:wrap((r,id)=>service.listSuppliers(id),'Suppliers loaded.'),
  setReorderLevel:wrap((r,id)=>service.setReorderLevel(id,r.user,r.body||{}),'Reorder threshold saved.'),
  lowStock:wrap((r,id)=>service.lowStock(id,r.query.branchId,r.user),'Low-stock items loaded.'),
