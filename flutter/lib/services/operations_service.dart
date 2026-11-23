@@ -10,7 +10,7 @@ class OperationsService {
   final http.Client _client;
   final FlutterSecureStorage _storage;
   Future<Map<String, dynamic>> dashboardSummary({String? branchId, String? startDate, String? endDate, String? startTime, String? endTime}) async {
-    final query = <String,String>{if (branchId != null && branchId.isNotEmpty) 'branchId': branchId, if (startDate != null) 'startDate': startDate, if (endDate != null) 'endDate': endDate, if (startTime != null) 'startTime': startTime, if (endTime != null) 'endTime': endTime, if (startTime != null) 'startTime': startTime, if (endTime != null) 'endTime': endTime};
+    final query = <String,String>{if (branchId != null && branchId.isNotEmpty) 'branchId': branchId, if (startDate != null) 'startDate': startDate, if (endDate != null) 'endDate': endDate, if (startTime != null) 'startTime': startTime, if (endTime != null) 'endTime': endTime};
     final suffix = query.isEmpty ? '' : '?' + Uri(queryParameters: query).query;
     final data = await _request('GET', '/dashboard/summary$suffix');
     return Map<String, dynamic>.from(data as Map);
@@ -32,7 +32,9 @@ class OperationsService {
       if (paymentStatus != null) 'paymentStatus': paymentStatus,
       if (paymentStatusGroup != null) 'paymentStatusGroup': paymentStatusGroup,
       if (startDate != null) 'startDate': startDate,
-      if (endDate != null) 'endDate': endDate
+      if (endDate != null) 'endDate': endDate,
+      if (startTime != null) 'startTime': startTime,
+      if (endTime != null) 'endTime': endTime,
     };
     final q = query.isEmpty ? '' : '?' + Uri(queryParameters: query).query;
     final data = await _request('GET', '/orders$q');
