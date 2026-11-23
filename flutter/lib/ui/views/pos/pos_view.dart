@@ -246,13 +246,13 @@ class _PosViewState extends State<PosView> {
                   ? null
                   : (v) => setDialogState(() => method = v ?? 'cash'),
             ),
-            TextField(
+            if (method != 'cod') TextField(
                 controller: amount,
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
                 decoration:
                     const InputDecoration(labelText: 'Amount received (PKR)')),
-            if (method != 'cash')
+            if (method != 'cash' && method != 'cod')
               TextField(
                   controller: reference,
                   decoration: const InputDecoration(
@@ -269,9 +269,24 @@ class _PosViewState extends State<PosView> {
                 onPressed: saving ? null : () => Navigator.pop(dialogContext),
                 child: const Text('Save order / pay later')),
             FilledButton(
-              onPressed: saving || method == 'cod'
+              onPressed: saving
                   ? null
                   : () async {
+                      if (method == 'cod') {
+                        setDialogState(() => saving = true);
+                        try {
+                          await _payments.setCashOnDelivery(orderId: orderId);
+                          if (dialogContext.mounted) Navigator.pop(dialogContext);
+                          if (mounted) _message('Cash on delivery saved. Assign a delivery rider from Delivery Management.');
+                        } catch (e) {
+                          setDialogState(() => saving = false);
+                          if (dialogContext.mounted) {
+                            ScaffoldMessenger.of(dialogContext).showSnackBar(
+                                SnackBar(content: Text(e.toString())));
+                          }
+                        }
+                        return;
+                      }
                       final paid = double.tryParse(amount.text.trim());
                       if (paid == null || paid <= 0 || paid > total) {
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -307,7 +322,7 @@ class _PosViewState extends State<PosView> {
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('Confirm received'),
+                  : Text(method == 'cod' ? 'Confirm COD order' : 'Confirm received'),
             ),
           ],
         ),
