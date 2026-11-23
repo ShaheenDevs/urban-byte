@@ -8,7 +8,6 @@ import '../services/inventory_service.dart';
 import '../services/operations_service.dart';
 import '../services/staff_service.dart';
 import '../ui/views/auth/login_view.dart';
-import '../ui/views/branch_operations/branch_operations_view.dart';
 import '../ui/views/expenses/expense_view.dart';
 import '../ui/views/reports/financial_report_view.dart';
 import '../ui/views/printing/printing_view.dart';
@@ -21,7 +20,6 @@ import '../ui/views/staff/staff_view.dart';
     MaterialRoute(page: StaffView),
     MaterialRoute(page: ExpenseView),
     MaterialRoute(page: FinancialReportView),
-    MaterialRoute(page: BranchOperationsView),
   ],
   dependencies: [
     LazySingleton(classType: NavigationService),
