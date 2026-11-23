@@ -324,9 +324,15 @@ class _DashboardSummaryPanelState extends State<DashboardSummaryPanel> {
       startTime = '${from.hour.toString().padLeft(2,'0')}:${from.minute.toString().padLeft(2,'0')}';
       endTime = '${to.hour.toString().padLeft(2,'0')}:${to.minute.toString().padLeft(2,'0')}';
     }
-    if (start == end && startTime != null && startTime >= endTime!) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('End time must be after start time.')));
-      return;
+    if (start == end && startTime != null && endTime != null) {
+      final startParts = startTime.split(':');
+      final endParts = endTime.split(':');
+      final startMinutes = int.parse(startParts[0]) * 60 + int.parse(startParts[1]);
+      final endMinutes = int.parse(endParts[0]) * 60 + int.parse(endParts[1]);
+      if (startMinutes >= endMinutes) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('End time must be after start time.')));
+        return;
+      }
     }
     setState(() { _period = value; _start = start; _end = end; _startTime = startTime; _endTime = endTime; });
     await _load();

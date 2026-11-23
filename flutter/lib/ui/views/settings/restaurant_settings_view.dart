@@ -203,7 +203,7 @@ class _RestaurantSettingsViewState extends State<RestaurantSettingsView> {
             leading: const Icon(Icons.kitchen_outlined),
             title: Text(g['name']?.toString() ?? 'Kitchen group'),
             subtitle: Text('${selectedPrinter.isEmpty ? 'Printer not selected' : selectedPrinter.first['name']} • $categories categories • $products products • $ignored ignored'),
-            trailing: Wrap(mainAxisSize: MainAxisSize.min, children: [
+            trailing: Wrap( children: [
               IconButton(onPressed: _saving ? null : () => _editKitchenGroup(existing: g), icon: const Icon(Icons.edit_outlined)),
               IconButton(onPressed: _saving ? null : () => setState(() => _kitchenGroups.removeWhere((x) => x['id'] == g['id'])), icon: const Icon(Icons.delete_outline)),
             ]),
