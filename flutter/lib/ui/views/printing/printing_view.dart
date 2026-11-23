@@ -128,6 +128,19 @@ class PrintingView extends StackedView<PrintingViewModel> {
     List<Map<String,String>> paired = [];
     bool scanning = false;
     String? scanError;
+    if (connection == 'bluetooth') {
+      try {
+        paired = await vm.pairedBluetoothDevices();
+        if (paired.any((d) => d['mac'] == selectedMac)) {
+          selectedMac = device.text;
+        } else if (!editing && paired.length == 1) {
+          selectedMac = paired.first['mac'];
+          device.text = selectedMac ?? '';
+        }
+      } catch (e) {
+        scanError = e.toString();
+      }
+    }
     Future<void> scan(StateSetter setDialogState) async {
       setDialogState(() { scanning = true; scanError = null; });
       try {
