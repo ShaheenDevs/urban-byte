@@ -4,11 +4,13 @@ const {DeliveryAssignment,Order,Payment,PaymentEvent,User,Role,OrderStatusHistor
 const {validateTransition}=require('./order-lifecycle');
 function fail(message,status=400,code='DELIVERY_ERROR'){const e=new Error(message);e.statusCode=status;e.code=code;return e;}
 function id(value){const n=Number(value);if(!Number.isSafeInteger(n)||n<1)throw fail('A valid ID is required.');return n;}
+function assertBranch(user,branchId){if((user.roles||[]).includes('admin'))return;const allowed=(user.branchIds||[]).map(Number);if(!allowed.includes(Number(branchId)))throw fail('You are not assigned to this branch.',403,'BRANCH_FORBIDDEN');}
 async function assign(restaurantId,actor,orderId,input={}){
  const targetId=id(input.deliveryUserId);
  return sequelize.transaction(async t=>{
   const order=await Order.findOne({where:{id:id(orderId),restaurantId,orderType:'delivery'},transaction:t,lock:t.LOCK.UPDATE});
   if(!order)throw fail('Delivery order not found.',404,'ORDER_NOT_FOUND');
+  assertBranch(actor,order.branchId);
   if(!['placed','confirmed','ready'].includes(order.status))throw fail('Order is not eligible for delivery assignment.',409);
   const driver=await User.findOne({where:{id:targetId,restaurantId,isActive:true},include:[{model:Role,as:'roles',where:{slug:'delivery'},through:{attributes:[]},required:true}],transaction:t});
   if(!driver)throw fail('Active delivery staff member not found.',404,'DELIVERY_USER_NOT_FOUND');
@@ -22,9 +24,10 @@ async function assign(restaurantId,actor,orderId,input={}){
 async function list(restaurantId,user,filters={}){
  const where={restaurantId};
  if(!user.permissions.includes('delivery.assignments.view_all'))where.deliveryUserId=id(user.id);
- if(filters.branchId)where.branchId=id(filters.branchId);
+ if(filters.branchId){const branchId=id(filters.branchId);assertBranch(user,branchId);where.branchId=branchId;}
+ else if(!(user.roles||[]).includes('admin'))where.branchId={[Op.in]:(user.branchIds||[]).map(Number).filter(n=>Number.isSafeInteger(n)&&n>0).length?(user.branchIds||[]).map(Number):[-1]};
  if(filters.status){if(!['assigned','picked_up','out_for_delivery','delivered','cancelled'].includes(filters.status))throw fail('Invalid delivery status.');where.status=filters.status;}
- return DeliveryAssignment.findAll({where,include:[{model:Order,as:'order',attributes:['id','orderNumber','orderType','customerName','customerPhone','deliveryAddress','grandTotal','paymentMethod','paymentStatus','status','notes']}],order:[['assignedAt','DESC']],limit:Math.min(Math.max(Number(filters.limit)||50,1),100)});
+ return DeliveryAssignment.findAll({where,include:[{model:Order,as:'order',attributes:['id','orderNumber','orderType','customerName','customerPhone','deliveryAddress','grandTotal','paymentMethod','paymentStatus','status','notes']},{model:User,as:'deliveryUser',attributes:['id','name','phone']}],order:[['assignedAt','DESC']],limit:Math.min(Math.max(Number(filters.limit)||50,1),100)});
 }
 async function updateStatus(restaurantId,user,assignmentId,input={}){
  const next=input.status;
@@ -34,6 +37,7 @@ async function updateStatus(restaurantId,user,assignmentId,input={}){
   if(!user.permissions.includes('delivery.assignments.view_all'))where.deliveryUserId=id(user.id);
   const assignment=await DeliveryAssignment.findOne({where,transaction:t,lock:t.LOCK.UPDATE});
   if(!assignment)throw fail('Delivery assignment not found.',404,'ASSIGNMENT_NOT_FOUND');
+  assertBranch(user,assignment.branchId);
   const order=await Order.findOne({where:{id:assignment.orderId,restaurantId},transaction:t,lock:t.LOCK.UPDATE});
   if(!order)throw fail('Order not found.',404,'ORDER_NOT_FOUND');
   const now=new Date(),changes={status:next};
