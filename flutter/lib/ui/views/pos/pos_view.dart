@@ -148,7 +148,7 @@ class _PosViewState extends State<PosView> {
       final result = await _ops.createOrder(
         branchId: _branchId!,
         orderType: _type,
-        tableLabel: _type == 'dine_in' ? _tableId : null,
+        tableLabel: _type == 'dine_in' ? (_tables.firstWhere((t) => t['id'].toString() == _tableId)['name']?.toString()) : null,
         deliveryAddress: _type == 'delivery' ? _address.text.trim() : null,
         customerName:
             _customer.text.trim().isEmpty ? null : _customer.text.trim(),
@@ -173,6 +173,7 @@ class _PosViewState extends State<PosView> {
           _total;
       if (orderId != null) {
         await _checkoutDialog(orderId, orderNumber, total);
+        await _printBluetoothReceipt(result);
       } else {
         _message('Order created: $orderNumber');
       }
@@ -284,13 +285,39 @@ class _PosViewState extends State<PosView> {
     amount.dispose();
     reference.dispose();
     if (!mounted) return;
+    // Bluetooth receipts are printed directly from this mobile device after checkout.
+  }
+
+  Future<void> _printBluetoothReceipt(Map<String,dynamic> order) async {
     try {
-      await _printing.enqueueReceipt(orderId);
-      if (mounted)
-        _message(
-            'Receipt added to print queue. Physical printing requires a configured printer bridge.');
-    } catch (_) {
-      // Printing is optional; order and payment remain saved.
+      final printers = await _printing.printers(branchId: _branchId);
+      final candidates = printers.where((p) => p['connectionType'] == 'bluetooth' && p['isActive'] != false && (p['purpose'] == 'receipt' || p['purpose'] == 'both')).toList();
+      if (candidates.isEmpty) return;
+      final printer = candidates.first;
+      final items = (order['items'] as List? ?? []);
+      final lines = <String>[
+        'URBAN BYTE',
+        'ORDER RECEIPT',
+        'Order: ${order['orderNumber'] ?? order['id'] ?? ''}',
+        if (order['tableLabel'] != null) 'Table: ${order['tableLabel']}',
+        'Date: ${DateTime.now().toLocal()}',
+        '--------------------------------',
+        ...items.map((item) => '${item['quantity']} x ${item['productName']} ${item['variantName'] ?? ''}  PKR ${item['lineTotal'] ?? ''}'),
+        '--------------------------------',
+        'Subtotal: PKR ${order['subtotal'] ?? ''}',
+        'Discount: PKR ${order['discountAmount'] ?? 0}',
+        'Tax: PKR ${order['taxAmount'] ?? 0}',
+        'TOTAL: PKR ${order['grandTotal'] ?? ''}',
+        'Payment: ${order['paymentStatus'] ?? 'unpaid'}',
+        '',
+        'Thank you for visiting Urban Byte!',
+        '',
+        '',
+      ];
+      await _printing.printBluetoothText(printer['deviceIdentifier'].toString(), lines.join('\\n'));
+      if (mounted) _message('Receipt printed on mobile Bluetooth printer.');
+    } catch (e) {
+      if (mounted) _message('Order saved, but Bluetooth receipt failed: $e');
     }
   }
 
