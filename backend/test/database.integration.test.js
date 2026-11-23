@@ -18,6 +18,10 @@ test('MySQL migrations, seeded RBAC and Sequelize models are usable',{skip:!enab
   const orderColumns=await sequelize.getQueryInterface().describeTable('orders');
   assert.ok(orderColumns.grand_total,'orders.grand_total should exist');
   assert.ok(orderColumns.service_charge_amount,'orders.service_charge_amount should exist');
+  const [userBranchTables] = await sequelize.query("SHOW TABLES LIKE 'user_branches'");
+  const [auditTables] = await sequelize.query("SHOW TABLES LIKE 'audit_logs'");
+  assert.equal(userBranchTables.length, 1, 'user_branches should exist');
+  assert.equal(auditTables.length, 1, 'audit_logs should exist');
   assert.ok(orderColumns.idempotency_key,'orders.idempotency_key should exist');
   assert.ok(orderColumns.inventory_deducted_at,'orders.inventory_deducted_at should exist');
   const branchColumns=await sequelize.getQueryInterface().describeTable('branches');
