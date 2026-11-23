@@ -41,9 +41,10 @@ class ExpenseService {
   }
 
   Future<List<Map<String, dynamic>>> getExpenses(
-      {String status = 'all', String? from, String? to}) async {
+      {String status = 'all', String? branchId, String? from, String? to}) async {
     final query = <String, String>{
       if (status != 'all') 'status': status,
+      if (branchId != null && branchId.isNotEmpty) 'branchId': branchId,
       if (from != null && from.isNotEmpty) 'from': from,
       if (to != null && to.isNotEmpty) 'to': to,
       'limit': '100'
@@ -85,10 +86,16 @@ class ExpenseService {
         headers: await _headers, body: jsonEncode({'reason': reason})));
   }
 
-  Future<Map<String, dynamic>> getSummary() async {
-    final data = _decode(await _client.get(
-        Uri.parse('$apiBaseUrl/expenses/reports/summary'),
-        headers: await _headers));
+  Future<Map<String, dynamic>> getSummary(
+      {String? branchId, String? from, String? to}) async {
+    final query = <String, String>{
+      if (branchId != null && branchId.isNotEmpty) 'branchId': branchId,
+      if (from != null && from.isNotEmpty) 'from': from,
+      if (to != null && to.isNotEmpty) 'to': to,
+    };
+    final uri = Uri.parse('$apiBaseUrl/expenses/reports/summary')
+        .replace(queryParameters: query);
+    final data = _decode(await _client.get(uri, headers: await _headers));
     return data is Map
         ? Map<String, dynamic>.from(data)
         : {'total': 0, 'byPaymentMethod': []};
