@@ -12,11 +12,14 @@ async function assign(restaurantId,actor,orderId,input={}){
   if(!order)throw fail('Delivery order not found.',404,'ORDER_NOT_FOUND');
   assertBranch(actor,order.branchId);
   if(!['placed','confirmed','ready'].includes(order.status))throw fail('Order is not eligible for delivery assignment.',409);
+  const isWaiter=(actor.roles||[]).includes('waiter')&&!(actor.roles||[]).includes('admin')&&!(actor.roles||[]).includes('supervisor');
+  if(isWaiter&&Number(order.createdByUserId)!==Number(actor.id))throw fail('Waiters can only assign delivery riders to their own orders.',403,'DELIVERY_ASSIGNMENT_FORBIDDEN');
   const driver=await User.findOne({where:{id:targetId,restaurantId,isActive:true},include:[{model:Role,as:'roles',where:{slug:'delivery'},through:{attributes:[]},required:true}],transaction:t});
   if(!driver)throw fail('Active delivery staff member not found.',404,'DELIVERY_USER_NOT_FOUND');
   const branchMembership=await UserBranch.findOne({where:{userId:driver.id,branchId:order.branchId},transaction:t});
   if(!branchMembership)throw fail('Selected delivery staff member is not assigned to this order branch.',403,'DELIVERY_DRIVER_BRANCH_MISMATCH');
   let assignment=await DeliveryAssignment.findOne({where:{restaurantId,orderId:order.id},transaction:t,lock:t.LOCK.UPDATE});
+  if(isWaiter&&assignment)throw fail('Waiters cannot reassign an order that already has a delivery rider.',403,'DELIVERY_REASSIGNMENT_FORBIDDEN');
   const now=new Date();
   if(assignment){if(['delivered','cancelled'].includes(assignment.status))throw fail('This delivery assignment is already closed.',409);await assignment.update({deliveryUserId:driver.id,assignedByUserId:actor.id,status:'assigned',assignedAt:now,pickedUpAt:null,outForDeliveryAt:null,deliveredAt:null},{transaction:t});}
   else assignment=await DeliveryAssignment.create({restaurantId,branchId:order.branchId,orderId:order.id,deliveryUserId:driver.id,assignedByUserId:actor.id,status:'assigned',assignedAt:now,codAmount:order.paymentMethod==='cod'?order.grandTotal:0},{transaction:t});
