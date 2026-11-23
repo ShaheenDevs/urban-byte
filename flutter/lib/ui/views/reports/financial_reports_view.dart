@@ -349,6 +349,7 @@ class _FinancialReportsViewState extends State<FinancialReportsView> {
     final expenses =
         Map<String, dynamic>.from(f['approvedExpenses'] as Map? ?? {});
     final purchases = Map<String, dynamic>.from(f['purchases'] as Map? ?? {});
+    final supplierPayments = Map<String, dynamic>.from(f['supplierPayments'] as Map? ?? {});
     final cash = Map<String, dynamic>.from(f['cashFlow'] as Map? ?? {});
     final profit = Map<String, dynamic>.from(f['profitability'] as Map? ?? {});
     final rows = <List<String>>[
