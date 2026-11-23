@@ -458,15 +458,7 @@ class _KitchenState extends State<_Kitchen> {
     super.dispose();
   }
 
-  String _elapsed(dynamic placedAt) {
-    final started = DateTime.tryParse('${placedAt ?? ''}')?.toLocal();
-    if (started == null) return 'Time unavailable';
-    final duration = DateTime.now().difference(started);
-    final minutes = duration.inMinutes;
-    return minutes < 60
-        ? '${minutes}m ${duration.inSeconds % 60}s'
-        : '${duration.inHours}h ${minutes % 60}m';
-  }
+
 
   @override
   Widget build(BuildContext context) {
