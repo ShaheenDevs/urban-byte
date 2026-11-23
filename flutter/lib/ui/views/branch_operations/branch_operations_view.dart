@@ -16,7 +16,7 @@ class BranchOperationsView extends StackedView<BranchOperationsViewModel> {
   void onViewModelReady(BranchOperationsViewModel model) => model.initialise();
 
   String _money(dynamic value) =>
-      'PKR \${(double.tryParse(value?.toString() ?? '') ?? 0).toStringAsFixed(2)}';
+      'PKR ${(double.tryParse(value?.toString() ?? '') ?? 0).toStringAsFixed(2)}';
 
   @override
   Widget builder(BuildContext context, BranchOperationsViewModel model, Widget? child) {
@@ -53,7 +53,7 @@ class BranchOperationsView extends StackedView<BranchOperationsViewModel> {
                       if (range != null) await model.selectRange(range.start, range.end);
                     },
                     icon: const Icon(Icons.date_range),
-                    label: Text('\${model.fromDate} → \${model.toDate}'),
+                    label: Text('${model.fromDate} → ${model.toDate}'),
                   )),
                 ]),
                 if (model.errorMessage.isNotEmpty)
@@ -66,14 +66,14 @@ class BranchOperationsView extends StackedView<BranchOperationsViewModel> {
                   _metric(context, 'Received purchases', _money(summary['receivedPurchaseTotal'])),
                   _metric(context, 'Paid amount', _money(summary['paidForSelectedPurchases'])),
                   _metric(context, 'Outstanding', _money(summary['outstandingForSelectedPurchases'])),
-                  _metric(context, 'Purchase count', '\${summary['purchaseCount'] ?? 0}'),
+                  _metric(context, 'Purchase count', '${summary['purchaseCount'] ?? 0}'),
                 ]),
                 const SizedBox(height: 18),
                 Text('Purchases by branch', style: Theme.of(context).textTheme.titleMedium),
                 if (branchRows.isEmpty) const ListTile(title: Text('No received purchases in this period.')),
                 ...branchRows.map((row) => Card(child: ListTile(
                   title: Text(row['branchName']?.toString() ?? 'Branch'),
-                  subtitle: Text('Purchases: \${row['purchaseCount'] ?? 0} · Paid: \${_money(row['paid'])} · Due: \${_money(row['outstanding'])}'),
+                  subtitle: Text('Purchases: ${row['purchaseCount'] ?? 0} · Paid: ${_money(row['paid'])} · Due: ${_money(row['outstanding'])}'),
                   trailing: Text(_money(row['total']), style: const TextStyle(fontWeight: FontWeight.bold)),
                 ))),
                 const SizedBox(height: 16),
@@ -81,7 +81,7 @@ class BranchOperationsView extends StackedView<BranchOperationsViewModel> {
                 if (supplierRows.isEmpty) const ListTile(title: Text('No supplier purchases found.')),
                 ...supplierRows.map((row) => Card(child: ListTile(
                   title: Text(row['supplierName']?.toString() ?? 'Supplier'),
-                  subtitle: Text('Paid: \${_money(row['paid'])} · Purchases: \${row['purchaseCount'] ?? 0}'),
+                  subtitle: Text('Paid: ${_money(row['paid'])} · Purchases: ${row['purchaseCount'] ?? 0}'),
                   trailing: Text(_money(row['outstanding'])),
                 ))),
                 const SizedBox(height: 16),
@@ -89,10 +89,10 @@ class BranchOperationsView extends StackedView<BranchOperationsViewModel> {
                 if (itemRows.isEmpty) const ListTile(title: Text('No item cost comparison available.')),
                 ...itemRows.map((row) => Card(child: ListTile(
                   title: Text(row['itemName']?.toString() ?? 'Inventory item'),
-                  subtitle: Text('\${row['branchName'] ?? 'Branch'} · Qty: \${row['quantity'] ?? 0} \${row['unit'] ?? ''}'),
+                  subtitle: Text('${row['branchName'] ?? 'Branch'} · Qty: ${row['quantity'] ?? 0} ${row['unit'] ?? ''}'),
                   trailing: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [
                     Text(_money(row['totalCost'])),
-                    Text('Unit: \${_money(row['averageUnitCost'])}', style: Theme.of(context).textTheme.bodySmall),
+                    Text('Unit: ${_money(row['averageUnitCost'])}', style: Theme.of(context).textTheme.bodySmall),
                   ]),
                 ))),
                 const Divider(height: 32),
@@ -105,7 +105,7 @@ class BranchOperationsView extends StackedView<BranchOperationsViewModel> {
                   return Card(child: ExpansionTile(
                     leading: const Icon(Icons.history),
                     title: Text(event['action']?.toString() ?? 'Operation'),
-                    subtitle: Text('\${event['entityType'] ?? 'Record'} #\${event['entityId'] ?? ''} · \${actor ?? 'System'} · \${event['createdAt'] ?? ''}'),
+                    subtitle: Text('${event['entityType'] ?? 'Record'} #${event['entityId'] ?? ''} · ${actor ?? 'System'} · ${event['createdAt'] ?? ''}'),
                     children: [
                       if (before != null) ListTile(title: const Text('Before'), subtitle: Text(before.toString())),
                       if (after != null) ListTile(title: const Text('After'), subtitle: Text(after.toString())),
