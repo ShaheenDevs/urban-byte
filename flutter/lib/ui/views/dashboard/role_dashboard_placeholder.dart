@@ -7,6 +7,7 @@ import '../orders/restaurant_operations_view.dart';
 import '../ai/ai_agent_view.dart';
 import '../printing/printing_view.dart';
 import '../delivery/delivery_view.dart';
+import '../staff/staff_view.dart';
 import '../pos/pos_view.dart';
 import '../payments/payment_verification_view.dart';
 import '../cash_shift/cash_shift_view.dart';
@@ -137,6 +138,18 @@ class RoleDashboardPlaceholder extends StatelessWidget {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const ExpensesView()),
+                ),
+              ),
+            ),
+          if (permissions.contains('staff.manage'))
+            Card(
+              child: ListTile(
+                leading: const CircleAvatar(child: Icon(Icons.people_alt_outlined)),
+                title: const Text('Staff Management'),
+                subtitle: const Text('Create employee accounts, assign roles and branches, and manage access'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const StaffView()),
                 ),
               ),
             ),
