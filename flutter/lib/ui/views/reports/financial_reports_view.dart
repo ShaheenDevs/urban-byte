@@ -286,7 +286,7 @@ class _FinancialReportsViewState extends State<FinancialReportsView> {
                                       subtitle: Text('Orders: ${b['orders'] ?? 0} · Revenue: ${_money(b['revenue'])} · COGS: ${_money(b['estimatedCogs'])}'),
                                       trailing: Text(b['grossProfit'] == null
                                           ? 'COGS incomplete'
-                                          : _money(b['grossProfit'])))),
+                                          : _money(b['grossProfit']))))),
                               Text('Product profitability',
                                   style: Theme.of(context).textTheme.titleLarge),
                               if (productProfitability.isEmpty)
