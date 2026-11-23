@@ -1,6 +1,6 @@
 'use strict';
 const { Op, fn, col } = require('sequelize');
-const { Order, Branch } = require('../models');
+const { Order, Branch, Payment } = require('../models');
 
 const OPEN_STATUSES = ['placed', 'confirmed', 'preparing', 'ready', 'out_for_delivery'];
 const KARACHI_OFFSET_MINUTES = 300;
@@ -58,12 +58,11 @@ async function getDashboardSummary(restaurantId, user, branchId, query = {}) {
 
   const { start, end, startDate, endDate } = parsePeriod(query);
   const todayWhere = { ...where, placedAt: { [Op.gte]: start, [Op.lt]: end } };
-  const [todayOrders, openOrders, completedToday, pendingPayments, pendingRevenue, paidRevenue, statusRows, recentOrders] = await Promise.all([
+  const [todayOrders, openOrders, completedToday, pendingPayments, paidRevenue, statusRows, recentOrders] = await Promise.all([
     Order.count({ where: todayWhere }),
     Order.count({ where: { ...where, status: { [Op.in]: OPEN_STATUSES } } }),
     Order.count({ where: { ...todayWhere, status: 'completed' } }),
     Order.count({ where: { ...where, paymentStatus: { [Op.in]: ['unpaid', 'pending'] } } }),
-    Order.sum('grandTotal', { where: { ...todayWhere, paymentStatus: { [Op.in]: ['unpaid','pending','partially_paid'] } } }),
     Order.sum('grandTotal', { where: { ...todayWhere, paymentStatus: 'paid' } }),
     Order.findAll({ where, attributes: ['status', [fn('COUNT', col('id')), 'count']], group: ['status'], raw: true }),
     Order.findAll({
@@ -74,6 +73,18 @@ async function getDashboardSummary(restaurantId, user, branchId, query = {}) {
       raw: true,
     }),
   ]);
+
+
+  const pendingOrders = await Order.findAll({
+    where: { ...todayWhere, paymentStatus: { [Op.in]: ['unpaid', 'pending', 'partially_paid'] } },
+    attributes: ['id', 'grandTotal'],
+    include: [{ model: Payment, as: 'payments', attributes: ['amount', 'status'], required: false }],
+  });
+  const pendingRevenue = pendingOrders.reduce((sum, order) => {
+    const verified = (order.payments || []).filter((payment) => payment.status === 'verified')
+      .reduce((paid, payment) => paid + Number(payment.amount || 0), 0);
+    return sum + Math.max(0, Number(order.grandTotal || 0) - verified);
+  }, 0);
 
   return {
     timezone: 'Asia/Karachi',
