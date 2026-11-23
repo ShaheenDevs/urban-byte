@@ -13,10 +13,13 @@ function localDayBounds(now = new Date()) {
 
 function orderScope(user) {
   const permissions = new Set(user.permissions || []);
-  if (permissions.has('orders.view_all')) return {};
-  if (permissions.has('kitchen.orders.view')) return { status: { [Op.in]: ['confirmed', 'preparing', 'ready'] } };
-  if (permissions.has('orders.view_own')) return { createdByUserId: Number(user.id) };
-  return { id: -1 };
+  const admin = (user.roles || []).includes('admin');
+  const assigned = (user.branchIds || []).map(Number).filter((id) => Number.isSafeInteger(id) && id > 0);
+  const branchScope = admin ? {} : { branchId: { [Op.in]: assigned.length ? assigned : [-1] } };
+  if (permissions.has('orders.view_all')) return branchScope;
+  if (permissions.has('kitchen.orders.view')) return { ...branchScope, status: { [Op.in]: ['confirmed', 'preparing', 'ready'] } };
+  if (permissions.has('orders.view_own')) return { ...branchScope, createdByUserId: Number(user.id) };
+  return { ...branchScope, id: -1 };
 }
 
 function parsePeriod(query = {}) {
@@ -65,6 +68,9 @@ async function getDashboardSummary(restaurantId, user, branchId, query = {}) {
       error.statusCode = 404;
       error.code = 'BRANCH_NOT_FOUND';
       throw error;
+    }
+    if (!((user.roles || []).includes('admin')) && !(user.branchIds || []).map(Number).includes(id)) {
+      const error = new Error('You are not assigned to this branch.'); error.statusCode = 403; error.code = 'BRANCH_FORBIDDEN'; throw error;
     }
     where.branchId = id;
   }
