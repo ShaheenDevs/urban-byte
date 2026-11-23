@@ -175,6 +175,17 @@ Customer records, verified payment workflow, delivery workflow, thermal printing
 - Only approved expenses are included in the expense summary. Expense records are not automatically posted as cash-shift movements, preventing double-counting; cash reconciliation integration remains a separate accounting task.
 
 
+## Staff administration controls
+- Flutter Staff Management supports search, add, edit, role reassignment, optional password reset, and activate/deactivate actions.
+- Creating staff requires an explicit Create confirmation; cancelling the dialog does not submit the form.
+- Updates use the restaurant-scoped `PATCH /api/v1/staff/:userId` endpoint. The API restricts assignable roles to operational staff roles and prevents users from deactivating their own account.
+- Branch membership, audit history, and individual permission override UI are still planned.
+
+## Payment integrity and COD delivery
+- Payment collection locks the order row inside its database transaction before checking the remaining balance, preventing concurrent POS payments from exceeding the order total.
+- Delivery completion for COD orders requires an explicit collection confirmation and `payments.cod.collect` permission. The backend records a verified COD payment and payment events in the same transaction as delivery completion.
+- Non-COD deliveries must already have fully verified payment before they can be marked delivered.
+
 ## Supplier ledger and purchase payments
 - Existing inventory purchase drafts can be received into branch stock; this milestone adds supplier payment records and supplier account balances.
 - `GET /api/v1/inventory/suppliers/:supplierId/ledger` returns received purchases, recorded payments, total purchases, total paid and outstanding balance.
