@@ -90,7 +90,7 @@ class PrintingService {
     if (connection == 'bluetooth') {
       final mac = printer['deviceIdentifier']?.toString().trim() ?? '';
       if (mac.isEmpty) throw const PrintingException('Select a paired Bluetooth printer MAC address in printer settings.');
-      await printBluetoothText(mac, 'URBAN BYTE\\nBLUETOOTH PRINTER TEST\\n------------------------------\\nIf this prints, mobile Bluetooth is connected.\\n\\n\\n');
+      await printBluetoothText(mac, 'URBAN BYTE\nBLUETOOTH PRINTER TEST\n------------------------------\nIf this prints, mobile Bluetooth is connected.\n\n\n');
       return;
     }
     if (connection == 'usb') {
