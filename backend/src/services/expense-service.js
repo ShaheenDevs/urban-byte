@@ -44,7 +44,7 @@ function scopedWhere(restaurantId, user, query = {}, status) {
 }
 async function audit(transaction, restaurantId, userId, expense, action, metadata = {}) {
   await AuditLog.create({
-    restaurantId, actorUserId: userId, entityType: 'expense', entityId: String(expense.id),
+    restaurantId, branchId: expense.branchId, actorUserId: userId, entityType: 'expense', entityId: String(expense.id),
     action, metadata: { branchId: expense.branchId, amount: expense.amount, paymentMethod: expense.paymentMethod, status: expense.status, ...metadata },
   }, { transaction });
 }
