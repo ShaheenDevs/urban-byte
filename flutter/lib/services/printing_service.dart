@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import '../app/api_config.dart';
 
 class PrintingService {
@@ -50,8 +51,38 @@ class PrintingService {
     });
   }
 
+  Future<List<Map<String, String>>> pairedBluetoothDevices() async {
+    final granted = await PrintBluetoothThermal.isPermissionBluetoothGranted;
+    if (!granted) throw const PrintingException('Bluetooth permission is required. Allow Nearby devices permission for Urban Byte.');
+    final devices = await PrintBluetoothThermal.pairedBluetooths;
+    return devices.map((d) => {'name': d.name, 'mac': d.macAdress}).toList();
+  }
+
+  Future<void> printBluetoothText(String mac, String text) async {
+    if (!await PrintBluetoothThermal.bluetoothEnabled) throw const PrintingException('Turn on Bluetooth on this phone.');
+    final granted = await PrintBluetoothThermal.isPermissionBluetoothGranted;
+    if (!granted) throw const PrintingException('Bluetooth permission is not granted.');
+    final connected = await PrintBluetoothThermal.connect(macPrinterAddress: mac);
+    if (!connected) throw const PrintingException('Could not connect to the selected Bluetooth printer. Pair it in phone settings first.');
+    try {
+      final ok = await PrintBluetoothThermal.writeString(printText: PrintTextSize(size: 1, text: text));
+      if (!ok) throw const PrintingException('Bluetooth printer did not accept the receipt data.');
+    } finally {
+      await PrintBluetoothThermal.disconnect;
+    }
+  }
+
   Future<void> testPrinter(Map<String, dynamic> printer) async {
     final connection = printer['connectionType']?.toString();
+    if (connection == 'bluetooth') {
+      final mac = printer['deviceIdentifier']?.toString().trim() ?? '';
+      if (mac.isEmpty) throw const PrintingException('Select a paired Bluetooth printer MAC address in printer settings.');
+      await printBluetoothText(mac, 'URBAN BYTE\\nBLUETOOTH PRINTER TEST\\n------------------------------\\nIf this prints, mobile Bluetooth is connected.\\n\\n\\n');
+      return;
+    }
+    if (connection == 'usb') {
+      throw const PrintingException('Direct Android USB printing is not configured in this mobile build. Use Bluetooth or network printing.');
+    }
     if (connection != 'network') {
       final id = printer['id']?.toString();
       if (id == null || id.isEmpty) {
