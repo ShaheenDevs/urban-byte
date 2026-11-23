@@ -54,16 +54,25 @@ class PrintingService {
 
   Future<void> _ensureBluetoothPermission() async {
     if (Platform.isAndroid) {
-      final statuses = await [Permission.bluetoothScan, Permission.bluetoothConnect].request();
+      final statuses = await [
+        Permission.bluetoothScan,
+        Permission.bluetoothConnect
+      ].request();
       if (statuses.values.any((status) => !status.isGranted)) {
-        throw const PrintingException('Allow Nearby devices / Bluetooth permission for Urban Byte in Android app settings.');
+        throw const PrintingException(
+            'Allow Nearby devices / Bluetooth permission for Urban Byte in Android app settings.');
       }
     } else if (Platform.isIOS) {
       final status = await Permission.bluetooth.request();
-      if (!status.isGranted) throw const PrintingException('Allow Bluetooth permission for Urban Byte in iPhone settings.');
+      if (!status.isGranted) {
+        throw const PrintingException(
+            'Allow Bluetooth permission for Urban Byte in iPhone settings.');
+      }
     }
     final granted = await PrintBluetoothThermal.isPermissionBluetoothGranted;
-    if (!granted) throw const PrintingException('Bluetooth permission is not granted.');
+    if (!granted) {
+      throw const PrintingException('Bluetooth permission is not granted.');
+    }
   }
 
   Future<List<Map<String, String>>> pairedBluetoothDevices() async {
@@ -74,12 +83,22 @@ class PrintingService {
 
   Future<void> printBluetoothText(String mac, String text) async {
     await _ensureBluetoothPermission();
-    if (!await PrintBluetoothThermal.bluetoothEnabled) throw const PrintingException('Turn on Bluetooth on this phone.');
-    final connected = await PrintBluetoothThermal.connect(macPrinterAddress: mac);
-    if (!connected) throw const PrintingException('Could not connect to the selected Bluetooth printer. Pair it in phone settings first.');
+    if (!await PrintBluetoothThermal.bluetoothEnabled) {
+      throw const PrintingException('Turn on Bluetooth on this phone.');
+    }
+    final connected =
+        await PrintBluetoothThermal.connect(macPrinterAddress: mac);
+    if (!connected) {
+      throw const PrintingException(
+          'Could not connect to the selected Bluetooth printer. Pair it in phone settings first.');
+    }
     try {
-      final ok = await PrintBluetoothThermal.writeString(printText: PrintTextSize(size: 1, text: text));
-      if (!ok) throw const PrintingException('Bluetooth printer did not accept the receipt data.');
+      final ok = await PrintBluetoothThermal.writeString(
+          printText: PrintTextSize(size: 1, text: text));
+      if (!ok) {
+        throw const PrintingException(
+            'Bluetooth printer did not accept the receipt data.');
+      }
     } finally {
       await PrintBluetoothThermal.disconnect;
     }
@@ -89,12 +108,17 @@ class PrintingService {
     final connection = printer['connectionType']?.toString();
     if (connection == 'bluetooth') {
       final mac = printer['deviceIdentifier']?.toString().trim() ?? '';
-      if (mac.isEmpty) throw const PrintingException('Select a paired Bluetooth printer MAC address in printer settings.');
-      await printBluetoothText(mac, 'URBAN BYTE\nBLUETOOTH PRINTER TEST\n------------------------------\nIf this prints, mobile Bluetooth is connected.\n\n\n');
+      if (mac.isEmpty) {
+        throw const PrintingException(
+            'Select a paired Bluetooth printer MAC address in printer settings.');
+      }
+      await printBluetoothText(mac,
+          'URBAN BYTE\nBLUETOOTH PRINTER TEST\n------------------------------\nIf this prints, mobile Bluetooth is connected.\n\n\n');
       return;
     }
     if (connection == 'usb') {
-      throw const PrintingException('Direct Android USB printing is not configured in this mobile build. Use Bluetooth or network printing.');
+      throw const PrintingException(
+          'Direct Android USB printing is not configured in this mobile build. Use Bluetooth or network printing.');
     }
     if (connection != 'network') {
       final id = printer['id']?.toString();
@@ -166,8 +190,9 @@ class PrintingService {
   Future<dynamic> _request(String method, String path,
       {Map<String, dynamic>? body}) async {
     final token = await _storage.read(key: 'access_token');
-    if (token == null || token.isEmpty)
+    if (token == null || token.isEmpty) {
       throw const PrintingException('Please sign in again.');
+    }
     final uri = Uri.parse(apiBaseUrl + path);
     final headers = {
       'Authorization': 'Bearer $token',
