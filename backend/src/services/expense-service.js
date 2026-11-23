@@ -82,7 +82,7 @@ async function decide(restaurantId, user, id, approve, input = {}) {
           reference: expense.reference || ('EXP-' + expense.id), recordedByUserId: user.id,
         }, { transaction });
         await AuditLog.create({
-          restaurantId, actorUserId: user.id, entityType: 'cash_shift', entityId: String(shift.id),
+          restaurantId, branchId: shift.branchId, actorUserId: user.id, entityType: 'cash_shift', entityId: String(shift.id),
           action: 'cash_shift.expense_linked', metadata: { expenseId: expense.id, entryId: entry.id, amount: expense.amount },
         }, { transaction });
       }
