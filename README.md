@@ -184,7 +184,7 @@ Customer records, verified payment workflow, delivery workflow, thermal printing
 - Individual permission overrides support Allow, Deny and Use role default. Allow cannot grant a permission the acting non-admin does not already possess. Changes are recorded in immutable audit history.
 - Staff API: `GET /staff/branches`, `GET /staff/permissions`, `PUT /staff/:userId/permissions`, `DELETE /staff/:userId/permissions/:permissionId`, and `GET /staff/audit?userId=:id`.
 - Flutter Staff Management includes branch checkboxes, per-staff permission controls and audit history.
-- Branch scoping for cash shifts, inventory, printer configuration and other branch-specific workflows remains a follow-up before multi-branch production rollout.
+- Cash shift opening, current-shift listing, entries, closing and reports also enforce assigned branch scope. Inventory and printer configuration, plus any remaining branch-specific workflows, still need the same scope review before multi-branch production rollout.
 
 ## Staff administration controls
 - Flutter Staff Management supports search, add, edit, role reassignment, optional password reset, and activate/deactivate actions.
