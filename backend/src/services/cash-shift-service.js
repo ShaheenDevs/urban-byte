@@ -1,7 +1,7 @@
 'use strict';
 
 const { Op } = require('sequelize');
-const { CashShift, CashShiftEntry, Payment, Expense, Branch, AuditLog, sequelize } = require('../models');
+const { CashShift, CashShiftEntry, Payment, Branch, AuditLog, sequelize } = require('../models');
 
 function fail(message, status = 400, code = 'CASH_SHIFT_ERROR') {
   return Object.assign(new Error(message), { statusCode: status, code });
