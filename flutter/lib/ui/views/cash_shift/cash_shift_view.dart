@@ -14,6 +14,7 @@ class _CashShiftViewState extends State<CashShiftView> {
   final _inventory = InventoryService();
   List<RestaurantBranch> _branches = [];
   Map<String, dynamic>? _shift;
+  List<Map<String, dynamic>> _history = [];
   String? _branchId;
   bool _loading = true;
   bool _busy = false;
@@ -34,12 +35,25 @@ class _CashShiftViewState extends State<CashShiftView> {
       final branches = await _inventory.branches();
       if (branches.isEmpty) throw Exception('No active branch found.');
       final branch = _branchId ?? branches.first.id;
-      final shifts = await _service.current(branchId: branch);
+      final today = DateTime.now();
+      final fromDate = today.subtract(const Duration(days: 30));
+      String dateText(DateTime d) =>
+          '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+      final results = await Future.wait([
+        _service.current(branchId: branch),
+        _service.history(
+            branchId: branch,
+            from: dateText(fromDate),
+            to: dateText(today)),
+      ]);
+      final shifts = results[0] as List<Map<String, dynamic>>;
+      final history = results[1] as List<Map<String, dynamic>>;
       if (!mounted) return;
       setState(() {
         _branches = branches;
         _branchId = branch;
         _shift = shifts.isEmpty ? null : shifts.first;
+        _history = history;
         _loading = false;
       });
     } catch (e) {
@@ -149,6 +163,104 @@ class _CashShiftViewState extends State<CashShiftView> {
     }
   }
 
+  Future<void> _review(Map<String, dynamic> shift, bool approve) async {
+    final id = shift['id']?.toString();
+    if (id == null) return;
+    String note = '';
+    final controller = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(approve
+            ? 'Approve cash reconciliation'
+            : 'Reject cash reconciliation'),
+        content: TextField(
+          controller: controller,
+          maxLength: 500,
+          decoration: InputDecoration(
+            labelText: approve ? 'Note (optional)' : 'Reason (required)',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(
+                dialogContext, controller.text.trim()),
+            child: Text(approve ? 'Approve' : 'Reject'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (result == null || (!approve && result.isEmpty)) return;
+    note = result;
+    setState(() => _busy = true);
+    try {
+      if (approve) {
+        await _service.approveReconciliation(id, note: note);
+      } else {
+        await _service.rejectReconciliation(id, note);
+      }
+      _message(approve
+          ? 'Reconciliation approved.'
+          : 'Reconciliation rejected.');
+      await _load();
+    } catch (e) {
+      if (mounted) _message(e.toString());
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Widget _historyCard(Map<String, dynamic> shift) {
+    dynamic field(String camel, String snake) =>
+        shift[camel] ?? shift[snake];
+    final status = (field('reconciliationStatus', 'reconciliation_status') ??
+            'not_submitted')
+        .toString();
+    final pending = status == 'pending_approval';
+    final branchId = field('branchId', 'branch_id')?.toString();
+    final branchNames = _branches
+        .where((branch) => branch.id == branchId)
+        .map((branch) => branch.name)
+        .toList();
+    final branchName = branchNames.isEmpty ? 'Branch $branchId' : branchNames.first;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Shift #${shift['id']} · $branchName',
+                style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text('Expected: PKR ${field('expectedCash', 'expected_cash') ?? '—'}'),
+            Text('Counted: PKR ${field('actualCash', 'actual_cash') ?? '—'}'),
+            Text('Variance: PKR ${field('cashVariance', 'cash_variance') ?? '—'}'),
+            Text('Status: ${status.replaceAll('_', ' ')}'),
+            if (pending)
+              Align(
+                alignment: Alignment.centerRight,
+                child: Wrap(spacing: 8, children: [
+                  TextButton(
+                    onPressed: _busy ? null : () => _review(shift, false),
+                    child: const Text('Reject'),
+                  ),
+                  FilledButton(
+                    onPressed: _busy ? null : () => _review(shift, true),
+                    child: const Text('Approve'),
+                  ),
+                ]),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _message(String message) => ScaffoldMessenger.of(context)
       .showSnackBar(SnackBar(content: Text(message)));
 
@@ -228,7 +340,15 @@ class _CashShiftViewState extends State<CashShiftView> {
                                 ]))),
                     if (_busy) const LinearProgressIndicator(),
                     const Text(
-                        'Expected cash is calculated by the server using opening cash, verified cash payments, cash-in and cash-out entries.'),
+                        'Expected cash is calculated by the server using opening cash, verified cash payments, cash-in, cash-out and approved cash expenses.'),
+                    const SizedBox(height: 20),
+                    Text('Cash reconciliation history (last 30 days)',
+                        style: Theme.of(context).textTheme.titleLarge),
+                    const SizedBox(height: 8),
+                    if (_history.isEmpty)
+                      const Text('No closed shifts found for this branch.')
+                    else
+                      ..._history.map(_historyCard),
                   ]),
       );
 }
