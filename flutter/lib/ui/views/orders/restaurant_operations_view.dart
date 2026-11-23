@@ -183,7 +183,7 @@ class _Orders extends StatelessWidget {
         'TOTAL: PKR ${order['grandTotal'] ?? ''}',
         'Payment: PAID', '', 'Thank you for visiting Urban Byte!', '', '',
       ];
-      await printing.printBluetoothText(bluetooth.first['deviceIdentifier'].toString(), lines.join('\\n'));
+      await printing.printBluetoothText(bluetooth.first['deviceIdentifier'].toString(), lines.join('\n'));
       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Paid bill printed.')));
     } catch (e) {
       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Payment saved, but bill printing failed: $e')));
