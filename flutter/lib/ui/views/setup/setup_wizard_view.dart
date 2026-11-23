@@ -5,7 +5,8 @@ import 'package:urban_byte/app/api_config.dart';
 import '../auth/login_view.dart';
 
 class SetupWizardView extends StatefulWidget {
-  const SetupWizardView({super.key});
+  const SetupWizardView({super.key, this.client});
+  final http.Client? client;
   @override
   State<SetupWizardView> createState() => _SetupWizardViewState();
 }
@@ -14,10 +15,14 @@ class _SetupWizardViewState extends State<SetupWizardView> {
   bool loading = true;
   String? error;
   Map<String, dynamic>? result;
+  late final http.Client _client;
+  bool _ownsClient = false;
 
   @override
   void initState() {
     super.initState();
+    _client = widget.client ?? http.Client();
+    _ownsClient = widget.client == null;
     refresh();
   }
 
@@ -27,7 +32,7 @@ class _SetupWizardViewState extends State<SetupWizardView> {
       error = null;
     });
     try {
-      final response = await http
+      final response = await _client
           .get(Uri.parse('$apiBaseUrl/health/setup'))
           .timeout(const Duration(seconds: 15));
       final decoded = jsonDecode(response.body);
@@ -48,6 +53,12 @@ class _SetupWizardViewState extends State<SetupWizardView> {
     } finally {
       if (mounted) setState(() => loading = false);
     }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsClient) _client.close();
+    super.dispose();
   }
 
   static const labels = <String, String>{
