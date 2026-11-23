@@ -62,11 +62,17 @@ class StaffView extends StackedView<StaffViewModel> {
                                         onSelected: (action) async {
                                           if (action == 'edit') {
                                             await _showEdit(context, model, user);
+                                          } else if (action == 'permissions') {
+                                            await _showPermissions(context, model, user);
+                                          } else if (action == 'history') {
+                                            await _showHistory(context, model, user);
                                           } else if (action == 'toggle') {
                                             await model.setActive(user, user['isActive'] != true);
                                           }
                                         },
                                         itemBuilder: (_) => [
+                                          const PopupMenuItem(value: 'permissions', child: ListTile(leading: Icon(Icons.admin_panel_settings_outlined), title: Text('Permissions'), dense: true)),
+                                          const PopupMenuItem(value: 'history', child: ListTile(leading: Icon(Icons.history), title: Text('Audit history'), dense: true)),
                                           const PopupMenuItem(value: 'edit', child: ListTile(
                                             leading: Icon(Icons.edit_outlined), title: Text('Edit staff'), dense: true)),
                                           PopupMenuItem(value: 'toggle', child: ListTile(
@@ -95,11 +101,17 @@ class StaffView extends StackedView<StaffViewModel> {
     );
     final password = TextEditingController();
     final roles = await model.loadRoles();
+    final branches = await model.loadBranches();
     if (!context.mounted) return;
     final selected = <int>{};
     for (final role in (user['roles'] as List? ?? const [])) {
       final roleId = int.tryParse((role as Map)['id'].toString());
       if (roleId != null) selected.add(roleId);
+    }
+    final selectedBranches = <int>{};
+    for (final branch in (user['branches'] as List? ?? const [])) {
+      final branchId = int.tryParse((branch as Map)['id'].toString());
+      if (branchId != null) selectedBranches.add(branchId);
     }
     bool active = user['isActive'] == true;
     final confirmed = await showDialog<bool>(
@@ -136,6 +148,21 @@ class StaffView extends StackedView<StaffViewModel> {
                     onChanged: (value) => setState(() => active = value),
                   ),
                   const Align(alignment: Alignment.centerLeft, child: Text('Roles')),
+                  const SizedBox(height: 12),
+                  const Align(alignment: Alignment.centerLeft, child: Text('Assigned branches')),
+                  ...branches.map((branch) {
+                    final id = int.tryParse(branch['id'].toString());
+                    if (id == null) return const SizedBox.shrink();
+                    return CheckboxListTile(
+                      value: selectedBranches.contains(id),
+                      title: Text(branch['name'] ?? branch['code'] ?? 'Branch'),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      onChanged: (value) => setState(() {
+                        if (value == true) { selectedBranches.add(id); } else { selectedBranches.remove(id); }
+                      }),
+                    );
+                  }),
                   ...roles.map((role) {
                     final id = int.tryParse(role['id'].toString());
                     if (id == null) return const SizedBox.shrink();
@@ -178,6 +205,7 @@ class StaffView extends StackedView<StaffViewModel> {
         name.text,
         contact.text,
         selected.toList(),
+        selectedBranches.toList(),
         active,
         password.text,
       );
@@ -187,14 +215,99 @@ class StaffView extends StackedView<StaffViewModel> {
     password.dispose();
   }
 
+  Future<void> _showPermissions(BuildContext context, StaffViewModel model, Map<String, dynamic> user) async {
+    final permissions = await model.loadPermissions();
+    if (!context.mounted) return;
+    final existing = <int, String>{};
+    for (final item in (user['permissionOverrides'] as List? ?? const [])) {
+      final key = (item as Map)['key']?.toString();
+      final match = permissions.where((p) => p['permissionKey'] == key);
+      if (match.isNotEmpty) existing[int.parse(match.first['id'].toString())] = item['effect'].toString();
+    }
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text('Permissions — ${user['name']}'),
+          content: SizedBox(
+            width: 480,
+            child: ListView(
+              shrinkWrap: true,
+              children: permissions.map((permission) {
+                final id = int.tryParse(permission['id'].toString());
+                if (id == null) return const SizedBox.shrink();
+                final effect = existing[id];
+                return ListTile(
+                  title: Text(permission['name'] ?? permission['permissionKey'] ?? ''),
+                  subtitle: Text('${permission['module'] ?? ''} • ${permission['permissionKey'] ?? ''}'),
+                  trailing: PopupMenuButton<String>(
+                    initialValue: effect ?? 'inherit',
+                    onSelected: (value) async {
+                      try {
+                        if (value == 'inherit') {
+                          await model.removeOverride(user['id'].toString(), id);
+                          existing.remove(id);
+                        } else {
+                          await model.setOverride(user['id'].toString(), id, value);
+                          existing[id] = value;
+                        }
+                        setState(() {});
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+                      }
+                    },
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(value: 'inherit', child: Text('Use role default')),
+                      PopupMenuItem(value: 'allow', child: Text('Allow')),
+                      PopupMenuItem(value: 'deny', child: Text('Deny')),
+                    ],
+                    child: Chip(label: Text(effect ?? 'Inherit')),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Close'))],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showHistory(BuildContext context, StaffViewModel model, Map<String, dynamic> user) async {
+    final rows = await model.loadHistory(user['id'].toString());
+    if (!context.mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Audit history — ${user['name']}'),
+        content: SizedBox(
+          width: 480,
+          child: rows.isEmpty
+              ? const Text('No audit events recorded yet.')
+              : ListView(
+                  shrinkWrap: true,
+                  children: rows.map((row) => ListTile(
+                    leading: const Icon(Icons.history),
+                    title: Text(row['action']?.toString() ?? 'Updated'),
+                    subtitle: Text('${row['createdAt'] ?? ''}\\n${row['metadata'] ?? {}}'),
+                  )).toList(),
+                ),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Close'))],
+      ),
+    );
+  }
+
   Future<void> _showAdd(BuildContext context, StaffViewModel model) async {
     final form = GlobalKey<FormState>();
     final name = TextEditingController(),
         contact = TextEditingController(),
         password = TextEditingController();
     final roles = await model.loadRoles();
+    final branches = await model.loadBranches();
     if (!context.mounted) return;
     final selected = <int>{};
+    final selectedBranches = <int>{};
     final confirmed = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => StatefulBuilder(
@@ -238,6 +351,21 @@ class StaffView extends StackedView<StaffViewModel> {
                                       const Align(
                                           alignment: Alignment.centerLeft,
                                           child: Text('Roles')),
+                                      const SizedBox(height: 12),
+                                      const Align(alignment: Alignment.centerLeft, child: Text('Assigned branches')),
+                                      ...branches.map((branch) {
+                                        final id = int.tryParse(branch['id'].toString());
+                                        if (id == null) return const SizedBox.shrink();
+                                        return CheckboxListTile(
+                                          value: selectedBranches.contains(id),
+                                          title: Text(branch['name'] ?? branch['code'] ?? 'Branch'),
+                                          dense: true,
+                                          contentPadding: EdgeInsets.zero,
+                                          onChanged: (v) => setState(() {
+                                            if (v == true) { selectedBranches.add(id); } else { selectedBranches.remove(id); }
+                                          }),
+                                        );
+                                      }),
                                       ...roles.map((r) {
                                         final id =
                                             int.tryParse(r['id'].toString());
@@ -277,7 +405,7 @@ class StaffView extends StackedView<StaffViewModel> {
         contact.text.trim().isNotEmpty &&
         password.text.length >= 12) {
       await model.create(
-          name.text, contact.text, password.text, selected.toList());
+          name.text, contact.text, password.text, selected.toList(), selectedBranches.toList());
     }
     name.dispose();
     contact.dispose();
@@ -324,11 +452,24 @@ class StaffViewModel extends BaseViewModel {
     }
   }
 
+  Future<List<Map<String, dynamic>>> loadBranches() async => _service.getBranches();
+  Future<List<Map<String, dynamic>>> loadPermissions() async => _service.getPermissions();
+  Future<List<Map<String, dynamic>>> loadHistory(String userId) async => _service.getAuditHistory(userId: userId);
+  Future<void> setOverride(String userId, int permissionId, String effect) async {
+    await _service.setPermissionOverride(userId: userId, permissionId: permissionId, effect: effect);
+    await load();
+  }
+  Future<void> removeOverride(String userId, int permissionId) async {
+    await _service.removePermissionOverride(userId: userId, permissionId: permissionId);
+    await load();
+  }
+
   Future<void> update(
     Map<String, dynamic> user,
     String name,
     String contact,
     List<int> roles,
+    List<int> branches,
     bool active,
     String password,
   ) async {
@@ -340,6 +481,7 @@ class StaffViewModel extends BaseViewModel {
         name: name,
         contact: contact,
         roleIds: roles,
+        branchIds: branches,
         isActive: active,
         password: password.trim().isEmpty ? null : password,
       );
@@ -360,17 +502,18 @@ class StaffViewModel extends BaseViewModel {
           .map((role) => int.tryParse((role as Map)['id'].toString()))
           .whereType<int>()
           .toList(),
+      (user['branches'] as List? ?? const []).map((b) => int.tryParse((b as Map)['id'].toString())).whereType<int>().toList(),
       active,
       '',
     );
   }
 
   Future<void> create(
-      String name, String contact, String password, List<int> roles) async {
+      String name, String contact, String password, List<int> roles, List<int> branches) async {
     setBusy(true);
     try {
       await _service.createStaff(
-          name: name, contact: contact, password: password, roleIds: roles);
+          name: name, contact: contact, password: password, roleIds: roles, branchIds: branches);
       await load();
     } catch (e) {
       errorMessage = e.toString();
