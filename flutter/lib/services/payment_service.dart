@@ -59,6 +59,7 @@ class PaymentService {
     required String method,
     String? reference,
     String? notes,
+    bool markReceived = false,
   }) async {
     final token = await _storage.read(key: 'access_token');
     if (token == null || token.isEmpty)
@@ -73,6 +74,7 @@ class PaymentService {
         'orderId': int.parse(orderId),
         'amount': amount,
         'method': method,
+        'markReceived': markReceived,
         if (reference != null && reference.trim().isNotEmpty)
           'reference': reference.trim(),
         if (notes != null && notes.trim().isNotEmpty) 'notes': notes.trim(),
