@@ -17,6 +17,7 @@ test('MySQL migrations, seeded RBAC and Sequelize models are usable',{skip:!enab
   assert.ok(models.InventoryItem && models.BranchStock && models.StockMovement && models.Recipe && models.Purchase && models.PurchaseItem,'Sequelize should load inventory and purchase models');
   const orderColumns=await sequelize.getQueryInterface().describeTable('orders');
   assert.ok(orderColumns.grand_total,'orders.grand_total should exist');
+  assert.ok(orderColumns.service_charge_amount,'orders.service_charge_amount should exist');
   assert.ok(orderColumns.idempotency_key,'orders.idempotency_key should exist');
   assert.ok(orderColumns.inventory_deducted_at,'orders.inventory_deducted_at should exist');
   const branchColumns=await sequelize.getQueryInterface().describeTable('branches');
