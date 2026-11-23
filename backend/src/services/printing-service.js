@@ -19,6 +19,7 @@ async function enqueue(restaurantId,user,orderId,jobType,input={}){
  if(input.printerId){printer=await PrinterDevice.findOne({where:{id:Number(input.printerId),restaurantId,branchId:order.branchId,isActive:true}});if(!printer)throw fail('Printer not found for this branch.',404,'PRINTER_NOT_FOUND');}
  const paperWidth=printer?.paperWidth||input.paperWidth||'80mm';
  const plain=order.get({plain:true});
+ const settings=await RestaurantSetting.findOne({where:{restaurantId}});
  const payload={orderId:order.id,orderNumber:order.orderNumber,jobType,paperWidth,items:plain.items,totals:{subtotal:plain.subtotal,discount:plain.discountAmount,tax:plain.taxAmount,delivery:plain.deliveryFee,total:plain.grandTotal}};
  return PrintJob.create({restaurantId,branchId:order.branchId,printerId:printer?.id||null,orderId:order.id,jobType,status:'queued',payload,renderedText:renderOrder(plain,jobType,paperWidth,settings?.get({plain:true})||{}),requestedByUserId:user.id});
 }
