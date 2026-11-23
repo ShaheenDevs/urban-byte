@@ -42,6 +42,7 @@ void main() {
     expect(find.text('Restaurant profile'), findsOneWidget);
     expect(find.text('Owner account'), findsOneWidget);
 
+    await tester.ensureVisible(find.text('Continue to Owner / Staff Login'));
     await tester.tap(find.text('Continue to Owner / Staff Login'));
     await tester.pumpAndSettle();
 
