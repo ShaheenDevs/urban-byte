@@ -22,7 +22,7 @@ async function branchAccess(restaurantId, actor, branchId, transaction) {
 }
 async function audit(transaction, restaurantId, actorId, shift, action, ipAddress) {
   await AuditLog.create({
-    restaurantId, actorUserId: actorId, entityType: 'employee_shift', entityId: String(shift.id),
+    restaurantId, branchId: shift.branchId, actorUserId: actorId, entityType: 'employee_shift', entityId: String(shift.id),
     action, metadata: { branchId: shift.branchId, userId: shift.userId, shiftDate: shift.shiftDate, startTime: shift.startTime, endTime: shift.endTime, status: shift.status },
     ipAddress: ipAddress || null,
   }, { transaction });
