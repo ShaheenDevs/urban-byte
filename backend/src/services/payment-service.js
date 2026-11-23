@@ -4,14 +4,14 @@ const {Payment,PaymentEvent,Order,sequelize}=require('../models');
 function fail(message,status=400,code='PAYMENT_ERROR'){const e=new Error(message);e.statusCode=status;e.code=code;return e;}
 function money(value){const n=Number(value);if(!Number.isFinite(n)||n<=0||n>9999999999.99)throw fail('Payment amount must be greater than zero.');return n.toFixed(2);}
 async function record(restaurantId,user,input={}){
- const order=await Order.findOne({where:{id:Number(input.orderId),restaurantId}});
- if(!order)throw fail('Order not found.',404,'ORDER_NOT_FOUND');
- if(order.paymentStatus==='paid'||order.paymentStatus==='refunded')throw fail('This order cannot accept another payment.',409);
  const method=input.method;
  if(!['cash','card','easypaisa','jazzcash','bank_transfer','cod'].includes(method))throw fail('Unsupported payment method.');
  const amount=money(input.amount);
- if(Number(amount)>Number(order.grandTotal))throw fail('Payment cannot exceed the outstanding order total.');
  return sequelize.transaction(async transaction=>{
+  const order=await Order.findOne({where:{id:Number(input.orderId),restaurantId},transaction,lock:transaction.LOCK.UPDATE});
+  if(!order)throw fail('Order not found.',404,'ORDER_NOT_FOUND');
+  if(order.paymentStatus==='paid'||order.paymentStatus==='refunded')throw fail('This order cannot accept another payment.',409);
+  if(Number(amount)>Number(order.grandTotal))throw fail('Payment cannot exceed the outstanding order total.');
   const markReceived = input.markReceived === true && user.permissions.includes('payments.record');
   const committed = Number(await Payment.sum('amount', {
    where: { orderId: order.id, restaurantId, status: { [Op.in]: ['pending', 'verified'] } }, transaction
