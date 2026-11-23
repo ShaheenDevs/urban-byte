@@ -62,7 +62,7 @@ class PrintingView extends StackedView<PrintingViewModel> {
                                       ScaffoldMessenger.of(context)
                                           .showSnackBar(SnackBar(
                                               content: Text(ok
-                                                  ? 'Test print sent to network printer.'
+                                                  ? printer['connectionType'] == 'network' ? 'Test print sent to network printer.' : 'Test print queued. Ensure Windows printer bridge is running.'
                                                   : vm.loadingError ??
                                                       'Test print failed.')));
                                     }
@@ -101,9 +101,7 @@ class PrintingView extends StackedView<PrintingViewModel> {
                             : null,
                       ))),
                   const SizedBox(height: 90),
-                  const Text(
-                      'USB and Bluetooth devices require a local Flutter print bridge. This screen manages printer records and the server queue; it does not send raw print data to a physical printer yet.',
-                      style: TextStyle(fontSize: 12)),
+
                 ]),
               ),
       );
@@ -273,7 +271,7 @@ class PrintingViewModel extends BaseViewModel {
     setBusy(true);
     loadingError = null;
     try {
-      await service.testNetworkPrinter(printer);
+      await service.testPrinter(printer);
       return true;
     } catch (e) {
       loadingError = e.toString();
