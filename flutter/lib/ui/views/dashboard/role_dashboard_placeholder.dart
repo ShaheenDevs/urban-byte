@@ -33,6 +33,7 @@ class RoleDashboardPlaceholder extends StatelessWidget {
       permissions.contains('orders.view_all') ||
       permissions.contains('orders.create') ||
       permissions.contains('kitchen.orders.view');
+  bool get _canViewOrderHistory => permissions.contains('orders.view_own') || permissions.contains('orders.view_all');
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
@@ -106,7 +107,7 @@ class RoleDashboardPlaceholder extends StatelessWidget {
                             _MetricTile(
                                 label: 'Orders today',
                                 value: '${metrics['todayOrders'] ?? 0}',
-                                onTap: _canOpenOrders ? () => _openHistory(context, 'Orders today', startDate: startDate, endDate: endDate) : null),
+                                onTap: _canViewOrderHistory ? () => _openHistory(context, 'Orders today', startDate: startDate, endDate: endDate) : null),
                             _MetricTile(
                                 label: 'Open orders',
                                 value: '${metrics['openOrders'] ?? 0}',
