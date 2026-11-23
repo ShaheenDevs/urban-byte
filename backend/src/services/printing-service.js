@@ -53,6 +53,7 @@ async function enqueueTestPrint(restaurantId,user,printerId){
  const printer=await PrinterDevice.findOne({where:{id:Number(printerId),restaurantId,isActive:true}});
  if(!printer)throw fail('Printer not found.',404,'PRINTER_NOT_FOUND');
  assertBranch(user,printer.branchId);
+ assertBranch(user,printer.branchId);
  const width=printer.paperWidth==='58mm'?32:48;
  const now=new Date().toLocaleString('en-PK',{timeZone:'Asia/Karachi'});
  const renderedText=['URBAN BYTE','PRINTER CONNECTION TEST','-'.repeat(width),'Connection: '+printer.connectionType.toUpperCase(),'Printer: '+printer.name,'Paper: '+printer.paperWidth,'Time: '+now,'-'.repeat(width),'If you can read this,','the local print bridge is working.','',''].join('\n');
