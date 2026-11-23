@@ -62,7 +62,7 @@ class PrintingView extends StackedView<PrintingViewModel> {
                                       ScaffoldMessenger.of(context)
                                           .showSnackBar(SnackBar(
                                               content: Text(ok
-                                                  ? printer['connectionType'] == 'network' ? 'Test print sent to network printer.' : 'Test print queued. Ensure Windows printer bridge is running.'
+                                                  ? (printer['connectionType'] == 'network' ? 'Test print sent to network printer.' : 'Test print queued. Ensure Windows printer bridge is running.')
                                                   : vm.loadingError ??
                                                       'Test print failed.')));
                                     }
