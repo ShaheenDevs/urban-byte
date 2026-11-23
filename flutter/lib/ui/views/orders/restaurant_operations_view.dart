@@ -257,12 +257,13 @@ class _Orders extends StatelessWidget {
                               final payments = (o['payments'] as List? ?? []);
                               final paid = payments.where((p) => p['status'] == 'verified').fold<double>(0, (sum, p) => sum + (double.tryParse('${p['amount'] ?? 0}') ?? 0));
                               final pending = payments.where((p) => p['status'] == 'pending').fold<double>(0, (sum, p) => sum + (double.tryParse('${p['amount'] ?? 0}') ?? 0));
-                              final due = (total - paid).clamp(0, total).toDouble();
+                              final remaining = (total - paid).clamp(0, total).toDouble();
+                              final due = (remaining - pending).clamp(0, total).toDouble();
                               return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                 Text('Order status: $status • Payment status: ${o['paymentStatus'] ?? 'unpaid'}'),
                                 Text('Order total: PKR ${total.toStringAsFixed(2)}'),
-                                Text('Paid: PKR ${paid.toStringAsFixed(2)} • Pending: PKR ${pending.toStringAsFixed(2)}'),
-                                Text('Remaining: PKR ${due.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                Text('Verified paid: PKR ${paid.toStringAsFixed(2)} • Awaiting verification: PKR ${pending.toStringAsFixed(2)}'),
+                                Text('Remaining balance: PKR ${remaining.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
                                 if (due > 0 && vm.permissions.contains('payments.record'))
                                   Align(alignment: Alignment.centerRight, child: TextButton.icon(
                                     onPressed: vm.isBusy ? null : () => _collectPayment(context, o, due, vm),
