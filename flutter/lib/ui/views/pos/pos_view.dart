@@ -60,11 +60,24 @@ class _PosViewState extends State<PosView> {
       final branches = await _inventory.branches();
       if (branches.isEmpty) throw Exception('No active branch found.');
       final branchId = _branchId ?? branches.first.id;
-      final results = await Future.wait<dynamic>([_ops.menu(branchId: branchId), _settingsService.load()]);
+      final results = await Future.wait<dynamic>(
+          [_ops.menu(branchId: branchId), _settingsService.load()]);
       final products = results[0] as List<Map<String, dynamic>>;
       final settings = results[1] as Map<String, dynamic>;
-      final tables = (settings['diningTables'] as List? ?? []).map((e) => Map<String,dynamic>.from(e as Map)).where((t) => t['isActive'] != false && (t['branchId'] == null || t['branchId'].toString() == branchId)).toList();
-      final orderTypes = (settings['orderTypes'] as List? ?? const [{'key':'dine_in','name':'Dine In'},{'key':'takeaway','name':'Takeaway'},{'key':'delivery','name':'Delivery'}]).map((e) => Map<String,dynamic>.from(e as Map)).toList();
+      final tables = (settings['diningTables'] as List? ?? [])
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .where((t) =>
+              t['isActive'] != false &&
+              (t['branchId'] == null || t['branchId'].toString() == branchId))
+          .toList();
+      final orderTypes = (settings['orderTypes'] as List? ??
+              const [
+                {'key': 'dine_in', 'name': 'Dine In'},
+                {'key': 'takeaway', 'name': 'Takeaway'},
+                {'key': 'delivery', 'name': 'Delivery'}
+              ])
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
       if (!mounted) return;
       setState(() {
         _branches = branches;
@@ -74,8 +87,13 @@ class _PosViewState extends State<PosView> {
             .toList();
         _tables = tables;
         _orderTypes = orderTypes;
-        if (!_orderTypes.any((t) => t['key'] == _type)) _type = _orderTypes.isNotEmpty ? _orderTypes.first['key'].toString() : 'takeaway';
-        if (_tableId != null && !_tables.any((t) => t['id'].toString() == _tableId)) _tableId = null;
+        if (!_orderTypes.any((t) => t['key'] == _type))
+          _type = _orderTypes.isNotEmpty
+              ? _orderTypes.first['key'].toString()
+              : 'takeaway';
+        if (_tableId != null &&
+            !_tables.any((t) => t['id'].toString() == _tableId))
+          _tableId = null;
         _loading = false;
       });
     } catch (e) {
@@ -108,15 +126,16 @@ class _PosViewState extends State<PosView> {
     final prices = (variant['branchPrices'] as List? ?? [])
         .map((v) => Map<String, dynamic>.from(v as Map))
         .toList();
-    final matchingPrices = prices.where((p) =>
-        p['branchId']?.toString() == _branchId).toList();
+    final matchingPrices =
+        prices.where((p) => p['branchId']?.toString() == _branchId).toList();
     final branchPrice = matchingPrices.isEmpty ? null : matchingPrices.first;
     if (branchPrice != null && branchPrice['isAvailable'] == false) {
       _message('Product unavailable at this branch.');
       return;
     }
-    final price = double.tryParse((branchPrice?['salePrice'] ??
-                variant['basePrice']).toString()) ?? 0;
+    final price = double.tryParse(
+            (branchPrice?['salePrice'] ?? variant['basePrice']).toString()) ??
+        0;
     final id = variant['id'].toString();
     setState(() {
       if (_cart.containsKey(id)) {
@@ -148,7 +167,11 @@ class _PosViewState extends State<PosView> {
       final result = await _ops.createOrder(
         branchId: _branchId!,
         orderType: _type,
-        tableLabel: _type == 'dine_in' ? (_tables.firstWhere((t) => t['id'].toString() == _tableId)['name']?.toString()) : null,
+        tableLabel: _type == 'dine_in'
+            ? (_tables
+                .firstWhere((t) => t['id'].toString() == _tableId)['name']
+                ?.toString())
+            : null,
         deliveryAddress: _type == 'delivery' ? _address.text.trim() : null,
         customerName:
             _customer.text.trim().isEmpty ? null : _customer.text.trim(),
@@ -295,8 +318,9 @@ class _PosViewState extends State<PosView> {
     return printReceipt;
   }
 
-  Future<void> _printBluetoothKitchenTickets(Map<String,dynamic> order) async {
-    if (order['kitchenPrintError'] != null && mounted) _message(order['kitchenPrintError'].toString());
+  Future<void> _printBluetoothKitchenTickets(Map<String, dynamic> order) async {
+    if (order['kitchenPrintError'] != null && mounted)
+      _message(order['kitchenPrintError'].toString());
     final tickets = (order['kitchenPrints'] as List? ?? []);
     for (final ticket in tickets) {
       try {
@@ -310,10 +334,15 @@ class _PosViewState extends State<PosView> {
     }
   }
 
-  Future<void> _printBluetoothReceipt(Map<String,dynamic> order) async {
+  Future<void> _printBluetoothReceipt(Map<String, dynamic> order) async {
     try {
       final printers = await _printing.printers(branchId: _branchId);
-      final candidates = printers.where((p) => p['connectionType'] == 'bluetooth' && p['isActive'] != false && (p['purpose'] == 'receipt' || p['purpose'] == 'both')).toList();
+      final candidates = printers
+          .where((p) =>
+              p['connectionType'] == 'bluetooth' &&
+              p['isActive'] != false &&
+              (p['purpose'] == 'receipt' || p['purpose'] == 'both'))
+          .toList();
       if (candidates.isEmpty) {
         final orderId = order['id']?.toString();
         if (orderId != null) await _printing.enqueueReceipt(orderId);
@@ -328,7 +357,8 @@ class _PosViewState extends State<PosView> {
         if (order['tableLabel'] != null) 'Table: ${order['tableLabel']}',
         'Date: ${DateTime.now().toLocal()}',
         '--------------------------------',
-        ...items.map((item) => '${item['quantity']} x ${item['productName']} ${item['variantName'] ?? ''}  PKR ${item['lineTotal'] ?? ''}'),
+        ...items.map((item) =>
+            '${item['quantity']} x ${item['productName']} ${item['variantName'] ?? ''}  PKR ${item['lineTotal'] ?? ''}'),
         '--------------------------------',
         'Subtotal: PKR ${order['subtotal'] ?? ''}',
         'Discount: PKR ${order['discountAmount'] ?? 0}',
@@ -340,7 +370,8 @@ class _PosViewState extends State<PosView> {
         '',
         '',
       ];
-      await _printing.printBluetoothText(printer['deviceIdentifier'].toString(), lines.join('\n'));
+      await _printing.printBluetoothText(
+          printer['deviceIdentifier'].toString(), lines.join('\n'));
       if (mounted) _message('Receipt printed on mobile Bluetooth printer.');
     } catch (e) {
       if (mounted) _message('Order saved, but Bluetooth receipt failed: $e');
@@ -459,15 +490,20 @@ class _PosViewState extends State<PosView> {
                   final branchPrices = variant == null
                       ? <Map<String, dynamic>>[]
                       : (variant['branchPrices'] as List? ?? [])
-                          .map((value) => Map<String, dynamic>.from(value as Map))
+                          .map((value) =>
+                              Map<String, dynamic>.from(value as Map))
                           .toList();
                   final selectedBranchPrices = branchPrices
-                      .where((value) => value['branchId']?.toString() == _branchId)
+                      .where(
+                          (value) => value['branchId']?.toString() == _branchId)
                       .toList();
                   final price = variant == null
                       ? '—'
                       : (selectedBranchPrices.isNotEmpty
-                          ? selectedBranchPrices.first['salePrice']?.toString() ?? variant['basePrice']?.toString() ?? '—'
+                          ? selectedBranchPrices.first['salePrice']
+                                  ?.toString() ??
+                              variant['basePrice']?.toString() ??
+                              '—'
                           : variant['basePrice']?.toString() ?? '—');
                   return Card(
                       child: InkWell(
@@ -535,18 +571,31 @@ class _PosViewState extends State<PosView> {
         DropdownButtonFormField<String>(
             value: _orderTypes.any((t) => t['key'] == _type) ? _type : null,
             decoration: const InputDecoration(labelText: 'Order type'),
-            items: _orderTypes.map((t) => DropdownMenuItem<String>(
-              value: t['key'].toString(), child: Text(t['name'].toString()))).toList(),
-            onChanged: (v) => setState(() { _type = v ?? _type; if (_type != 'dine_in') _tableId = null; })),
+            items: _orderTypes
+                .map((t) => DropdownMenuItem<String>(
+                    value: t['key'].toString(),
+                    child: Text(t['name'].toString())))
+                .toList(),
+            onChanged: (v) => setState(() {
+                  _type = v ?? _type;
+                  if (_type != 'dine_in') _tableId = null;
+                })),
         if (_type == 'dine_in')
           DropdownButtonFormField<String>(
-            value: _tables.any((t) => t['id'].toString() == _tableId) ? _tableId : null,
-            decoration: const InputDecoration(labelText: 'Select dining table'),
-            items: _tables.map((t) => DropdownMenuItem<String>(
-              value: t['id'].toString(), child: Text(t['name'].toString()))).toList(),
-            onChanged: (v) => setState(() => _tableId = v)),
+              value: _tables.any((t) => t['id'].toString() == _tableId)
+                  ? _tableId
+                  : null,
+              decoration:
+                  const InputDecoration(labelText: 'Select dining table'),
+              items: _tables
+                  .map((t) => DropdownMenuItem<String>(
+                      value: t['id'].toString(),
+                      child: Text(t['name'].toString())))
+                  .toList(),
+              onChanged: (v) => setState(() => _tableId = v)),
         if (_type == 'dine_in' && _tables.isEmpty)
-          const Text('No active dining tables. Add tables in Restaurant Settings first.'),
+          const Text(
+              'No active dining tables. Add tables in Restaurant Settings first.'),
         if (_type == 'delivery')
           TextField(
               controller: _address,
@@ -563,7 +612,8 @@ class _PosViewState extends State<PosView> {
         TextField(
             controller: _discount,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(labelText: 'Discount amount (PKR)')),
+            decoration:
+                const InputDecoration(labelText: 'Discount amount (PKR)')),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           const Text('Subtotal preview (before tax/discount)'),
           Text('PKR ' + _total.toStringAsFixed(2),

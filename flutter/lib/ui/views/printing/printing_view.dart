@@ -46,36 +46,57 @@ class PrintingView extends StackedView<PrintingViewModel> {
                             subtitle: Text(
                                 'Add a printer and select its connection type.'))),
                   ...vm.printers.map((p) => Card(
-                    child: ListTile(
-                      onTap: () => _showPrinterDetails(context, vm, p),
-                      leading: const CircleAvatar(child: Icon(Icons.print)),
-                      title: Text('${p['name'] ?? 'Printer'}'),
-                      subtitle: Text('${p['connectionType']} • ${p['paperWidth']} • ${p['purpose']}'),
-                      trailing: Wrap(children: [
-                        if (vm.canManage) IconButton(
-                          tooltip: 'Edit printer',
-                          onPressed: () => _showPrinterForm(context, vm, existing: p),
-                          icon: const Icon(Icons.edit_outlined),
+                        child: ListTile(
+                          onTap: () => _showPrinterDetails(context, vm, p),
+                          leading: const CircleAvatar(child: Icon(Icons.print)),
+                          title: Text('${p['name'] ?? 'Printer'}'),
+                          subtitle: Text(
+                              '${p['connectionType']} • ${p['paperWidth']} • ${p['purpose']}'),
+                          trailing: Wrap(children: [
+                            if (vm.canManage)
+                              IconButton(
+                                tooltip: 'Edit printer',
+                                onPressed: () =>
+                                    _showPrinterForm(context, vm, existing: p),
+                                icon: const Icon(Icons.edit_outlined),
+                              ),
+                            if (vm.canManage)
+                              IconButton(
+                                tooltip: 'Delete printer',
+                                onPressed: () async {
+                                  final yes = await showDialog<bool>(
+                                      context: context,
+                                      builder: (ctx) => AlertDialog(
+                                            title:
+                                                const Text('Delete printer?'),
+                                            content:
+                                                Text('Remove ${p['name']}?'),
+                                            actions: [
+                                              TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(ctx, false),
+                                                  child: const Text('Cancel')),
+                                              FilledButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(ctx, true),
+                                                  child: const Text('Delete')),
+                                            ],
+                                          ));
+                                  if (yes == true)
+                                    await vm.deletePrinter(p['id'].toString());
+                                },
+                                icon: const Icon(Icons.delete_outline),
+                              ),
+                            Icon(
+                                p['isActive'] == true
+                                    ? Icons.check_circle
+                                    : Icons.pause_circle,
+                                color: p['isActive'] == true
+                                    ? Colors.green
+                                    : null),
+                          ]),
                         ),
-                        if (vm.canManage) IconButton(
-                          tooltip: 'Delete printer',
-                          onPressed: () async {
-                            final yes = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
-                              title: const Text('Delete printer?'),
-                              content: Text('Remove ${p['name']}?'),
-                              actions: [
-                                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                                FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
-                              ],
-                            ));
-                            if (yes == true) await vm.deletePrinter(p['id'].toString());
-                          },
-                          icon: const Icon(Icons.delete_outline),
-                        ),
-                        Icon(p['isActive'] == true ? Icons.check_circle : Icons.pause_circle, color: p['isActive'] == true ? Colors.green : null),
-                      ]),
-                    ),
-                  )),
+                      )),
                   const SizedBox(height: 20),
                   Text('Recent print jobs',
                       style: Theme.of(context).textTheme.titleLarge),
@@ -100,7 +121,6 @@ class PrintingView extends StackedView<PrintingViewModel> {
                             : null,
                       ))),
                   const SizedBox(height: 90),
-
                 ]),
               ),
       );
@@ -115,17 +135,22 @@ class PrintingView extends StackedView<PrintingViewModel> {
   Future<void> _showRegister(BuildContext context, PrintingViewModel vm) =>
       _showPrinterForm(context, vm);
 
-  Future<void> _showPrinterForm(BuildContext context, PrintingViewModel vm, {Map<String,dynamic>? existing}) async {
+  Future<void> _showPrinterForm(BuildContext context, PrintingViewModel vm,
+      {Map<String, dynamic>? existing}) async {
     final editing = existing != null;
-    final name = TextEditingController(text: existing?['name']?.toString() ?? '');
-    final branch = TextEditingController(text: existing?['branchId']?.toString() ?? '');
-    final address = TextEditingController(text: existing?['address']?.toString() ?? '');
-    final device = TextEditingController(text: existing?['deviceIdentifier']?.toString() ?? '');
+    final name =
+        TextEditingController(text: existing?['name']?.toString() ?? '');
+    final branch =
+        TextEditingController(text: existing?['branchId']?.toString() ?? '');
+    final address =
+        TextEditingController(text: existing?['address']?.toString() ?? '');
+    final device = TextEditingController(
+        text: existing?['deviceIdentifier']?.toString() ?? '');
     String connection = existing?['connectionType']?.toString() ?? 'network';
     String width = existing?['paperWidth']?.toString() ?? '80mm';
     String purpose = existing?['purpose']?.toString() ?? 'both';
     String? selectedMac = device.text.isEmpty ? null : device.text;
-    List<Map<String,String>> paired = [];
+    List<Map<String, String>> paired = [];
     bool scanning = false;
     String? scanError;
     if (connection == 'bluetooth') {
@@ -142,24 +167,34 @@ class PrintingView extends StackedView<PrintingViewModel> {
       }
     }
     Future<void> scan(StateSetter setDialogState) async {
-      setDialogState(() { scanning = true; scanError = null; });
+      setDialogState(() {
+        scanning = true;
+        scanError = null;
+      });
       try {
         final devices = await vm.pairedBluetoothDevices();
         setDialogState(() {
           paired = devices;
           scanning = false;
-          if (selectedMac != null && !paired.any((d) => d['mac'] == selectedMac)) selectedMac = null;
-          if (selectedMac == null && paired.length == 1) selectedMac = paired.first['mac'];
+          if (selectedMac != null &&
+              !paired.any((d) => d['mac'] == selectedMac)) selectedMac = null;
+          if (selectedMac == null && paired.length == 1)
+            selectedMac = paired.first['mac'];
           if (selectedMac != null) {
             device.text = selectedMac!;
             final found = paired.where((d) => d['mac'] == selectedMac);
-            if (found.isNotEmpty && name.text.trim().isEmpty) name.text = found.first['name'] ?? '';
+            if (found.isNotEmpty && name.text.trim().isEmpty)
+              name.text = found.first['name'] ?? '';
           }
         });
       } catch (e) {
-        setDialogState(() { scanning = false; scanError = e.toString(); });
+        setDialogState(() {
+          scanning = false;
+          scanError = e.toString();
+        });
       }
     }
+
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
@@ -167,18 +202,30 @@ class PrintingView extends StackedView<PrintingViewModel> {
           title: Text(editing ? 'Edit printer' : 'Register printer'),
           content: SingleChildScrollView(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              TextField(controller: name, decoration: const InputDecoration(labelText: 'Printer name')),
-              TextField(controller: branch, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Branch ID')),
+              TextField(
+                  controller: name,
+                  decoration: const InputDecoration(labelText: 'Printer name')),
+              TextField(
+                  controller: branch,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Branch ID')),
               DropdownButtonFormField<String>(
                 value: connection,
                 decoration: const InputDecoration(labelText: 'Connection'),
                 items: const [
                   DropdownMenuItem(value: 'network', child: Text('Network')),
                   DropdownMenuItem(value: 'usb', child: Text('USB')),
-                  DropdownMenuItem(value: 'bluetooth', child: Text('Bluetooth')),
-                  DropdownMenuItem(value: 'windows_bridge', child: Text('Windows bridge')),
+                  DropdownMenuItem(
+                      value: 'bluetooth', child: Text('Bluetooth')),
+                  DropdownMenuItem(
+                      value: 'windows_bridge', child: Text('Windows bridge')),
                 ],
-                onChanged: (v) => setState(() { connection = v ?? connection; selectedMac = null; device.clear(); if (connection == 'bluetooth') scan(setState); }),
+                onChanged: (v) => setState(() {
+                  connection = v ?? connection;
+                  selectedMac = null;
+                  device.clear();
+                  if (connection == 'bluetooth') scan(setState);
+                }),
               ),
               if (connection == 'bluetooth') ...[
                 const SizedBox(height: 10),
@@ -186,119 +233,212 @@ class PrintingView extends StackedView<PrintingViewModel> {
                   const Expanded(child: Text('Paired Bluetooth devices')),
                   TextButton.icon(
                     onPressed: scanning ? null : () => scan(setState),
-                    icon: scanning ? const SizedBox(width:16,height:16,child:CircularProgressIndicator(strokeWidth:2)) : const Icon(Icons.refresh),
+                    icon: scanning
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.refresh),
                     label: Text(scanning ? 'Loading...' : 'Load list'),
                   ),
                 ]),
                 DropdownButtonFormField<String>(
-                  value: paired.any((d) => d['mac'] == selectedMac) ? selectedMac : null,
+                  value: paired.any((d) => d['mac'] == selectedMac)
+                      ? selectedMac
+                      : null,
                   isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Select printer device'),
-                  items: paired.map((d) => DropdownMenuItem<String>(
-                    value: d['mac'],
-                    child: Text('${d['name'] ?? 'Bluetooth device'} • ${d['mac'] ?? ''}', overflow: TextOverflow.ellipsis),
-                  )).toList(),
+                  decoration:
+                      const InputDecoration(labelText: 'Select printer device'),
+                  items: paired
+                      .map((d) => DropdownMenuItem<String>(
+                            value: d['mac'],
+                            child: Text(
+                                '${d['name'] ?? 'Bluetooth device'} • ${d['mac'] ?? ''}',
+                                overflow: TextOverflow.ellipsis),
+                          ))
+                      .toList(),
                   onChanged: (v) => setState(() {
                     selectedMac = v;
                     device.text = v ?? '';
                     final found = paired.where((d) => d['mac'] == v);
-                    if (found.isNotEmpty) name.text = found.first['name'] ?? name.text;
+                    if (found.isNotEmpty)
+                      name.text = found.first['name'] ?? name.text;
                   }),
                 ),
-                if (scanError != null) Align(alignment: Alignment.centerLeft, child: Text(scanError!, style: TextStyle(color: Theme.of(context).colorScheme.error))),
-                if (!scanning && paired.isEmpty && scanError == null) const Align(alignment: Alignment.centerLeft, child: Text('No paired devices found. Pair the printer in phone Bluetooth settings, then load list.')),
-                if (selectedMac != null) Align(alignment: Alignment.centerLeft, child: Text('MAC: $selectedMac')),
+                if (scanError != null)
+                  Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(scanError!,
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.error))),
+                if (!scanning && paired.isEmpty && scanError == null)
+                  const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                          'No paired devices found. Pair the printer in phone Bluetooth settings, then load list.')),
+                if (selectedMac != null)
+                  Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text('MAC: $selectedMac')),
               ],
               DropdownButtonFormField<String>(
                 value: width,
                 decoration: const InputDecoration(labelText: 'Paper width'),
-                items: const [DropdownMenuItem(value: '58mm', child: Text('58mm')), DropdownMenuItem(value: '80mm', child: Text('80mm'))],
+                items: const [
+                  DropdownMenuItem(value: '58mm', child: Text('58mm')),
+                  DropdownMenuItem(value: '80mm', child: Text('80mm'))
+                ],
                 onChanged: (v) => setState(() => width = v ?? width),
               ),
               DropdownButtonFormField<String>(
                 value: purpose,
                 decoration: const InputDecoration(labelText: 'Purpose'),
-                items: const [DropdownMenuItem(value: 'receipt', child: Text('Receipt')), DropdownMenuItem(value: 'kitchen', child: Text('Kitchen')), DropdownMenuItem(value: 'both', child: Text('Both'))],
+                items: const [
+                  DropdownMenuItem(value: 'receipt', child: Text('Receipt')),
+                  DropdownMenuItem(value: 'kitchen', child: Text('Kitchen')),
+                  DropdownMenuItem(value: 'both', child: Text('Both'))
+                ],
                 onChanged: (v) => setState(() => purpose = v ?? purpose),
               ),
-              if (connection == 'network') TextField(controller: address, decoration: const InputDecoration(labelText: 'Network address / IP')),
-              if (connection != 'bluetooth') TextField(controller: device, decoration: const InputDecoration(labelText: 'Device identifier (optional)')),
+              if (connection == 'network')
+                TextField(
+                    controller: address,
+                    decoration: const InputDecoration(
+                        labelText: 'Network address / IP')),
+              if (connection != 'bluetooth')
+                TextField(
+                    controller: device,
+                    decoration: const InputDecoration(
+                        labelText: 'Device identifier (optional)')),
             ]),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
+            TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel')),
             FilledButton(
-              onPressed: vm.isBusy || name.text.trim().isEmpty || branch.text.trim().isEmpty || (connection == 'bluetooth' && (selectedMac == null || selectedMac!.isEmpty)) ? null : () async {
-                Navigator.pop(dialogContext);
-                if (editing) {
-                  await vm.updatePrinter(
-                    id: existing['id'].toString(), branchId: branch.text.trim(), name: name.text.trim(),
-                    connection: connection, width: width, purpose: purpose, address: address.text, device: connection == 'bluetooth' ? selectedMac! : device.text,
-                  );
-                } else {
-                  await vm.register(
-                    branchId: branch.text.trim(), name: name.text.trim(), connection: connection,
-                    width: width, purpose: purpose, address: address.text, device: connection == 'bluetooth' ? selectedMac! : device.text,
-                  );
-                }
-              },
+              onPressed: vm.isBusy ||
+                      name.text.trim().isEmpty ||
+                      branch.text.trim().isEmpty ||
+                      (connection == 'bluetooth' &&
+                          (selectedMac == null || selectedMac!.isEmpty))
+                  ? null
+                  : () async {
+                      Navigator.pop(dialogContext);
+                      if (editing) {
+                        await vm.updatePrinter(
+                          id: existing['id'].toString(),
+                          branchId: branch.text.trim(),
+                          name: name.text.trim(),
+                          connection: connection,
+                          width: width,
+                          purpose: purpose,
+                          address: address.text,
+                          device: connection == 'bluetooth'
+                              ? selectedMac!
+                              : device.text,
+                        );
+                      } else {
+                        await vm.register(
+                          branchId: branch.text.trim(),
+                          name: name.text.trim(),
+                          connection: connection,
+                          width: width,
+                          purpose: purpose,
+                          address: address.text,
+                          device: connection == 'bluetooth'
+                              ? selectedMac!
+                              : device.text,
+                        );
+                      }
+                    },
               child: Text(editing ? 'Update printer' : 'Save printer'),
             ),
           ],
         ),
       ),
     );
-    name.dispose(); branch.dispose(); address.dispose(); device.dispose();
+    name.dispose();
+    branch.dispose();
+    address.dispose();
+    device.dispose();
   }
 
-  Future<void> _showPrinterDetails(BuildContext context, PrintingViewModel vm, Map<String,dynamic> printer) async {
+  Future<void> _showPrinterDetails(BuildContext context, PrintingViewModel vm,
+      Map<String, dynamic> printer) async {
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(printer['name']?.toString() ?? 'Printer details'),
-        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Connection: ${printer['connectionType']}'),
-          Text('MAC / Device: ${printer['deviceIdentifier'] ?? '-'}'),
-          Text('Network address: ${printer['address'] ?? '-'}'),
-          Text('Paper: ${printer['paperWidth']}'),
-          Text('Purpose: ${printer['purpose']}'),
-          Text('Branch ID: ${printer['branchId']}'),
-          Text('Status: ${printer['isActive'] == true ? 'Active' : 'Inactive'}'),
-        ]),
+        content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Connection: ${printer['connectionType']}'),
+              Text('MAC / Device: ${printer['deviceIdentifier'] ?? '-'}'),
+              Text('Network address: ${printer['address'] ?? '-'}'),
+              Text('Paper: ${printer['paperWidth']}'),
+              Text('Purpose: ${printer['purpose']}'),
+              Text('Branch ID: ${printer['branchId']}'),
+              Text(
+                  'Status: ${printer['isActive'] == true ? 'Active' : 'Inactive'}'),
+            ]),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Close')),
-          if (vm.canManage) TextButton.icon(
-            onPressed: () async {
-              Navigator.pop(dialogContext);
-              final ok = await vm.testPrint(printer);
-              if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ok ? 'Printer test completed.' : vm.loadingError ?? 'Printer test failed.')));
-            },
-            icon: const Icon(Icons.print), label: const Text('Test printer'),
-          ),
-          if (vm.canManage) TextButton.icon(
-            onPressed: () { Navigator.pop(dialogContext); _showPrinterForm(context, vm, existing: printer); },
-            icon: const Icon(Icons.edit), label: const Text('Edit'),
-          ),
-          if (vm.canManage) TextButton.icon(
-            onPressed: () async {
-              Navigator.pop(dialogContext);
-              final confirmed = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
-                title: const Text('Delete printer?'),
-                content: Text('Remove ${printer['name']} from configured printers?'),
-                actions: [
-                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                  FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
-                ],
-              ));
-              if (confirmed == true) await vm.deletePrinter(printer['id'].toString());
-            },
-            icon: const Icon(Icons.delete_outline), label: const Text('Delete'),
-          ),
+          TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Close')),
+          if (vm.canManage)
+            TextButton.icon(
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                final ok = await vm.testPrint(printer);
+                if (context.mounted)
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text(ok
+                          ? 'Printer test completed.'
+                          : vm.loadingError ?? 'Printer test failed.')));
+              },
+              icon: const Icon(Icons.print),
+              label: const Text('Test printer'),
+            ),
+          if (vm.canManage)
+            TextButton.icon(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                _showPrinterForm(context, vm, existing: printer);
+              },
+              icon: const Icon(Icons.edit),
+              label: const Text('Edit'),
+            ),
+          if (vm.canManage)
+            TextButton.icon(
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                          title: const Text('Delete printer?'),
+                          content: Text(
+                              'Remove ${printer['name']} from configured printers?'),
+                          actions: [
+                            TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: const Text('Cancel')),
+                            FilledButton(
+                                onPressed: () => Navigator.pop(ctx, true),
+                                child: const Text('Delete')),
+                          ],
+                        ));
+                if (confirmed == true)
+                  await vm.deletePrinter(printer['id'].toString());
+              },
+              icon: const Icon(Icons.delete_outline),
+              label: const Text('Delete'),
+            ),
         ],
       ),
     );
   }
-
 }
 
 class PrintingViewModel extends BaseViewModel {
@@ -372,9 +512,14 @@ class PrintingViewModel extends BaseViewModel {
     setBusy(true);
     loadingError = null;
     try {
-      await service.updatePrinter(id, branchId: branchId, name: name,
-        connectionType: connection, paperWidth: width, purpose: purpose,
-        address: address, deviceIdentifier: device);
+      await service.updatePrinter(id,
+          branchId: branchId,
+          name: name,
+          connectionType: connection,
+          paperWidth: width,
+          purpose: purpose,
+          address: address,
+          deviceIdentifier: device);
       await load();
     } catch (e) {
       loadingError = e.toString();
@@ -398,7 +543,8 @@ class PrintingViewModel extends BaseViewModel {
     }
   }
 
-  Future<List<Map<String, String>>> pairedBluetoothDevices() => service.pairedBluetoothDevices();
+  Future<List<Map<String, String>>> pairedBluetoothDevices() =>
+      service.pairedBluetoothDevices();
 
   Future<bool> testPrint(Map<String, dynamic> printer) async {
     setBusy(true);

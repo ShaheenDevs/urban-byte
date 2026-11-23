@@ -9,8 +9,7 @@ class LoginViewModel extends BaseViewModel {
   LoginViewModel(this._authService);
   final AuthService _authService;
   final identifierController = TextEditingController();
-  final passwordController =
-      TextEditingController();
+  final passwordController = TextEditingController();
   String? message;
 
   Future<AuthSession?> login() async {

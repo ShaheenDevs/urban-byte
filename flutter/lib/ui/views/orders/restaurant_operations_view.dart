@@ -161,69 +161,144 @@ class RestaurantOperationsViewModel extends BaseViewModel {
 class _Orders extends StatelessWidget {
   const _Orders(this.vm);
   final RestaurantOperationsViewModel vm;
-  Future<void> _printPaidBill(BuildContext context, Map<String,dynamic> order) async {
+  Future<void> _printPaidBill(
+      BuildContext context, Map<String, dynamic> order) async {
     try {
       final printing = PrintingService();
-      final printers = await printing.printers(branchId: order['branchId']?.toString());
-      final bluetooth = printers.where((p) => p['connectionType'] == 'bluetooth' && p['isActive'] != false && (p['purpose'] == 'receipt' || p['purpose'] == 'both')).toList();
+      final printers =
+          await printing.printers(branchId: order['branchId']?.toString());
+      final bluetooth = printers
+          .where((p) =>
+              p['connectionType'] == 'bluetooth' &&
+              p['isActive'] != false &&
+              (p['purpose'] == 'receipt' || p['purpose'] == 'both'))
+          .toList();
       if (bluetooth.isEmpty) {
         await printing.enqueueReceipt(order['id'].toString());
         return;
       }
       final lines = <String>[
-        'URBAN BYTE', 'CUSTOMER BILL',
+        'URBAN BYTE',
+        'CUSTOMER BILL',
         'Order: ${order['orderNumber'] ?? order['id']}',
         'Date: ${DateTime.now().toLocal()}',
         '--------------------------------',
-        ...((order['items'] as List? ?? []).map((item) => '${item['quantity']} x ${item['productName']} ${item['variantName'] ?? ''}  PKR ${item['lineTotal'] ?? ''}')),
+        ...((order['items'] as List? ?? []).map((item) =>
+            '${item['quantity']} x ${item['productName']} ${item['variantName'] ?? ''}  PKR ${item['lineTotal'] ?? ''}')),
         '--------------------------------',
         'Subtotal: PKR ${order['subtotal'] ?? ''}',
         'Discount: PKR ${order['discountAmount'] ?? 0}',
         'Tax: PKR ${order['taxAmount'] ?? 0}',
         'TOTAL: PKR ${order['grandTotal'] ?? ''}',
-        'Payment: PAID', '', 'Thank you for visiting Urban Byte!', '', '',
+        'Payment: PAID',
+        '',
+        'Thank you for visiting Urban Byte!',
+        '',
+        '',
       ];
-      await printing.printBluetoothText(bluetooth.first['deviceIdentifier'].toString(), lines.join('\n'));
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Paid bill printed.')));
+      await printing.printBluetoothText(
+          bluetooth.first['deviceIdentifier'].toString(), lines.join('\n'));
+      if (context.mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Paid bill printed.')));
     } catch (e) {
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Payment saved, but bill printing failed: $e')));
+      if (context.mounted)
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Payment saved, but bill printing failed: $e')));
     }
   }
 
-  Future<void> _collectPayment(BuildContext context, Map<String,dynamic> order, double due, RestaurantOperationsViewModel vm) async {
+  Future<void> _collectPayment(BuildContext context, Map<String, dynamic> order,
+      double due, RestaurantOperationsViewModel vm) async {
     final amount = TextEditingController(text: due.toStringAsFixed(2));
     final reference = TextEditingController();
     String method = 'cash';
-    final confirmed = await showDialog<bool>(context: context, builder: (dialogContext) => StatefulBuilder(builder: (context, setDialogState) => AlertDialog(
-      title: Text('Receive payment • ${order['orderNumber'] ?? order['id']}'),
-      content: Column(mainAxisSize: MainAxisSize.min, children: [
-        Text('Remaining: PKR ${due.toStringAsFixed(2)}'),
-        DropdownButtonFormField<String>(value: method, decoration: const InputDecoration(labelText: 'Payment method'), items: const [
-          DropdownMenuItem(value:'cash',child:Text('Cash')), DropdownMenuItem(value:'card',child:Text('Card')),
-          DropdownMenuItem(value:'easypaisa',child:Text('Easypaisa')), DropdownMenuItem(value:'jazzcash',child:Text('JazzCash')),
-          DropdownMenuItem(value:'bank_transfer',child:Text('Bank transfer')),
-        ], onChanged:(v)=>setDialogState(()=>method=v??'cash')),
-        TextField(controller: amount, keyboardType: const TextInputType.numberWithOptions(decimal:true), decoration: const InputDecoration(labelText:'Amount received (PKR)')),
-        if(method!='cash') TextField(controller:reference,decoration:const InputDecoration(labelText:'Transaction reference')),
-      ]),
-      actions: [
-        TextButton(onPressed:()=>Navigator.pop(dialogContext),child:const Text('Cancel')),
-        FilledButton(onPressed:()=>Navigator.pop(dialogContext,true),child:const Text('Confirm received')),
-      ],
-    )));
-    if(confirmed != true){ amount.dispose(); reference.dispose(); return; }
-      final value=double.tryParse(amount.text.trim());
-      if(value==null||value<=0||value>due){if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Enter an amount within the remaining balance.')));amount.dispose();reference.dispose();return;}
-      try {
-        final payment = await PaymentService().record(orderId:'${order['id']}',amount:value,method:method,reference:reference.text,markReceived:method != 'cod');
-        final paidBefore = (order['payments'] as List? ?? []).where((p) => p['status'] == 'verified').fold<double>(0, (sum, p) => sum + (double.tryParse('${p['amount'] ?? 0}') ?? 0));
-        final total = double.tryParse('${order['grandTotal'] ?? 0}') ?? 0;
-        final fullyPaid = payment['status'] == 'verified' && paidBefore + value >= total;
-        await vm.load();
-        if (fullyPaid) await _printPaidBill(context, order);
-        if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Payment received and updated.')));
-      } catch(e) { if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(e.toString()))); }
-    amount.dispose(); reference.dispose();
+    final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => StatefulBuilder(
+            builder: (context, setDialogState) => AlertDialog(
+                  title: Text(
+                      'Receive payment • ${order['orderNumber'] ?? order['id']}'),
+                  content: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Text('Remaining: PKR ${due.toStringAsFixed(2)}'),
+                    DropdownButtonFormField<String>(
+                        value: method,
+                        decoration:
+                            const InputDecoration(labelText: 'Payment method'),
+                        items: const [
+                          DropdownMenuItem(value: 'cash', child: Text('Cash')),
+                          DropdownMenuItem(value: 'card', child: Text('Card')),
+                          DropdownMenuItem(
+                              value: 'easypaisa', child: Text('Easypaisa')),
+                          DropdownMenuItem(
+                              value: 'jazzcash', child: Text('JazzCash')),
+                          DropdownMenuItem(
+                              value: 'bank_transfer',
+                              child: Text('Bank transfer')),
+                        ],
+                        onChanged: (v) =>
+                            setDialogState(() => method = v ?? 'cash')),
+                    TextField(
+                        controller: amount,
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        decoration: const InputDecoration(
+                            labelText: 'Amount received (PKR)')),
+                    if (method != 'cash')
+                      TextField(
+                          controller: reference,
+                          decoration: const InputDecoration(
+                              labelText: 'Transaction reference')),
+                  ]),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        child: const Text('Cancel')),
+                    FilledButton(
+                        onPressed: () => Navigator.pop(dialogContext, true),
+                        child: const Text('Confirm received')),
+                  ],
+                )));
+    if (confirmed != true) {
+      amount.dispose();
+      reference.dispose();
+      return;
+    }
+    final value = double.tryParse(amount.text.trim());
+    if (value == null || value <= 0 || value > due) {
+      if (context.mounted)
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Enter an amount within the remaining balance.')));
+      amount.dispose();
+      reference.dispose();
+      return;
+    }
+    try {
+      final payment = await PaymentService().record(
+          orderId: '${order['id']}',
+          amount: value,
+          method: method,
+          reference: reference.text,
+          markReceived: method != 'cod');
+      final paidBefore = (order['payments'] as List? ?? [])
+          .where((p) => p['status'] == 'verified')
+          .fold<double>(0,
+              (sum, p) => sum + (double.tryParse('${p['amount'] ?? 0}') ?? 0));
+      final total = double.tryParse('${order['grandTotal'] ?? 0}') ?? 0;
+      final fullyPaid =
+          payment['status'] == 'verified' && paidBefore + value >= total;
+      await vm.load();
+      if (fullyPaid) await _printPaidBill(context, order);
+      if (context.mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Payment received and updated.')));
+    } catch (e) {
+      if (context.mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+    amount.dispose();
+    reference.dispose();
   }
 
   @override
@@ -253,42 +328,91 @@ class _Orders extends StatelessWidget {
                             Text(
                                 '${o['orderType']} • ${o['tableLabel'] ?? o['customerName'] ?? ''}'),
                             Builder(builder: (context) {
-                              final total = double.tryParse('${o['grandTotal'] ?? 0}') ?? 0;
+                              final total =
+                                  double.tryParse('${o['grandTotal'] ?? 0}') ??
+                                      0;
                               final payments = (o['payments'] as List? ?? []);
-                              final paid = payments.where((p) => p['status'] == 'verified').fold<double>(0, (sum, p) => sum + (double.tryParse('${p['amount'] ?? 0}') ?? 0));
-                              final pending = payments.where((p) => p['status'] == 'pending').fold<double>(0, (sum, p) => sum + (double.tryParse('${p['amount'] ?? 0}') ?? 0));
-                              final remaining = (total - paid).clamp(0, total).toDouble();
-                              final due = (remaining - pending).clamp(0, total).toDouble();
-                              return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                Text('Order status: $status • Payment status: ${o['paymentStatus'] ?? 'unpaid'}'),
-                                Text('Order total: PKR ${total.toStringAsFixed(2)}'),
-                                Text('Verified paid: PKR ${paid.toStringAsFixed(2)} • Awaiting verification: PKR ${pending.toStringAsFixed(2)}'),
-                                Text('Remaining balance: PKR ${remaining.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                                if (due > 0 && vm.permissions.contains('payments.record'))
-                                  Align(alignment: Alignment.centerRight, child: TextButton.icon(
-                                    onPressed: vm.isBusy ? null : () => _collectPayment(context, o, due, vm),
-                                    icon: const Icon(Icons.payments_outlined), label: const Text('Receive payment now'),
-                                  )),
-                              ]);
+                              final paid = payments
+                                  .where((p) => p['status'] == 'verified')
+                                  .fold<double>(
+                                      0,
+                                      (sum, p) =>
+                                          sum +
+                                          (double.tryParse(
+                                                  '${p['amount'] ?? 0}') ??
+                                              0));
+                              final pending = payments
+                                  .where((p) => p['status'] == 'pending')
+                                  .fold<double>(
+                                      0,
+                                      (sum, p) =>
+                                          sum +
+                                          (double.tryParse(
+                                                  '${p['amount'] ?? 0}') ??
+                                              0));
+                              final remaining =
+                                  (total - paid).clamp(0, total).toDouble();
+                              final due = (remaining - pending)
+                                  .clamp(0, total)
+                                  .toDouble();
+                              return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                        'Order status: $status • Payment status: ${o['paymentStatus'] ?? 'unpaid'}'),
+                                    Text(
+                                        'Order total: PKR ${total.toStringAsFixed(2)}'),
+                                    Text(
+                                        'Verified paid: PKR ${paid.toStringAsFixed(2)} • Awaiting verification: PKR ${pending.toStringAsFixed(2)}'),
+                                    Text(
+                                        'Remaining balance: PKR ${remaining.toStringAsFixed(2)}',
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold)),
+                                    if (due > 0 &&
+                                        vm.permissions
+                                            .contains('payments.record'))
+                                      Align(
+                                          alignment: Alignment.centerRight,
+                                          child: TextButton.icon(
+                                            onPressed: vm.isBusy
+                                                ? null
+                                                : () => _collectPayment(
+                                                    context, o, due, vm),
+                                            icon: const Icon(
+                                                Icons.payments_outlined),
+                                            label: const Text(
+                                                'Receive payment now'),
+                                          )),
+                                  ]);
                             }),
                             Text(items
                                 .map((i) =>
                                     '${i['quantity']} × ${i['productName']}')
                                 .join(', ')),
-                            if (vm.canUpdate && (status == 'ready' || status == 'out_for_delivery') && o['paymentStatus'] == 'paid')
+                            if (vm.canUpdate &&
+                                (status == 'ready' ||
+                                    status == 'out_for_delivery') &&
+                                o['paymentStatus'] == 'paid')
                               Align(
                                 alignment: Alignment.centerRight,
                                 child: FilledButton.icon(
-                                  onPressed: vm.isBusy ? null : () async {
-                                    await vm.changeStatus(id, 'completed');
-                                    if (vm.loadError == null && context.mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order marked completed.')));
-                                    }
-                                  },
+                                  onPressed: vm.isBusy
+                                      ? null
+                                      : () async {
+                                          await vm.changeStatus(
+                                              id, 'completed');
+                                          if (vm.loadError == null &&
+                                              context.mounted) {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(const SnackBar(
+                                                    content: Text(
+                                                        'Order marked completed.')));
+                                          }
+                                        },
                                   icon: const Icon(Icons.check_circle_outline),
                                   label: const Text('Complete order'),
                                 ),
-                              )
+                              ),
                             if (vm.canUpdate && status == 'placed')
                               Align(
                                   alignment: Alignment.centerRight,

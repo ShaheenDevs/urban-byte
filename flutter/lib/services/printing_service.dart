@@ -52,7 +52,8 @@ class PrintingService {
     });
   }
 
-  Future<void> updatePrinter(String id, {
+  Future<void> updatePrinter(
+    String id, {
     required String branchId,
     required String name,
     required String connectionType,
@@ -97,14 +98,16 @@ class PrintingService {
     } else {
       final granted = await PrintBluetoothThermal.isPermissionBluetoothGranted;
       if (!granted) {
-        throw const PrintingException('Allow Bluetooth permission for Urban Byte in device settings.');
+        throw const PrintingException(
+            'Allow Bluetooth permission for Urban Byte in device settings.');
       }
     }
   }
 
   Future<List<Map<String, String>>> pairedBluetoothDevices() async {
     await _ensureBluetoothPermission();
-    final List<BluetoothInfo> listResult = await PrintBluetoothThermal.pairedBluetooths;
+    final List<BluetoothInfo> listResult =
+        await PrintBluetoothThermal.pairedBluetooths;
     final devices = <Map<String, String>>[];
     await Future.forEach(listResult, (BluetoothInfo bluetooth) {
       final String name = bluetooth.name;

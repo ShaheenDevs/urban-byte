@@ -213,7 +213,8 @@ class RoleDashboardPlaceholder extends StatelessWidget {
                 subtitle: const Text('Tax, discounts and receipt branding'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const RestaurantSettingsView()),
+                  MaterialPageRoute(
+                      builder: (_) => const RestaurantSettingsView()),
                 ),
               ),
             ),
@@ -257,7 +258,6 @@ class RoleDashboardPlaceholder extends StatelessWidget {
       );
 }
 
-
 class DashboardSummaryPanel extends StatefulWidget {
   const DashboardSummaryPanel({super.key, required this.permissions});
   final Set<String> permissions;
@@ -269,13 +269,15 @@ class _DashboardSummaryPanelState extends State<DashboardSummaryPanel> {
   final _api = locator<OperationsService>();
   bool _loading = true;
   String? _error;
-  Map<String,dynamic> _metrics = {};
+  Map<String, dynamic> _metrics = {};
   String _period = 'Today';
   late DateTime _start;
   late DateTime _end;
   String? _startTime;
   String? _endTime;
-  bool get _canViewHistory => widget.permissions.contains('orders.view_all') || widget.permissions.contains('orders.view_own');
+  bool get _canViewHistory =>
+      widget.permissions.contains('orders.view_all') ||
+      widget.permissions.contains('orders.view_own');
 
   @override
   void initState() {
@@ -286,17 +288,25 @@ class _DashboardSummaryPanelState extends State<DashboardSummaryPanel> {
     _load();
   }
 
-  String _date(DateTime value) => '${value.year.toString().padLeft(4,'0')}-${value.month.toString().padLeft(2,'0')}-${value.day.toString().padLeft(2,'0')}';
+  String _date(DateTime value) =>
+      '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
 
   Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final data = await _api.dashboardSummary(
-        startDate: _date(_start), endDate: _date(_end),
-        startTime: _startTime, endTime: _endTime,
+        startDate: _date(_start),
+        endDate: _date(_end),
+        startTime: _startTime,
+        endTime: _endTime,
       );
-      _metrics = Map<String,dynamic>.from(data['metrics'] as Map? ?? {});
-    } catch (e) { _error = e.toString(); }
+      _metrics = Map<String, dynamic>.from(data['metrics'] as Map? ?? {});
+    } catch (e) {
+      _error = e.toString();
+    }
     if (mounted) setState(() => _loading = false);
   }
 
@@ -307,76 +317,152 @@ class _DashboardSummaryPanelState extends State<DashboardSummaryPanel> {
     DateTime end = today;
     String? startTime;
     String? endTime;
-    if (value == 'Week') start = today.subtract(Duration(days: today.weekday - 1));
+    if (value == 'Week')
+      start = today.subtract(Duration(days: today.weekday - 1));
     if (value == 'Month') start = DateTime(today.year, today.month, 1);
     if (value == 'Year') start = DateTime(today.year, 1, 1);
     if (value == 'Custom') {
       final range = await showDateRangePicker(
-        context: context, firstDate: DateTime(2020), lastDate: DateTime(now.year + 2),
+        context: context,
+        firstDate: DateTime(2020),
+        lastDate: DateTime(now.year + 2),
         initialDateRange: DateTimeRange(start: _start, end: _end),
       );
       if (range == null) return;
-      final from = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 0, minute: 0));
+      final from = await showTimePicker(
+          context: context, initialTime: const TimeOfDay(hour: 0, minute: 0));
       if (from == null) return;
-      final to = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 23, minute: 59));
+      final to = await showTimePicker(
+          context: context, initialTime: const TimeOfDay(hour: 23, minute: 59));
       if (to == null) return;
-      start = range.start; end = range.end;
-      startTime = '${from.hour.toString().padLeft(2,'0')}:${from.minute.toString().padLeft(2,'0')}';
-      endTime = '${to.hour.toString().padLeft(2,'0')}:${to.minute.toString().padLeft(2,'0')}';
+      start = range.start;
+      end = range.end;
+      startTime =
+          '${from.hour.toString().padLeft(2, '0')}:${from.minute.toString().padLeft(2, '0')}';
+      endTime =
+          '${to.hour.toString().padLeft(2, '0')}:${to.minute.toString().padLeft(2, '0')}';
     }
     if (start == end && startTime != null && endTime != null) {
       final startParts = startTime.split(':');
       final endParts = endTime.split(':');
-      final startMinutes = int.parse(startParts[0]) * 60 + int.parse(startParts[1]);
+      final startMinutes =
+          int.parse(startParts[0]) * 60 + int.parse(startParts[1]);
       final endMinutes = int.parse(endParts[0]) * 60 + int.parse(endParts[1]);
       if (startMinutes >= endMinutes) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('End time must be after start time.')));
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('End time must be after start time.')));
         return;
       }
     }
-    setState(() { _period = value; _start = start; _end = end; _startTime = startTime; _endTime = endTime; });
+    setState(() {
+      _period = value;
+      _start = start;
+      _end = end;
+      _startTime = startTime;
+      _endTime = endTime;
+    });
     await _load();
   }
 
-  void _history(String title, {String? statusGroup, String? paymentStatusGroup, String? paymentStatus}) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => DashboardOrdersView(
-      title: title, statusGroup: statusGroup, paymentStatusGroup: paymentStatusGroup,
-      paymentStatus: paymentStatus, initialStartDate: _date(_start), initialEndDate: _date(_end),
-      initialStartTime: _startTime, initialEndTime: _endTime,
-    )));
+  void _history(String title,
+      {String? statusGroup,
+      String? paymentStatusGroup,
+      String? paymentStatus}) {
+    Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => DashboardOrdersView(
+              title: title,
+              statusGroup: statusGroup,
+              paymentStatusGroup: paymentStatusGroup,
+              paymentStatus: paymentStatus,
+              initialStartDate: _date(_start),
+              initialEndDate: _date(_end),
+              initialStartTime: _startTime,
+              initialEndTime: _endTime,
+            )));
   }
 
   @override
   Widget build(BuildContext context) {
     final paid = _metrics['paidRevenueToday']?.toString() ?? '0.00';
     final pending = _metrics['pendingRevenue']?.toString() ?? '0.00';
-    final range = '${_date(_start)} → ${_date(_end)}${_startTime != null ? ' • $_startTime–$_endTime' : ''}';
-    return Card(child: Padding(
+    final range =
+        '${_date(_start)} → ${_date(_end)}${_startTime != null ? ' • $_startTime–$_endTime' : ''}';
+    return Card(
+        child: Padding(
       padding: const EdgeInsets.all(16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Sales & orders overview', style: Theme.of(context).textTheme.titleMedium),
+        Text('Sales & orders overview',
+            style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 4),
         Text(range, style: Theme.of(context).textTheme.bodySmall),
         const SizedBox(height: 10),
         Wrap(spacing: 6, runSpacing: 4, children: [
-          for (final item in ['Today','Week','Month','Year','Custom'])
-            ChoiceChip(label: Text(item), selected: _period == item, onSelected: _loading ? null : (_) => _selectPeriod(item)),
+          for (final item in ['Today', 'Week', 'Month', 'Year', 'Custom'])
+            ChoiceChip(
+                label: Text(item),
+                selected: _period == item,
+                onSelected: _loading ? null : (_) => _selectPeriod(item)),
         ]),
-        if (_loading) const Padding(padding: EdgeInsets.all(18), child: Center(child: CircularProgressIndicator()))
-        else if (_error != null) Row(children: [
-          Expanded(child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error))),
-          IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
-        ])
-        else Wrap(spacing: 12, runSpacing: 12, children: [
-          _MetricTile(label: 'Orders', value: '${_metrics['todayOrders'] ?? 0}', onTap: _canViewHistory ? () => _history('Orders',) : null),
-          _MetricTile(label: 'Open orders', value: '${_metrics['openOrders'] ?? 0}', onTap: _canViewHistory ? () => _history('Open orders', statusGroup: 'open') : null),
-          _MetricTile(label: 'Completed', value: '${_metrics['completedToday'] ?? 0}', onTap: _canViewHistory ? () => _history('Completed orders', statusGroup: 'completed') : null),
-          _MetricTile(label: 'Pending payments', value: '${_metrics['pendingPayments'] ?? 0}', onTap: _canViewHistory ? () => _history('Pending payments', paymentStatusGroup: 'pending') : null),
-          _MetricTile(label: 'Paid revenue', value: 'PKR $paid', onTap: _canViewHistory ? () => _history('Paid revenue', paymentStatus: 'paid') : null),
-          _MetricTile(label: 'Pending total revenue', value: 'PKR $pending', onTap: _canViewHistory ? () => _history('Pending total revenue', paymentStatusGroup: 'pending') : null),
-        ]),
+        if (_loading)
+          const Padding(
+              padding: EdgeInsets.all(18),
+              child: Center(child: CircularProgressIndicator()))
+        else if (_error != null)
+          Row(children: [
+            Expanded(
+                child: Text(_error!,
+                    style:
+                        TextStyle(color: Theme.of(context).colorScheme.error))),
+            IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
+          ])
+        else
+          Wrap(spacing: 12, runSpacing: 12, children: [
+            _MetricTile(
+                label: 'Orders',
+                value: '${_metrics['todayOrders'] ?? 0}',
+                onTap: _canViewHistory
+                    ? () => _history(
+                          'Orders',
+                        )
+                    : null),
+            _MetricTile(
+                label: 'Open orders',
+                value: '${_metrics['openOrders'] ?? 0}',
+                onTap: _canViewHistory
+                    ? () => _history('Open orders', statusGroup: 'open')
+                    : null),
+            _MetricTile(
+                label: 'Completed',
+                value: '${_metrics['completedToday'] ?? 0}',
+                onTap: _canViewHistory
+                    ? () =>
+                        _history('Completed orders', statusGroup: 'completed')
+                    : null),
+            _MetricTile(
+                label: 'Pending payments',
+                value: '${_metrics['pendingPayments'] ?? 0}',
+                onTap: _canViewHistory
+                    ? () => _history('Pending payments',
+                        paymentStatusGroup: 'pending')
+                    : null),
+            _MetricTile(
+                label: 'Paid revenue',
+                value: 'PKR $paid',
+                onTap: _canViewHistory
+                    ? () => _history('Paid revenue', paymentStatus: 'paid')
+                    : null),
+            _MetricTile(
+                label: 'Pending total revenue',
+                value: 'PKR $pending',
+                onTap: _canViewHistory
+                    ? () => _history('Pending total revenue',
+                        paymentStatusGroup: 'pending')
+                    : null),
+          ]),
         const SizedBox(height: 6),
-        Text('Timezone: Pakistan (UTC+05:00)', style: Theme.of(context).textTheme.bodySmall),
+        Text('Timezone: Pakistan (UTC+05:00)',
+            style: Theme.of(context).textTheme.bodySmall),
       ]),
     ));
   }
@@ -400,16 +486,16 @@ class _MetricTile extends StatelessWidget {
             onTap: onTap,
             borderRadius: BorderRadius.circular(12),
             child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(value, style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 4),
-                Text(label, style: Theme.of(context).textTheme.bodySmall),
-              ],
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(value, style: Theme.of(context).textTheme.titleLarge),
+                  const SizedBox(height: 4),
+                  Text(label, style: Theme.of(context).textTheme.bodySmall),
+                ],
+              ),
             ),
-          ),
           ),
         ),
       );

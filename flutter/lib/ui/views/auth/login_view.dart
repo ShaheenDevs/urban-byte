@@ -49,7 +49,8 @@ class LoginView extends StackedView<LoginViewModel> {
                       decoration: const InputDecoration(
                           labelText: 'Password', border: OutlineInputBorder())),
                   const SizedBox(height: 16),
-                  const Text('Role preview — select a role to open its workspace',
+                  const Text(
+                      'Role preview — select a role to open its workspace',
                       style: TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   FutureBuilder<List<Map<String, dynamic>>>(
@@ -65,24 +66,30 @@ class LoginView extends StackedView<LoginViewModel> {
                         return Text('Unable to load roles: ${snapshot.error}');
                       }
                       final roles = snapshot.data ?? [];
-                      if (roles.isEmpty) return const Text('No roles configured.');
+                      if (roles.isEmpty)
+                        return const Text('No roles configured.');
                       return Wrap(
                         spacing: 8,
                         runSpacing: 8,
                         children: roles.map((role) {
                           final slug = role['slug']?.toString() ?? '';
                           final name = role['name']?.toString() ?? slug;
-                          final rawKeys = role['permissionKeys'] as List? ?? const [];
-                          final rolePermissions = rawKeys.map((key) => key.toString()).toSet();
+                          final rawKeys =
+                              role['permissionKeys'] as List? ?? const [];
+                          final rolePermissions =
+                              rawKeys.map((key) => key.toString()).toSet();
                           return OutlinedButton.icon(
-                            onPressed: slug.isEmpty ? null : () {
-                              Navigator.of(context).push(MaterialPageRoute(
-                                builder: (_) => RoleDashboardPlaceholder(
-                                  roleName: name,
-                                  permissions: rolePermissions,
-                                ),
-                              ));
-                            },
+                            onPressed: slug.isEmpty
+                                ? null
+                                : () {
+                                    Navigator.of(context)
+                                        .push(MaterialPageRoute(
+                                      builder: (_) => RoleDashboardPlaceholder(
+                                        roleName: name,
+                                        permissions: rolePermissions,
+                                      ),
+                                    ));
+                                  },
                             icon: const Icon(Icons.badge_outlined),
                             label: Text(name),
                           );
@@ -127,4 +134,3 @@ class LoginView extends StackedView<LoginViewModel> {
   LoginViewModel viewModelBuilder(BuildContext context) =>
       LoginViewModel(locator<AuthService>());
 }
-
