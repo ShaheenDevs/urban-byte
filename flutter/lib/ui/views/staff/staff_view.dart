@@ -195,7 +195,7 @@ class StaffView extends StackedView<StaffViewModel> {
     final roles = await model.loadRoles();
     if (!context.mounted) return;
     final selected = <int>{};
-    await showDialog<void>(
+    final confirmed = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => StatefulBuilder(
             builder: (context, setState) => AlertDialog(
@@ -261,7 +261,7 @@ class StaffView extends StackedView<StaffViewModel> {
                                     ])))),
                     actions: [
                       TextButton(
-                          onPressed: () => Navigator.pop(dialogContext),
+                          onPressed: () => Navigator.pop(dialogContext, false),
                           child: const Text('Cancel')),
                       FilledButton(
                           onPressed: () => form.currentState!.validate() &&
@@ -272,7 +272,7 @@ class StaffView extends StackedView<StaffViewModel> {
                     ])));
     if (!context.mounted) return;
     // Creation is submitted only after explicit confirmation in the dialog.
-    if (selected.isNotEmpty &&
+    if (confirmed == true && selected.isNotEmpty &&
         name.text.trim().isNotEmpty &&
         contact.text.trim().isNotEmpty &&
         password.text.length >= 12) {
