@@ -43,19 +43,17 @@ class BranchOperationsView extends StackedView<BranchOperationsViewModel> {
                   onChanged: model.isBusy ? null : model.selectBranch,
                 ),
                 const SizedBox(height: 10),
-                Row(children: [
-                  Expanded(child: OutlinedButton.icon(
-                    onPressed: model.isBusy ? null : () async {
-                      final range = await showDateRangePicker(
-                        context: context, firstDate: DateTime(2020), lastDate: DateTime.now().add(const Duration(days: 365)),
-                        initialDateRange: DateTimeRange(start: model.from, end: model.to),
-                      );
-                      if (range != null) await model.selectRange(range.start, range.end);
-                    },
-                    icon: const Icon(Icons.date_range),
-                    label: Text('${model.fromDate} → ${model.toDate}'),
-                  )),
-                ]),
+                OutlinedButton.icon(
+                  onPressed: model.isBusy ? null : () async {
+                    final range = await showDateRangePicker(
+                      context: context, firstDate: DateTime(2020), lastDate: DateTime.now().add(const Duration(days: 365)),
+                      initialDateRange: DateTimeRange(start: model.from, end: model.to),
+                    );
+                    if (range != null) await model.selectRange(range.start, range.end);
+                  },
+                  icon: const Icon(Icons.date_range),
+                  label: Text('${model.fromDate} → ${model.toDate}'),
+                ),
                 if (model.errorMessage.isNotEmpty)
                   Card(color: Theme.of(context).colorScheme.errorContainer, child: Padding(
                     padding: const EdgeInsets.all(12), child: Text(model.errorMessage))),
@@ -96,7 +94,34 @@ class BranchOperationsView extends StackedView<BranchOperationsViewModel> {
                   ]),
                 ))),
                 const Divider(height: 32),
-                Text('Audit history', style: Theme.of(context).textTheme.titleLarge),
+                Text('Audit history (${model.auditTotal})', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 8),
+                TextField(
+                  decoration: const InputDecoration(
+                    labelText: 'Filter by action', hintText: 'e.g. expense.approved',
+                    prefixIcon: Icon(Icons.manage_search), border: OutlineInputBorder(),
+                  ),
+                  textInputAction: TextInputAction.next,
+                  onChanged: (value) => model.auditAction = value,
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  decoration: const InputDecoration(
+                    labelText: 'Filter by entity type', hintText: 'e.g. Expense, Purchase, Order',
+                    prefixIcon: Icon(Icons.category_outlined), border: OutlineInputBorder(),
+                  ),
+                  textInputAction: TextInputAction.done,
+                  onChanged: (value) => model.auditEntityType = value,
+                  onSubmitted: (_) => model.applyAuditFilters(),
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: model.isBusy ? null : model.applyAuditFilters,
+                    icon: const Icon(Icons.filter_alt),
+                    label: const Text('Apply audit filters'),
+                  ),
+                ),
                 if (model.auditItems.isEmpty) const ListTile(title: Text('No audit events found for this period.')),
                 ...model.auditItems.map((event) {
                   final actor = event['actor'] is Map ? (event['actor'] as Map)['name'] : null;
@@ -113,6 +138,16 @@ class BranchOperationsView extends StackedView<BranchOperationsViewModel> {
                     ],
                   ));
                 }),
+                if (model.auditHasMore)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: OutlinedButton(
+                      onPressed: model.isBusy ? null : model.loadMoreAudit,
+                      child: model.isBusy
+                          ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Text('Load more audit events'),
+                    ),
+                  ),
               ]),
             ),
     );
