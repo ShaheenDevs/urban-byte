@@ -46,6 +46,10 @@ class StaffView extends StackedView<StaffViewModel> {
                                   final roles = (user['roles'] as List? ?? [])
                                       .map((r) => (r as Map)['name'] ?? '')
                                       .join(', ');
+                                  final branchNames = (user['branches'] as List? ?? [])
+                                      .map((b) => (b as Map)['name'] ?? '')
+                                      .where((name) => name.toString().isNotEmpty)
+                                      .join(', ');
                                   return ListTile(
                                       leading: CircleAvatar(
                                           child: Text((user['name'] ?? '?')
