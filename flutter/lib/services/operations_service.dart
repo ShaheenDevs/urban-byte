@@ -9,10 +9,9 @@ class OperationsService {
         _storage = storage ?? const FlutterSecureStorage();
   final http.Client _client;
   final FlutterSecureStorage _storage;
-  Future<Map<String, dynamic>> dashboardSummary({String? branchId}) async {
-    final suffix = branchId == null || branchId.isEmpty
-        ? ''
-        : '?branchId=${Uri.encodeQueryComponent(branchId)}';
+  Future<Map<String, dynamic>> dashboardSummary({String? branchId, String? startDate, String? endDate}) async {
+    final query = <String,String>{if (branchId != null && branchId.isNotEmpty) 'branchId': branchId, if (startDate != null) 'startDate': startDate, if (endDate != null) 'endDate': endDate};
+    final suffix = query.isEmpty ? '' : '?' + Uri(queryParameters: query).query;
     final data = await _request('GET', '/dashboard/summary$suffix');
     return Map<String, dynamic>.from(data as Map);
   }
