@@ -16,11 +16,19 @@ function branchScope(restaurantId, actor = {}, requestedBranchId) {
 }
 
 function range(query={}){
- const from=query.from||query.date||new Date().toISOString().slice(0,10);
+ const todayInPakistan=new Date(Date.now()+5*60*60*1000).toISOString().slice(0,10);
+ const from=query.from||query.date||todayInPakistan;
  const to=query.to||query.date||from;
- const valid=v=>/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v+'T00:00:00Z'));
+ const valid=value=>{
+  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
+  const [year,month,day]=value.split('-').map(Number);
+  const date=new Date(Date.UTC(year,month-1,day));
+  return date.getUTCFullYear()===year&&date.getUTCMonth()===month-1&&date.getUTCDate()===day;
+ };
  if(!valid(from)||!valid(to)||from>to)throw invalid('Use a valid YYYY-MM-DD date range.');
- const start=new Date(new Date(from+'T00:00:00.000Z').getTime()-5*60*60*1000);const end=new Date(new Date(to+'T00:00:00.000Z').getTime()-5*60*60*1000+24*60*60*1000);
+ const pakistanOffset=5*60*60*1000;
+ const start=new Date(Date.parse(from+'T00:00:00.000Z')-pakistanOffset);
+ const end=new Date(Date.parse(to+'T00:00:00.000Z')-pakistanOffset+24*60*60*1000);
  return {from,to,start,end};
 }
 async function overview(restaurantId,query={},actor={}){
