@@ -3,7 +3,7 @@ const router=require('express').Router();
 const {authenticate}=require('../middleware/auth');
 const {requirePermission}=require('../middleware/require-permission');
 const c=require('../controllers/staff-controller');
-router.use(authenticate,requirePermission('settings.manage'));
+router.use(authenticate,requirePermission('staff.manage'));
 router.get('/',c.list);
 router.post('/',c.create);
 router.get('/roles',c.roles);
