@@ -4,6 +4,7 @@ router.use('/health',require('./health-routes'));
 router.use('/auth',require('./auth-routes'));
 router.use('/staff',require('./staff-routes'));
 router.use('/attendance',require('./attendance-routes'));
+router.use('/employee-shifts',require('./employee-shift-routes'));
 router.use('/menu',require('./menu-routes'));
 router.use('/orders',require('./order-routes'));
 router.use('/customers',require('./customer-routes'));
