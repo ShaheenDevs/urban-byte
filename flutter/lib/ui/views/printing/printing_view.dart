@@ -346,6 +346,45 @@ class PrintingViewModel extends BaseViewModel {
     }
   }
 
+  Future<void> updatePrinter({
+    required String id,
+    required String branchId,
+    required String name,
+    required String connection,
+    required String width,
+    required String purpose,
+    required String address,
+    required String device,
+  }) async {
+    setBusy(true);
+    loadingError = null;
+    try {
+      await service.updatePrinter(id, branchId: branchId, name: name,
+        connectionType: connection, paperWidth: width, purpose: purpose,
+        address: address, deviceIdentifier: device);
+      await load();
+    } catch (e) {
+      loadingError = e.toString();
+    } finally {
+      setBusy(false);
+      notifyListeners();
+    }
+  }
+
+  Future<void> deletePrinter(String id) async {
+    setBusy(true);
+    loadingError = null;
+    try {
+      await service.deletePrinter(id);
+      await load();
+    } catch (e) {
+      loadingError = e.toString();
+    } finally {
+      setBusy(false);
+      notifyListeners();
+    }
+  }
+
   Future<List<Map<String, String>>> pairedBluetoothDevices() => service.pairedBluetoothDevices();
 
   Future<bool> testPrint(Map<String, dynamic> printer) async {
