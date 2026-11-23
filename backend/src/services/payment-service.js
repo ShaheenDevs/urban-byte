@@ -1,6 +1,6 @@
 'use strict';
 const {Op}=require('sequelize');
-const {Payment,PaymentEvent,Order,sequelize}=require('../models');
+const {Payment,PaymentEvent,Order,DeliveryAssignment,sequelize}=require('../models');
 function fail(message,status=400,code='PAYMENT_ERROR'){const e=new Error(message);e.statusCode=status;e.code=code;return e;}
 function assertBranch(user,branchId){if((user.roles||[]).includes('admin'))return;const allowed=(user.branchIds||[]).map(Number);if(!allowed.includes(Number(branchId)))throw fail('You are not assigned to this branch.',403,'BRANCH_FORBIDDEN');}
 function money(value){const n=Number(value);if(!Number.isFinite(n)||n<=0||n>9999999999.99)throw fail('Payment amount must be greater than zero.');return n.toFixed(2);}
@@ -38,6 +38,7 @@ async function setCashOnDelivery(restaurantId,user,input={}) {
   const existingPayments=Number(await Payment.count({where:{orderId:order.id,restaurantId},transaction})||0);
   if(existingPayments>0)throw fail('COD cannot be selected after a payment has been recorded.',409,'PAYMENT_ALREADY_RECORDED');
   await order.update({paymentMethod:'cod',paymentStatus:'unpaid'},{transaction});
+  await DeliveryAssignment.update({codAmount:order.grandTotal},{where:{restaurantId,orderId:order.id,status:{[Op.notIn]:['delivered','cancelled']}},transaction});
   return order;
  });
 }
