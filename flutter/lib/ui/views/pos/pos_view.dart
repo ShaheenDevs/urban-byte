@@ -172,8 +172,9 @@ class _PosViewState extends State<PosView> {
               (result['grandTotal'] ?? result['total'] ?? _total).toString()) ??
           _total;
       if (orderId != null) {
-        await _checkoutDialog(orderId, orderNumber, total);
-        await _printBluetoothReceipt(result);
+        await _printBluetoothKitchenTickets(result);
+        final printReceipt = await _checkoutDialog(orderId, orderNumber, total);
+        if (printReceipt) await _printBluetoothReceipt(result);
       } else {
         _message('Order created: $orderNumber');
       }
@@ -185,8 +186,9 @@ class _PosViewState extends State<PosView> {
     }
   }
 
-  Future<void> _checkoutDialog(
+  Future<bool> _checkoutDialog(
       String orderId, String orderNumber, double total) async {
+    var printReceipt = false;
     final amount = TextEditingController(text: total.toStringAsFixed(2));
     final reference = TextEditingController();
     String method = 'cash';
@@ -260,6 +262,7 @@ class _PosViewState extends State<PosView> {
                             reference: reference.text,
                             markReceived: method != 'cod');
                         final verified = payment['status'] == 'verified';
+                        printReceipt = verified && paid >= total;
                         if (dialogContext.mounted) Navigator.pop(dialogContext);
                         if (mounted) {
                           _message(verified
@@ -286,8 +289,21 @@ class _PosViewState extends State<PosView> {
     );
     amount.dispose();
     reference.dispose();
-    if (!mounted) return;
-    // Bluetooth receipts are printed directly from this mobile device after checkout.
+    return printReceipt;
+  }
+
+  Future<void> _printBluetoothKitchenTickets(Map<String,dynamic> order) async {
+    final tickets = (order['kitchenPrints'] as List? ?? []);
+    for (final ticket in tickets) {
+      try {
+        final mac = ticket['printerMac']?.toString() ?? '';
+        final text = ticket['renderedText']?.toString() ?? '';
+        if (mac.isEmpty || text.isEmpty) continue;
+        await _printing.printBluetoothText(mac, text);
+      } catch (e) {
+        if (mounted) _message('Order saved, but kitchen slip failed: $e');
+      }
+    }
   }
 
   Future<void> _printBluetoothReceipt(Map<String,dynamic> order) async {
