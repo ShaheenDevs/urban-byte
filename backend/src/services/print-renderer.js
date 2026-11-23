@@ -18,7 +18,7 @@ function renderOrder(order,kind='receipt',paperWidth='80mm',settings={}){
  }else{
   if(order.customerName)details.push('Customer: '+order.customerName);
   if(order.customerPhone)details.push('Phone: '+order.customerPhone);
-  details.push(...rows,line(width),'Subtotal: Rs '+Number(order.subtotal).toFixed(2),'Discount: Rs '+Number(order.discountAmount).toFixed(2),'Tax: Rs '+Number(order.taxAmount).toFixed(2),'Delivery: Rs '+Number(order.deliveryFee).toFixed(2),'TOTAL: Rs '+Number(order.grandTotal).toFixed(2),'Payment: '+String(order.paymentStatus).toUpperCase());
+  details.push(...rows,line(width),'Subtotal: Rs '+Number(order.subtotal).toFixed(2),'Discount: Rs '+Number(order.discountAmount).toFixed(2),'Tax: Rs '+Number(order.taxAmount).toFixed(2),'Service charge: Rs '+Number(order.serviceChargeAmount||0).toFixed(2),'Delivery: Rs '+Number(order.deliveryFee).toFixed(2),'TOTAL: Rs '+Number(order.grandTotal).toFixed(2),'Payment: '+String(order.paymentStatus).toUpperCase());
   if(order.deliveryAddress)details.push('Address: '+order.deliveryAddress);
   details.push(line(width),settings.receiptFooter||'Thank you for choosing Urban Byte!');
  }
