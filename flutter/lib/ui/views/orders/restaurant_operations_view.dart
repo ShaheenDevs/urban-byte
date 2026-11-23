@@ -225,6 +225,7 @@ class _Orders extends StatelessWidget {
                               final pending = payments.where((p) => p['status'] == 'pending').fold<double>(0, (sum, p) => sum + (double.tryParse('${p['amount'] ?? 0}') ?? 0));
                               final due = (total - paid - pending).clamp(0, total).toDouble();
                               return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Text('Order status: $status • Payment status: ${o['paymentStatus'] ?? 'unpaid'}'),
                                 Text('Order total: PKR ${total.toStringAsFixed(2)}'),
                                 Text('Paid: PKR ${paid.toStringAsFixed(2)} • Pending: PKR ${pending.toStringAsFixed(2)}'),
                                 Text('Remaining: PKR ${due.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
