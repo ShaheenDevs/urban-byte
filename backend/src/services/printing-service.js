@@ -28,7 +28,7 @@ async function enqueueTestPrint(restaurantId,user,printerId){
  if(!printer)throw fail('Printer not found.',404,'PRINTER_NOT_FOUND');
  const width=printer.paperWidth==='58mm'?32:48;
  const now=new Date().toLocaleString('en-PK',{timeZone:'Asia/Karachi'});
- const renderedText=['URBAN BYTE','PRINTER CONNECTION TEST','-'.repeat(width),'Connection: '+printer.connectionType.toUpperCase(),'Printer: '+printer.name,'Paper: '+printer.paperWidth,'Time: '+now,'-'.repeat(width),'If you can read this,','the local print bridge is working.','',''].join('\\n');
+ const renderedText=['URBAN BYTE','PRINTER CONNECTION TEST','-'.repeat(width),'Connection: '+printer.connectionType.toUpperCase(),'Printer: '+printer.name,'Paper: '+printer.paperWidth,'Time: '+now,'-'.repeat(width),'If you can read this,','the local print bridge is working.','',''].join('\n');
  return PrintJob.create({restaurantId,branchId:printer.branchId,printerId:printer.id,orderId:null,jobType:'receipt',status:'queued',payload:{test:true,printerId:printer.id},renderedText,requestedByUserId:user.id});
 }
 async function listJobs(restaurantId,query={}){const where={restaurantId};if(query.branchId)where.branchId=Number(query.branchId);if(query.status)where.status=query.status;return PrintJob.findAll({where,order:[['createdAt','DESC']],limit:Math.min(Math.max(Number(query.limit)||50,1),100)});}
