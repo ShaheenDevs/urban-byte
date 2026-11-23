@@ -55,7 +55,7 @@ async function purchaseAnalytics(restaurantId,user,query={}){
  ]);
  const branchById=new Map(branches.map(x=>[Number(x.id),x]));
  const supplierById=new Map(suppliers.map(x=>[Number(x.id),x]));
- const branchMap=new Map(),supplierMap=new Map(),itemMap=new Map(),dailyMap=new Map();
+ const branchMap=new Map(),supplierMap=new Map(),itemMap=new Map(),dailyMap=new Map(),branchItemMap=new Map();
  let purchaseTotal=0,paidTotal=0;
  for(const p of purchases){
   const total=Number(p.totalCost),paid=Math.min(total,paidByPurchase.get(String(p.id))||0),due=Math.max(0,total-paid);
@@ -70,6 +70,7 @@ async function purchaseAnalytics(restaurantId,user,query={}){
   for(const line of p.items||[]){
    const key=String(line.inventoryItemId),it=itemMap.get(key)||{inventoryItemId:Number(line.inventoryItemId),quantity:0,totalCost:0,receivingLines:0};
    it.quantity+=Number(line.quantity);it.totalCost+=Number(line.lineTotal);it.receivingLines++;itemMap.set(key,it);
+   const pairKey=String(p.branchId)+':'+key,pair=branchItemMap.get(pairKey)||{branchId:Number(p.branchId),inventoryItemId:Number(line.inventoryItemId),quantity:0,totalCost:0,receivingLines:0};pair.quantity+=Number(line.quantity);pair.totalCost+=Number(line.lineTotal);pair.receivingLines++;branchItemMap.set(pairKey,pair);
   }
  }
  const itemIds=[...itemMap.values()].map(x=>x.inventoryItemId);
@@ -79,10 +80,11 @@ async function purchaseAnalytics(restaurantId,user,query={}){
  const branchRows=[...branchMap.values()].map(format).sort((a,b)=>b.total-a.total);
  const supplierRows=[...supplierMap.values()].map(format).sort((a,b)=>b.outstanding-a.outstanding);
  const itemRows=[...itemMap.values()].map(x=>({inventoryItemId:x.inventoryItemId,name:itemById.get(x.inventoryItemId)?.name||'Inventory item',unit:itemById.get(x.inventoryItemId)?.baseUnit||null,quantity:Number(x.quantity.toFixed(3)),totalCost:Number(x.totalCost.toFixed(2)),averageUnitCost:x.quantity?Number((x.totalCost/x.quantity).toFixed(2)):null,receivingLines:x.receivingLines})).sort((a,b)=>b.totalCost-a.totalCost);
+ const branchItemRows=[...branchItemMap.values()].map(x=>({branchId:x.branchId,branchName:branchById.get(x.branchId)?.name||'Branch',inventoryItemId:x.inventoryItemId,itemName:itemById.get(x.inventoryItemId)?.name||'Inventory item',unit:itemById.get(x.inventoryItemId)?.baseUnit||null,quantity:Number(x.quantity.toFixed(3)),totalCost:Number(x.totalCost.toFixed(2)),averageUnitCost:x.quantity?Number((x.totalCost/x.quantity).toFixed(2)):null})).sort((a,b)=>a.itemName.localeCompare(b.itemName)||a.branchName.localeCompare(b.branchName));
  return {
   period:{from,to},timezone:'Asia/Karachi',currency:'PKR',
   summary:{purchaseCount:purchases.length,receivedPurchaseTotal:Number(purchaseTotal.toFixed(2)),paidForSelectedPurchases:Number(paidTotal.toFixed(2)),outstandingForSelectedPurchases:Number(Math.max(0,purchaseTotal-paidTotal).toFixed(2)),paymentRecords:paymentRows.length},
-  byBranch:branchRows,bySupplier:supplierRows,byInventoryItem:itemRows,
+  byBranch:branchRows,bySupplier:supplierRows,byInventoryItem:itemRows,costByBranchAndItem:branchItemRows,
   daily:purchases.length?[...dailyMap.values()].sort((a,b)=>a.date.localeCompare(b.date)).map(x=>({...x,total:Number(x.total.toFixed(2))})):[],
   note:'Outstanding is calculated for purchases received in the selected period, using all payments recorded against those purchases up to now. Draft and cancelled purchases are excluded.'
  };
