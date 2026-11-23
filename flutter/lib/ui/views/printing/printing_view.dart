@@ -62,7 +62,7 @@ class PrintingView extends StackedView<PrintingViewModel> {
                                       ScaffoldMessenger.of(context)
                                           .showSnackBar(SnackBar(
                                               content: Text(ok
-                                                  ? (printer['connectionType'] == 'network' ? 'Test print sent to network printer.' : 'Test print queued. Ensure Windows printer bridge is running.')
+                                                  ? (p['connectionType'] == 'network' ? 'Test print sent to network printer.' : p['connectionType'] == 'bluetooth' ? 'Bluetooth test receipt printed from this phone.' : 'Test print queued.')
                                                   : vm.loadingError ??
                                                       'Test print failed.')));
                                     }
@@ -179,7 +179,36 @@ class PrintingView extends StackedView<PrintingViewModel> {
                     TextField(
                         controller: device,
                         decoration: const InputDecoration(
-                            labelText: 'Device identifier (optional)')),
+                            labelText: 'Device MAC address / identifier')),
+                    if (connection == 'bluetooth')
+                      Align(alignment: Alignment.centerLeft, child: TextButton.icon(
+                        icon: const Icon(Icons.bluetooth_searching),
+                        label: const Text('Choose paired phone Bluetooth printer'),
+                        onPressed: () async {
+                          try {
+                            final devices = await vm.pairedBluetoothDevices();
+                            if (!context.mounted) return;
+                            if (devices.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No paired Bluetooth devices found. Pair the printer in phone Bluetooth settings first.')));
+                              return;
+                            }
+                            final selected = await showDialog<Map<String,String>>(context: context, builder: (ctx) => SimpleDialog(
+                              title: const Text('Paired Bluetooth devices'),
+                              children: devices.map((d) => SimpleDialogOption(
+                                onPressed: () => Navigator.pop(ctx, d),
+                                child: ListTile(leading: const Icon(Icons.print), title: Text(d['name'] ?? 'Bluetooth device'), subtitle: Text(d['mac'] ?? '')),
+                              )).toList(),
+                            ));
+                            if (selected != null) {
+                              device.text = selected['mac'] ?? '';
+                              if (name.text.trim().isEmpty) name.text = selected['name'] ?? 'Bluetooth Printer';
+                              setState(() {});
+                            }
+                          } catch (e) {
+                            if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+                          }
+                        },
+                      )),
                   ])),
                   actions: [
                     TextButton(
@@ -266,6 +295,8 @@ class PrintingViewModel extends BaseViewModel {
       notifyListeners();
     }
   }
+
+  Future<List<Map<String, String>>> pairedBluetoothDevices() => service.pairedBluetoothDevices();
 
   Future<bool> testPrint(Map<String, dynamic> printer) async {
     setBusy(true);
