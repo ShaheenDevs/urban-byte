@@ -58,18 +58,18 @@ class StockTransferView extends StackedView<StockTransferViewModel> {
     final source = t['sourceBranch'] is Map ? (t['sourceBranch'] as Map)['name'] : 'Source';
     final dest = t['destinationBranch'] is Map ? (t['destinationBranch'] as Map)['name'] : 'Destination';
     final status = t['status']?.toString() ?? 'unknown';
-    final id = '\${t['id']}';
+    final id = '${t['id']}';
     return Card(child: ExpansionTile(
       leading: const CircleAvatar(child: Icon(Icons.swap_horiz)),
-      title: Text('\${t['reference'] ?? 'Transfer #$id'}'),
-      subtitle: Text('$source → $dest\\n\${status.replaceAll('_', ' ').toUpperCase()}'),
+      title: Text('${t['reference'] ?? 'Transfer #$id'}'),
+      subtitle: Text('$source → $dest\\n${status.replaceAll('_', ' ').toUpperCase()}'),
       children: [
         ...lines.map((line) {
           final item = line['inventoryItem'] is Map ? line['inventoryItem'] as Map : const {};
-          return ListTile(dense: true, title: Text(item['name']?.toString() ?? 'Item #\${line['inventoryItemId']}'),
-            subtitle: Text('Requested: \${line['requestedQuantity']} · Received: \${line['receivedQuantity']} \${item['baseUnit'] ?? ''}'));
+          return ListTile(dense: true, title: Text(item['name']?.toString() ?? 'Item #${line['inventoryItemId']}'),
+            subtitle: Text('Requested: ${line['requestedQuantity']} · Received: ${line['receivedQuantity']} ${item['baseUnit'] ?? ''}'));
         }),
-        if (t['note'] != null) ListTile(title: const Text('Note'), subtitle: Text('\${t['note']}')),
+        if (t['note'] != null) ListTile(title: const Text('Note'), subtitle: Text('${t['note']}')),
         if (status == 'requested') Wrap(alignment: WrapAlignment.end, children: [
           TextButton(onPressed: model.isBusy ? null : () => _reject(context, model, id), child: const Text('Reject')),
           FilledButton(onPressed: model.isBusy ? null : () => _confirm(context, () => model.approve(id)), child: const Text('Approve & dispatch')),
@@ -103,17 +103,17 @@ class StockTransferView extends StackedView<StockTransferViewModel> {
   Future<void> _receive(BuildContext context, StockTransferViewModel model, String id, List<Map> lines) async {
     final controllers = <String, TextEditingController>{};
     for (final line in lines) {
-      final remaining = (double.tryParse('\${line['requestedQuantity']}') ?? 0) - (double.tryParse('\${line['receivedQuantity']}') ?? 0);
-      if (remaining > 0) controllers['\${line['inventoryItemId']}'] = TextEditingController(text: remaining.toString());
+      final remaining = (double.tryParse('${line['requestedQuantity']}') ?? 0) - (double.tryParse('${line['receivedQuantity']}') ?? 0);
+      if (remaining > 0) controllers['${line['inventoryItemId']}'] = TextEditingController(text: remaining.toString());
     }
     final yes = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
       title: const Text('Receive dispatched stock'),
       content: SizedBox(width: 420, child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: controllers.entries.map((entry) {
-        final line = lines.firstWhere((e) => '\${e['inventoryItemId']}' == entry.key);
+        final line = lines.firstWhere((e) => '${e['inventoryItemId']}' == entry.key);
         final item = line['inventoryItem'] is Map ? line['inventoryItem'] as Map : const {};
-        final remaining = (double.tryParse('\${line['requestedQuantity']}') ?? 0) - (double.tryParse('\${line['receivedQuantity']}') ?? 0);
+        final remaining = (double.tryParse('${line['requestedQuantity']}') ?? 0) - (double.tryParse('${line['receivedQuantity']}') ?? 0);
         return TextField(controller: entry.value, keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: InputDecoration(labelText: '\${item['name'] ?? 'Item'} · remaining $remaining'));
+          decoration: InputDecoration(labelText: '${item['name'] ?? 'Item'} · remaining $remaining'));
       }).toList()))),
       actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
         FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Record receiving'))]));
@@ -147,7 +147,7 @@ class StockTransferView extends StackedView<StockTransferViewModel> {
           items: model.branches.where((b) => b.id != source).map((b) => DropdownMenuItem(value: b.id, child: Text(b.name))).toList(),
           onChanged: (v) => set(() => destination = v)),
         DropdownButtonFormField<String>(value: itemId, decoration: const InputDecoration(labelText: 'Inventory item'),
-          items: model.catalog.map((InventoryItem i) => DropdownMenuItem(value: i.id, child: Text('\${i.name} (\${i.unit})'))).toList(),
+          items: model.catalog.map((InventoryItem i) => DropdownMenuItem(value: i.id, child: Text('${i.name} (${i.unit})'))).toList(),
           onChanged: (v) => set(() => itemId = v)),
         TextFormField(controller: qty, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Quantity'),
           validator: (v) { final n = double.tryParse(v ?? ''); return n == null || n <= 0 ? 'Enter positive quantity' : null; }),
