@@ -101,9 +101,10 @@ All menu and order data is scoped to the restaurant in the signed access token. 
 ## POS dining tables, order types and payment collection
 - Restaurant Settings stores branch-aware dining table definitions and configurable order types. At least one Takeaway type must remain available.
 - Dine-in orders must select an active table configured for the selected branch. The API rejects a table already attached to an active dine-in order; completing or cancelling the order releases it.
-- POS loads the configured order types and dining tables from `GET /api/v1/settings`. Menu category chips retain the All filter and category-specific filtering.
+- POS loads the configured order types and dining tables from `GET /api/v1/settings`; read access is allowed to users with `orders.create`, while updates remain restricted to `settings.manage`. Menu category chips retain the All filter and category-specific filtering.
 - Checkout immediately after order creation supports full or partial payment, or Skip payment. A later collection action is available on the Orders tab and shows verified, pending and remaining amounts.
-- The cashier must tap Confirm received only after the customer has actually paid. POS sends `markReceived=true`; the backend verifies that payment for users with `payments.record`. Cash-on-delivery remains pending until collected. Unconfirmed payment records remain pending for the Payment Verification workflow.
+- The cashier must tap Confirm received only after the customer has actually paid. POS sends `markReceived=true`; the backend verifies that payment for users with `payments.record`. Cash-on-delivery is saved without a payment record at checkout and is collected later from the Orders tab. Unconfirmed payment records remain pending for the Payment Verification workflow.
+- The system-role seeder grants `payments.record` to Waiter so the POS checkout can record received payments. Apply the updated role grant to existing databases with `npx sequelize-cli db:seed --seed 20261120000100-seed-system-roles.js` from `backend/`.
 - Orders include their payment records so the mobile Orders screen can calculate verified, pending and outstanding amounts.
 
 ## Mobile Bluetooth thermal printing
