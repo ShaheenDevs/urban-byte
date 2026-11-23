@@ -6,9 +6,6 @@ import '../../../services/public_role_service.dart';
 import '../dashboard/role_dashboard_placeholder.dart';
 import 'login_viewmodel.dart';
 
-final Future<List<Map<String, dynamic>>> _availableRolesFuture =
-    PublicRoleService().fetchRoles();
-
 class LoginView extends StackedView<LoginViewModel> {
   const LoginView({super.key});
   @override
@@ -53,50 +50,7 @@ class LoginView extends StackedView<LoginViewModel> {
                       'Role preview — select a role to open its workspace',
                       style: TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
-                  FutureBuilder<List<Map<String, dynamic>>>(
-                    future: _availableRolesFuture,
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Padding(
-                          padding: EdgeInsets.all(12),
-                          child: Center(child: CircularProgressIndicator()),
-                        );
-                      }
-                      if (snapshot.hasError) {
-                        return Text('Unable to load roles: ${snapshot.error}');
-                      }
-                      final roles = snapshot.data ?? [];
-                      if (roles.isEmpty)
-                        return const Text('No roles configured.');
-                      return Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: roles.map((role) {
-                          final slug = role['slug']?.toString() ?? '';
-                          final name = role['name']?.toString() ?? slug;
-                          final rawKeys =
-                              role['permissionKeys'] as List? ?? const [];
-                          final rolePermissions =
-                              rawKeys.map((key) => key.toString()).toSet();
-                          return OutlinedButton.icon(
-                            onPressed: slug.isEmpty
-                                ? null
-                                : () {
-                                    Navigator.of(context)
-                                        .push(MaterialPageRoute(
-                                      builder: (_) => RoleDashboardPlaceholder(
-                                        roleName: name,
-                                        permissions: rolePermissions,
-                                      ),
-                                    ));
-                                  },
-                            icon: const Icon(Icons.badge_outlined),
-                            label: Text(name),
-                          );
-                        }).toList(),
-                      );
-                    },
-                  ),
+                  const _RolePreviewButtons(),
                   const SizedBox(height: 16),
                   FilledButton(
                       onPressed: viewModel.isBusy
@@ -133,4 +87,74 @@ class LoginView extends StackedView<LoginViewModel> {
   @override
   LoginViewModel viewModelBuilder(BuildContext context) =>
       LoginViewModel(locator<AuthService>());
+}
+
+class _RolePreviewButtons extends StatefulWidget {
+  const _RolePreviewButtons();
+
+  @override
+  State<_RolePreviewButtons> createState() => _RolePreviewButtonsState();
+}
+
+class _RolePreviewButtonsState extends State<_RolePreviewButtons> {
+  late Future<List<Map<String, dynamic>>> _roles;
+
+  @override
+  void initState() {
+    super.initState();
+    _roles = PublicRoleService().fetchRoles();
+  }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<List<Map<String, dynamic>>>(
+        future: _roles,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Padding(
+              padding: EdgeInsets.all(12),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+          if (snapshot.hasError) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Unable to load roles: ${snapshot.error}'),
+                TextButton(
+                  onPressed: () => setState(() {
+                    _roles = PublicRoleService().fetchRoles();
+                  }),
+                  child: const Text('Retry roles'),
+                ),
+              ],
+            );
+          }
+          final roles = snapshot.data ?? [];
+          if (roles.isEmpty) return const Text('No roles configured.');
+          return Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: roles.map((role) {
+              final slug = role['slug']?.toString() ?? '';
+              final name = role['name']?.toString() ?? slug;
+              final rawKeys = role['permissionKeys'] as List? ?? const [];
+              final rolePermissions = rawKeys.map((key) => key.toString()).toSet();
+              return OutlinedButton.icon(
+                onPressed: slug.isEmpty
+                    ? null
+                    : () {
+                        Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) => RoleDashboardPlaceholder(
+                            roleName: name,
+                            permissions: rolePermissions,
+                          ),
+                        ));
+                      },
+                icon: const Icon(Icons.badge_outlined),
+                label: Text(name),
+              );
+            }).toList(),
+          );
+        },
+      );
 }
