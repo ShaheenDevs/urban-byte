@@ -34,6 +34,60 @@ async function setBranchAutoDeduct(restaurantId,user,branchId,enabled){assertBra
 async function createPurchase(restaurantId,user,input){if(!Array.isArray(input.items)||!input.items.length||input.items.length>100)throw fail('A purchase requires 1 to 100 items.');const branchId=id(input.branchId);assertBranch(user,branchId);await branchFor(restaurantId,branchId);if(input.supplierId){const supplier=await Supplier.findOne({where:{id:id(input.supplierId),restaurantId,isActive:true}});if(!supplier)throw fail('Supplier not found.',404,'SUPPLIER_NOT_FOUND');}const prepared=[];let total=0;for(const line of input.items){const inventoryItemId=id(line.inventoryItemId),qty=quantity(line.quantity),unitCost=money(line.unitCost);const item=await InventoryItem.findOne({where:{id:inventoryItemId,restaurantId,isActive:true}});if(!item)throw fail('Purchase contains an unknown inventory item.',404,'ITEM_NOT_FOUND');const lineTotal=Math.round(qty*unitCost*100)/100;total=Math.round((total+lineTotal)*100)/100;prepared.push({inventoryItemId,quantity:qty,unitCost:unitCost.toFixed(2),lineTotal:lineTotal.toFixed(2)});}return sequelize.transaction(async t=>{const purchase=await Purchase.create({restaurantId,branchId,supplierId:input.supplierId?id(input.supplierId):null,purchaseNumber:'PUR-'+Date.now()+'-'+crypto.randomBytes(2).toString('hex').toUpperCase(),status:'draft',totalCost:total.toFixed(2),createdByUserId:user.id},{transaction:t});await PurchaseItem.bulkCreate(prepared.map(x=>({...x,purchaseId:purchase.id})),{transaction:t});await recordAudit(t,restaurantId,user.id,branchId,'purchase',purchase.id,'purchase.created',null,{purchaseNumber:purchase.purchaseNumber,status:purchase.status,totalCost:purchase.totalCost,supplierId:purchase.supplierId,itemCount:prepared.length});return Purchase.findByPk(purchase.id,{include:[{model:PurchaseItem,as:'items'}],transaction:t});});}
 async function receivePurchase(restaurantId,user,purchaseId){return sequelize.transaction(async t=>{const purchase=await Purchase.findOne({where:{id:id(purchaseId),restaurantId},include:[{model:PurchaseItem,as:'items'}],transaction:t,lock:t.LOCK.UPDATE});if(!purchase)throw fail('Purchase not found.',404,'PURCHASE_NOT_FOUND');if(purchase.status!=='draft')throw fail('Only draft purchases can be received.',409,'PURCHASE_NOT_RECEIVABLE');assertBranch(user,purchase.branchId);await branchFor(restaurantId,purchase.branchId,t);for(const line of purchase.items){let stock=await BranchStock.findOne({where:{branchId:purchase.branchId,inventoryItemId:line.inventoryItemId},transaction:t,lock:t.LOCK.UPDATE});if(!stock){const item=await InventoryItem.findOne({where:{id:line.inventoryItemId,restaurantId},transaction:t});stock=await BranchStock.create({branchId:purchase.branchId,inventoryItemId:line.inventoryItemId,quantity:0,reorderLevel:Number(item.lowStockThreshold||0)},{transaction:t});}const after=calculateBalance(stock.quantity,Number(line.quantity));await stock.update({quantity:after},{transaction:t});await StockMovement.create({restaurantId,branchId:purchase.branchId,inventoryItemId:line.inventoryItemId,movementType:'purchase',quantityChange:line.quantity,quantityAfter:after,unitCost:line.unitCost,referenceType:'purchase',referenceId:purchase.id,note:'Purchase received',createdByUserId:user.id},{transaction:t});}const before={status:purchase.status,receivedAt:purchase.receivedAt,totalCost:purchase.totalCost};await purchase.update({status:'received',receivedAt:new Date()},{transaction:t});await recordAudit(t,restaurantId,user.id,purchase.branchId,'purchase',purchase.id,'purchase.received',before,{status:purchase.status,receivedAt:purchase.receivedAt,totalCost:purchase.totalCost,itemCount:purchase.items.length});return purchase;});}
 async function listPurchases(restaurantId,user){return Purchase.findAll({where:{restaurantId,...branchFilter(user)},include:[{model:PurchaseItem,as:'items'}],order:[['createdAt','DESC']],limit:100});}
+
+async function purchaseAnalytics(restaurantId,user,query={}){
+ const from=query.from||new Date().toISOString().slice(0,10),to=query.to||from;
+ const valid=v=>/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v+'T00:00:00Z'))&&new Date(v+'T00:00:00Z').toISOString().slice(0,10)===v;
+ if(!valid(from)||!valid(to)||from>to)throw fail('Use valid from/to dates in YYYY-MM-DD format.');
+ const start=new Date(new Date(from+'T00:00:00Z').getTime()-5*60*60*1000);
+ const end=new Date(new Date(to+'T00:00:00Z').getTime()-5*60*60*1000+86400000);
+ const where={restaurantId,status:'received',receivedAt:{[require('sequelize').Op.gte]:start,[require('sequelize').Op.lt]:end},...branchFilter(user,query.branchId)};
+ const purchases=await Purchase.findAll({where,include:[{model:PurchaseItem,as:'items'}],order:[['receivedAt','ASC']],limit:5000});
+ const ids=purchases.map(p=>p.id);
+ const paymentRows=ids.length?await PurchasePayment.findAll({where:{restaurantId,purchaseId:{[require('sequelize').Op.in]:ids}},raw:true}):[];
+ const paidByPurchase=new Map();
+ for(const p of paymentRows)paidByPurchase.set(String(p.purchaseId),(paidByPurchase.get(String(p.purchaseId))||0)+Number(p.amount));
+ const branchIds=[...new Set(purchases.map(p=>Number(p.branchId)))];
+ const supplierIds=[...new Set(purchases.map(p=>Number(p.supplierId)).filter(n=>n>0))];
+ const [branches,suppliers]=await Promise.all([
+  branchIds.length?Branch.findAll({where:{restaurantId,id:branchIds},attributes:['id','name','code'],raw:true}):[],
+  supplierIds.length?Supplier.findAll({where:{restaurantId,id:supplierIds},attributes:['id','name'],raw:true}):[],
+ ]);
+ const branchById=new Map(branches.map(x=>[Number(x.id),x]));
+ const supplierById=new Map(suppliers.map(x=>[Number(x.id),x]));
+ const branchMap=new Map(),supplierMap=new Map(),itemMap=new Map(),dailyMap=new Map();
+ let purchaseTotal=0,paidTotal=0;
+ for(const p of purchases){
+  const total=Number(p.totalCost),paid=Math.min(total,paidByPurchase.get(String(p.id))||0),due=Math.max(0,total-paid);
+  purchaseTotal+=total;paidTotal+=paid;
+  const b=branchMap.get(Number(p.branchId))||{branchId:Number(p.branchId),branchName:branchById.get(Number(p.branchId))?.name||'Branch',purchaseCount:0,total:0,paid:0,outstanding:0};
+  b.purchaseCount++;b.total+=total;b.paid+=paid;b.outstanding+=due;branchMap.set(Number(p.branchId),b);
+  const sid=Number(p.supplierId)||0;
+  const su=supplierMap.get(sid)||{supplierId:sid||null,supplierName:supplierById.get(sid)?.name||'Unassigned supplier',purchaseCount:0,total:0,paid:0,outstanding:0};
+  su.purchaseCount++;su.total+=total;su.paid+=paid;su.outstanding+=due;supplierMap.set(sid,su);
+  const day=new Date(new Date(p.receivedAt).getTime()+5*60*60*1000).toISOString().slice(0,10);
+  const d=dailyMap.get(day)||{date:day,purchaseCount:0,total:0};d.purchaseCount++;d.total+=total;dailyMap.set(day,d);
+  for(const line of p.items||[]){
+   const key=String(line.inventoryItemId),it=itemMap.get(key)||{inventoryItemId:Number(line.inventoryItemId),quantity:0,totalCost:0,receivingLines:0};
+   it.quantity+=Number(line.quantity);it.totalCost+=Number(line.lineTotal);it.receivingLines++;itemMap.set(key,it);
+  }
+ }
+ const itemIds=[...itemMap.values()].map(x=>x.inventoryItemId);
+ const inventoryItems=itemIds.length?await InventoryItem.findAll({where:{restaurantId,id:itemIds},attributes:['id','name','baseUnit'],raw:true}):[];
+ const itemById=new Map(inventoryItems.map(x=>[Number(x.id),x]));
+ const format=row=>({...row,total:Number(row.total.toFixed(2)),paid:Number(row.paid.toFixed(2)),outstanding:Number(row.outstanding.toFixed(2))});
+ const branchRows=[...branchMap.values()].map(format).sort((a,b)=>b.total-a.total);
+ const supplierRows=[...supplierMap.values()].map(format).sort((a,b)=>b.outstanding-a.outstanding);
+ const itemRows=[...itemMap.values()].map(x=>({inventoryItemId:x.inventoryItemId,name:itemById.get(x.inventoryItemId)?.name||'Inventory item',unit:itemById.get(x.inventoryItemId)?.baseUnit||null,quantity:Number(x.quantity.toFixed(3)),totalCost:Number(x.totalCost.toFixed(2)),averageUnitCost:x.quantity?Number((x.totalCost/x.quantity).toFixed(2)):null,receivingLines:x.receivingLines})).sort((a,b)=>b.totalCost-a.totalCost);
+ return {
+  period:{from,to},timezone:'Asia/Karachi',currency:'PKR',
+  summary:{purchaseCount:purchases.length,receivedPurchaseTotal:Number(purchaseTotal.toFixed(2)),paidForSelectedPurchases:Number(paidTotal.toFixed(2)),outstandingForSelectedPurchases:Number(Math.max(0,purchaseTotal-paidTotal).toFixed(2)),paymentRecords:paymentRows.length},
+  byBranch:branchRows,bySupplier:supplierRows,byInventoryItem:itemRows,
+  daily:purchases.length?[...dailyMap.values()].sort((a,b)=>a.date.localeCompare(b.date)).map(x=>({...x,total:Number(x.total.toFixed(2))})):[],
+  note:'Outstanding is calculated for purchases received in the selected period, using all payments recorded against those purchases up to now. Draft and cancelled purchases are excluded.'
+ };
+}
+
 async function saveRecipe(restaurantId,input){const variantId=id(input.productVariantId),yieldQty=quantity(input.yieldQuantity||1,'Recipe yield');if(!Array.isArray(input.items)||!input.items.length||input.items.length>100)throw fail('A recipe requires 1 to 100 ingredients.');const variant=await ProductVariant.findOne({where:{id:variantId,isActive:true},include:[{model:Product,as:'product',where:{restaurantId},required:true}]});if(!variant)throw fail('Product variant not found for this restaurant.',404,'VARIANT_NOT_FOUND');const prepared=[],seen=new Set();for(const line of input.items){const inventoryItemId=id(line.inventoryItemId);if(seen.has(inventoryItemId))throw fail('Duplicate ingredient in recipe.');seen.add(inventoryItemId);const item=await InventoryItem.findOne({where:{id:inventoryItemId,restaurantId,isActive:true}});if(!item)throw fail('Recipe contains an unknown ingredient.',404,'ITEM_NOT_FOUND');prepared.push({inventoryItemId,quantity:quantity(line.quantity)});}return sequelize.transaction(async t=>{let recipe=await Recipe.findOne({where:{productVariantId:variantId,restaurantId},transaction:t,lock:t.LOCK.UPDATE});if(recipe){await recipe.update({yieldQuantity:yieldQty,isActive:true},{transaction:t});await RecipeItem.destroy({where:{recipeId:recipe.id},transaction:t});}else recipe=await Recipe.create({restaurantId,productVariantId:variantId,yieldQuantity:yieldQty,isActive:true},{transaction:t});await RecipeItem.bulkCreate(prepared.map(x=>({...x,recipeId:recipe.id})),{transaction:t});return Recipe.findByPk(recipe.id,{include:[{model:RecipeItem,as:'items'}],transaction:t});});}
 async function listRecipes(restaurantId){return Recipe.findAll({where:{restaurantId,isActive:true},include:[{model:RecipeItem,as:'items'}],order:[['id','DESC']]});}
 async function deductOrderStock(order,transaction){
@@ -141,4 +195,4 @@ async function inventoryValuation(restaurantId,user,branchId){
  return {items:rows,totalValuation:total,costStatus:total===null?'incomplete':'estimated',note:'Estimated weighted average based on recorded purchase movements; historical layers and returns are not a full perpetual FIFO ledger.'};
 }
 
-module.exports={transferStock,returnPurchaseStock,inventoryValuation,recordPurchasePayment,supplierLedger,createItem,listBranches,listItems,listStock,adjustStock,movements,createSupplier,listSuppliers,setReorderLevel,lowStock,setBranchAutoDeduct,createPurchase,receivePurchase,listPurchases,saveRecipe,listRecipes,deductOrderStock};
+module.exports={purchaseAnalytics,transferStock,returnPurchaseStock,inventoryValuation,recordPurchasePayment,supplierLedger,createItem,listBranches,listItems,listStock,adjustStock,movements,createSupplier,listSuppliers,setReorderLevel,lowStock,setBranchAutoDeduct,createPurchase,receivePurchase,listPurchases,saveRecipe,listRecipes,deductOrderStock};
