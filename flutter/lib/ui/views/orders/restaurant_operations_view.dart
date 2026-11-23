@@ -4,6 +4,7 @@ import 'package:stacked/stacked.dart';
 import '../../../app/app.locator.dart';
 import '../../../services/inventory_service.dart';
 import '../../../services/operations_service.dart';
+import '../../../services/payment_service.dart';
 import '../notifications/notification_inbox_sheet.dart';
 
 class RestaurantOperationsView
@@ -159,6 +160,39 @@ class RestaurantOperationsViewModel extends BaseViewModel {
 class _Orders extends StatelessWidget {
   const _Orders(this.vm);
   final RestaurantOperationsViewModel vm;
+  Future<void> _collectPayment(BuildContext context, Map<String,dynamic> order, double due, RestaurantOperationsViewModel vm) async {
+    final amount = TextEditingController(text: due.toStringAsFixed(2));
+    final reference = TextEditingController();
+    String method = 'cash';
+    await showDialog<void>(context: context, builder: (dialogContext) => StatefulBuilder(builder: (context, setDialogState) => AlertDialog(
+      title: Text('Receive payment • ${order['orderNumber'] ?? order['id']}'),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        Text('Remaining: PKR ${due.toStringAsFixed(2)}'),
+        DropdownButtonFormField<String>(value: method, decoration: const InputDecoration(labelText: 'Payment method'), items: const [
+          DropdownMenuItem(value:'cash',child:Text('Cash')), DropdownMenuItem(value:'card',child:Text('Card')),
+          DropdownMenuItem(value:'easypaisa',child:Text('Easypaisa')), DropdownMenuItem(value:'jazzcash',child:Text('JazzCash')),
+          DropdownMenuItem(value:'bank_transfer',child:Text('Bank transfer')), DropdownMenuItem(value:'cod',child:Text('Cash on delivery')),
+        ], onChanged:(v)=>setDialogState(()=>method=v??'cash')),
+        TextField(controller: amount, keyboardType: const TextInputType.numberWithOptions(decimal:true), decoration: const InputDecoration(labelText:'Amount received (PKR)')),
+        if(method!='cash') TextField(controller:reference,decoration:const InputDecoration(labelText:'Transaction reference')),
+      ]),
+      actions: [
+        TextButton(onPressed:()=>Navigator.pop(dialogContext),child:const Text('Cancel')),
+        FilledButton(onPressed:()=>Navigator.pop(dialogContext,true),child:const Text('Confirm received')),
+      ],
+    ))).then((confirmed) async {
+      if(confirmed != true)return;
+      final value=double.tryParse(amount.text.trim());
+      if(value==null||value<=0||value>due){if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Enter an amount within the remaining balance.')));return;}
+      try {
+        await PaymentService().record(orderId:'${order['id']}',amount:value,method:method,reference:reference.text,markReceived:true);
+        await vm.load();
+        if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Payment received and updated.')));
+      } catch(e) { if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(e.toString()))); }
+    });
+    amount.dispose(); reference.dispose();
+  }
+
   @override
   Widget build(BuildContext context) => !vm.permissions
               .contains('orders.view_all') &&
@@ -185,8 +219,23 @@ class _Orders extends StatelessWidget {
                                 style: Theme.of(context).textTheme.titleMedium),
                             Text(
                                 '${o['orderType']} • ${o['tableLabel'] ?? o['customerName'] ?? ''}'),
-                            Text(
-                                'Status: $status • PKR ${o['grandTotal'] ?? ''}'),
+                            Builder(builder: (context) {
+                              final total = double.tryParse('${o['grandTotal'] ?? 0}') ?? 0;
+                              final payments = (o['payments'] as List? ?? []);
+                              final paid = payments.where((p) => p['status'] == 'verified').fold<double>(0, (sum, p) => sum + (double.tryParse('${p['amount'] ?? 0}') ?? 0));
+                              final pending = payments.where((p) => p['status'] == 'pending').fold<double>(0, (sum, p) => sum + (double.tryParse('${p['amount'] ?? 0}') ?? 0));
+                              final due = (total - paid - pending).clamp(0, total).toDouble();
+                              return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Text('Order total: PKR ${total.toStringAsFixed(2)}'),
+                                Text('Paid: PKR ${paid.toStringAsFixed(2)} • Pending: PKR ${pending.toStringAsFixed(2)}'),
+                                Text('Remaining: PKR ${due.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                if (due > 0 && vm.permissions.contains('payments.record'))
+                                  Align(alignment: Alignment.centerRight, child: TextButton.icon(
+                                    onPressed: vm.isBusy ? null : () => _collectPayment(context, o, due, vm),
+                                    icon: const Icon(Icons.payments_outlined), label: const Text('Receive payment now'),
+                                  )),
+                              ]);
+                            }),
                             Text(items
                                 .map((i) =>
                                     '${i['quantity']} × ${i['productName']}')
