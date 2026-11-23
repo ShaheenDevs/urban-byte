@@ -5,6 +5,7 @@ import '../../../app/app.locator.dart';
 import '../../../services/inventory_service.dart';
 import '../../../services/operations_service.dart';
 import '../../../services/payment_service.dart';
+import '../../../services/printing_service.dart';
 import '../notifications/notification_inbox_sheet.dart';
 
 class RestaurantOperationsView
@@ -160,6 +161,35 @@ class RestaurantOperationsViewModel extends BaseViewModel {
 class _Orders extends StatelessWidget {
   const _Orders(this.vm);
   final RestaurantOperationsViewModel vm;
+  Future<void> _printPaidBill(BuildContext context, Map<String,dynamic> order) async {
+    try {
+      final printing = PrintingService();
+      final printers = await printing.printers(branchId: order['branchId']?.toString());
+      final bluetooth = printers.where((p) => p['connectionType'] == 'bluetooth' && p['isActive'] != false && (p['purpose'] == 'receipt' || p['purpose'] == 'both')).toList();
+      if (bluetooth.isEmpty) {
+        await printing.enqueueReceipt(order['id'].toString());
+        return;
+      }
+      final lines = <String>[
+        'URBAN BYTE', 'CUSTOMER BILL',
+        'Order: ${order['orderNumber'] ?? order['id']}',
+        'Date: ${DateTime.now().toLocal()}',
+        '--------------------------------',
+        ...((order['items'] as List? ?? []).map((item) => '${item['quantity']} x ${item['productName']} ${item['variantName'] ?? ''}  PKR ${item['lineTotal'] ?? ''}')),
+        '--------------------------------',
+        'Subtotal: PKR ${order['subtotal'] ?? ''}',
+        'Discount: PKR ${order['discountAmount'] ?? 0}',
+        'Tax: PKR ${order['taxAmount'] ?? 0}',
+        'TOTAL: PKR ${order['grandTotal'] ?? ''}',
+        'Payment: PAID', '', 'Thank you for visiting Urban Byte!', '', '',
+      ];
+      await printing.printBluetoothText(bluetooth.first['deviceIdentifier'].toString(), lines.join('\\n'));
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Paid bill printed.')));
+    } catch (e) {
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Payment saved, but bill printing failed: $e')));
+    }
+  }
+
   Future<void> _collectPayment(BuildContext context, Map<String,dynamic> order, double due, RestaurantOperationsViewModel vm) async {
     final amount = TextEditingController(text: due.toStringAsFixed(2));
     final reference = TextEditingController();
@@ -185,8 +215,12 @@ class _Orders extends StatelessWidget {
       final value=double.tryParse(amount.text.trim());
       if(value==null||value<=0||value>due){if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Enter an amount within the remaining balance.')));amount.dispose();reference.dispose();return;}
       try {
-        await PaymentService().record(orderId:'${order['id']}',amount:value,method:method,reference:reference.text,markReceived:method != 'cod');
+        final payment = await PaymentService().record(orderId:'${order['id']}',amount:value,method:method,reference:reference.text,markReceived:method != 'cod');
+        final paidBefore = (order['payments'] as List? ?? []).where((p) => p['status'] == 'verified').fold<double>(0, (sum, p) => sum + (double.tryParse('${p['amount'] ?? 0}') ?? 0));
+        final total = double.tryParse('${order['grandTotal'] ?? 0}') ?? 0;
+        final fullyPaid = payment['status'] == 'verified' && paidBefore + value >= total;
         await vm.load();
+        if (fullyPaid) await _printPaidBill(context, order);
         if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Payment received and updated.')));
       } catch(e) { if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(e.toString()))); }
     amount.dispose(); reference.dispose();
