@@ -63,80 +63,7 @@ class RoleDashboardPlaceholder extends StatelessWidget {
           Text('Welcome to your $roleName workspace.'),
           const SizedBox(height: 16),
           if (permissions.contains('dashboard.view'))
-            FutureBuilder<Map<String, dynamic>>(
-              future: locator<OperationsService>().dashboardSummary(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Card(
-                    child: Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Center(child: CircularProgressIndicator()),
-                    ),
-                  );
-                }
-                if (snapshot.hasError) {
-                  return Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.cloud_off),
-                      title: const Text('Dashboard data unavailable'),
-                      subtitle: Text(snapshot.error.toString()),
-                    ),
-                  );
-                }
-                final data = snapshot.data ?? {};
-                final metrics =
-                    Map<String, dynamic>.from(data['metrics'] as Map? ?? {});
-                final money = metrics['paidRevenueToday']?.toString() ?? '0.00';
-                final pendingMoney = metrics['pendingRevenue']?.toString() ?? '0.00';
-                final period = Map<String,dynamic>.from(data['period'] as Map? ?? {});
-                final startDate = period['startDate']?.toString();
-                final endDate = period['endDate']?.toString();
-                return Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("Today's overview",
-                            style: Theme.of(context).textTheme.titleMedium),
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
-                          children: [
-                            _MetricTile(
-                                label: 'Orders today',
-                                value: '${metrics['todayOrders'] ?? 0}',
-                                onTap: _canViewOrderHistory ? () => _openHistory(context, 'Orders today', startDate: startDate, endDate: endDate) : null),
-                            _MetricTile(
-                                label: 'Open orders',
-                                value: '${metrics['openOrders'] ?? 0}',
-                                onTap: _canOpenOrders ? () => _openHistory(context, 'Open orders', statusGroup: 'open') : null),
-                            _MetricTile(
-                                label: 'Completed',
-                                value: '${metrics['completedToday'] ?? 0}',
-                                onTap: _canOpenOrders ? () => _openHistory(context, 'Completed orders', statusGroup: 'completed', startDate: startDate, endDate: endDate) : null),
-                            _MetricTile(
-                                label: 'Pending payments',
-                                value: '${metrics['pendingPayments'] ?? 0}',
-                                onTap: _canOpenOrders ? () => _openHistory(context, 'Pending payments', paymentStatusGroup: 'pending', startDate: startDate, endDate: endDate) : null),
-                            _MetricTile(
-                                label: 'Paid revenue', value: 'PKR $money',
-                                onTap: _canOpenOrders ? () => _openHistory(context, 'Paid revenue orders', paymentStatus: 'paid', startDate: startDate, endDate: endDate) : null),
-                            _MetricTile(
-                                label: 'Pending total revenue', value: 'PKR $pendingMoney',
-                                onTap: _canOpenOrders ? () => _openHistory(context, 'Pending revenue orders', paymentStatusGroup: 'pending', startDate: startDate, endDate: endDate) : null),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text('Timezone: ${data['timezone'] ?? 'Asia/Karachi'}',
-                            style: Theme.of(context).textTheme.bodySmall),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+            DashboardSummaryPanel(permissions: permissions),
           const SizedBox(height: 20),
           if (permissions.contains('orders.create') ||
               permissions.contains('pos.use'))
@@ -331,6 +258,124 @@ class RoleDashboardPlaceholder extends StatelessWidget {
       );
 }
 
+
+class DashboardSummaryPanel extends StatefulWidget {
+  const DashboardSummaryPanel({super.key, required this.permissions});
+  final Set<String> permissions;
+  @override
+  State<DashboardSummaryPanel> createState() => _DashboardSummaryPanelState();
+}
+
+class _DashboardSummaryPanelState extends State<DashboardSummaryPanel> {
+  final _api = locator<OperationsService>();
+  bool _loading = true;
+  String? _error;
+  Map<String,dynamic> _metrics = {};
+  String _period = 'Today';
+  late DateTime _start;
+  late DateTime _end;
+  String? _startTime;
+  String? _endTime;
+  bool get _canViewHistory => widget.permissions.contains('orders.view_all') || widget.permissions.contains('orders.view_own');
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _start = DateTime(now.year, now.month, now.day);
+    _end = _start;
+    _load();
+  }
+
+  String _date(DateTime value) => '${value.year.toString().padLeft(4,'0')}-${value.month.toString().padLeft(2,'0')}-${value.day.toString().padLeft(2,'0')}';
+
+  Future<void> _load() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final data = await _api.dashboardSummary(
+        startDate: _date(_start), endDate: _date(_end),
+        startTime: _startTime, endTime: _endTime,
+      );
+      _metrics = Map<String,dynamic>.from(data['metrics'] as Map? ?? {});
+    } catch (e) { _error = e.toString(); }
+    if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _selectPeriod(String value) async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    DateTime start = today;
+    DateTime end = today;
+    String? startTime;
+    String? endTime;
+    if (value == 'Week') start = today.subtract(Duration(days: today.weekday - 1));
+    if (value == 'Month') start = DateTime(today.year, today.month, 1);
+    if (value == 'Year') start = DateTime(today.year, 1, 1);
+    if (value == 'Custom') {
+      final range = await showDateRangePicker(
+        context: context, firstDate: DateTime(2020), lastDate: DateTime(now.year + 2),
+        initialDateRange: DateTimeRange(start: _start, end: _end),
+      );
+      if (range == null) return;
+      final from = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 0, minute: 0));
+      if (from == null) return;
+      final to = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 23, minute: 59));
+      if (to == null) return;
+      start = range.start; end = range.end;
+      startTime = '${from.hour.toString().padLeft(2,'0')}:${from.minute.toString().padLeft(2,'0')}';
+      endTime = '${to.hour.toString().padLeft(2,'0')}:${to.minute.toString().padLeft(2,'0')}';
+    }
+    if (start == end && startTime != null && startTime >= endTime!) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('End time must be after start time.')));
+      return;
+    }
+    setState(() { _period = value; _start = start; _end = end; _startTime = startTime; _endTime = endTime; });
+    await _load();
+  }
+
+  void _history(String title, {String? statusGroup, String? paymentStatusGroup, String? paymentStatus}) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => DashboardOrdersView(
+      title: title, statusGroup: statusGroup, paymentStatusGroup: paymentStatusGroup,
+      paymentStatus: paymentStatus, initialStartDate: _date(_start), initialEndDate: _date(_end),
+      initialStartTime: _startTime, initialEndTime: _endTime,
+    )));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final paid = _metrics['paidRevenueToday']?.toString() ?? '0.00';
+    final pending = _metrics['pendingRevenue']?.toString() ?? '0.00';
+    final range = '${_date(_start)} → ${_date(_end)}${_startTime != null ? ' • $_startTime–$_endTime' : ''}';
+    return Card(child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Sales & orders overview', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 4),
+        Text(range, style: Theme.of(context).textTheme.bodySmall),
+        const SizedBox(height: 10),
+        Wrap(spacing: 6, runSpacing: 4, children: [
+          for (final item in ['Today','Week','Month','Year','Custom'])
+            ChoiceChip(label: Text(item), selected: _period == item, onSelected: _loading ? null : (_) => _selectPeriod(item)),
+        ]),
+        if (_loading) const Padding(padding: EdgeInsets.all(18), child: Center(child: CircularProgressIndicator()))
+        else if (_error != null) Row(children: [
+          Expanded(child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error))),
+          IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
+        ])
+        else Wrap(spacing: 12, runSpacing: 12, children: [
+          _MetricTile(label: 'Orders', value: '${_metrics['todayOrders'] ?? 0}', onTap: _canViewHistory ? () => _history('Orders',) : null),
+          _MetricTile(label: 'Open orders', value: '${_metrics['openOrders'] ?? 0}', onTap: _canViewHistory ? () => _history('Open orders', statusGroup: 'open') : null),
+          _MetricTile(label: 'Completed', value: '${_metrics['completedToday'] ?? 0}', onTap: _canViewHistory ? () => _history('Completed orders', statusGroup: 'completed') : null),
+          _MetricTile(label: 'Pending payments', value: '${_metrics['pendingPayments'] ?? 0}', onTap: _canViewHistory ? () => _history('Pending payments', paymentStatusGroup: 'pending') : null),
+          _MetricTile(label: 'Paid revenue', value: 'PKR $paid', onTap: _canViewHistory ? () => _history('Paid revenue', paymentStatus: 'paid') : null),
+          _MetricTile(label: 'Pending total revenue', value: 'PKR $pending', onTap: _canViewHistory ? () => _history('Pending total revenue', paymentStatusGroup: 'pending') : null),
+        ]),
+        const SizedBox(height: 6),
+        Text('Timezone: Pakistan (UTC+05:00)', style: Theme.of(context).textTheme.bodySmall),
+      ]),
+    ));
+  }
+}
 
 void _openHistory(BuildContext context, String title, {
   String? statusGroup, String? paymentStatusGroup, String? paymentStatus,
