@@ -309,3 +309,10 @@ If this command fails, share the complete terminal output from the first error l
 - Mobile Bluetooth printing sends raw ESC/POS bytes after text: feed 3 lines and full cut (`GS V 0`). The printer must have a physical auto-cutter and support that cut command; printers without a cutter cannot cut paper.
 - Dashboard metric tiles open filtered order history. History supports Today, Week, Month, Year and Custom date range with start/end times. Open orders can be viewed across all dates; pending payment history shows outstanding balances after verified payments.
 - Dashboard and order-history date/time filters use Pakistan time (UTC+05:00).
+
+
+## Order completion and login role previews
+- Orders can only transition to `completed` from `ready` or `out_for_delivery`, following the order lifecycle.
+- The API rejects completion unless the order's payment status is `paid` (fully verified payment). The Orders screen shows a Complete order action for eligible paid orders.
+- Order balances are calculated from verified payments only. Pending/unverified payments are shown separately and reduce the amount currently available to collect, but do not count as received funds.
+- Login displays one role-preview button per configured role. Selecting one opens that role's workspace using its permission catalogue; this is a UI preview, not authentication or a way to grant access. Protected API calls still require a real login and server-side permissions.
