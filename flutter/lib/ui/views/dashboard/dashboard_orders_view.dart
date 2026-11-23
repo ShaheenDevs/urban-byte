@@ -32,6 +32,8 @@ class _DashboardOrdersViewState extends State<DashboardOrdersView> {
   String _status = 'all';
   String _payment = 'all';
   bool _allDates = false;
+  String? _startTime;
+  String? _endTime;
   late DateTime _start;
   late DateTime _end;
 
@@ -73,12 +75,19 @@ class _DashboardOrdersViewState extends State<DashboardOrdersView> {
           initialDateRange: DateTimeRange(start: _start, end: _end),
         );
         if (range == null) return;
+        final startTime = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 0, minute: 0));
+        if (startTime == null) return;
+        final endTime = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 23, minute: 59));
+        if (endTime == null) return;
+        _startTime = '${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}';
+        _endTime = '${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}';
         start = range.start;
         end = range.end;
         break;
       default:
         start = end;
     }
+    if (value != 'Custom') { _startTime = null; _endTime = null; }
     setState(() { _period = value; _start = start; _end = end; _allDates = false; });
     await _load();
   }
@@ -92,6 +101,8 @@ class _DashboardOrdersViewState extends State<DashboardOrdersView> {
         paymentStatus: widget.paymentStatus ?? (_payment == 'paid' ? 'paid' : null),
         startDate: _allDates ? null : _date(_start),
         endDate: _allDates ? null : _date(_end),
+        startTime: _allDates ? null : _startTime,
+        endTime: _allDates ? null : _endTime,
       );
     } catch (e) {
       _error = e.toString();
@@ -115,7 +126,7 @@ class _DashboardOrdersViewState extends State<DashboardOrdersView> {
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         child: Row(children: [
-          Expanded(child: Text(_allDates ? 'All dates' : '${_date(_start)}  →  ${_date(_end)}')),
+          Expanded(child: Text(_allDates ? 'All dates' : '${_date(_start)}  →  ${_date(_end)}${_startTime != null ? ' • $_startTime–$_endTime' : ''}')),
           if (widget.statusGroup == null)
             DropdownButton<String>(
               value: _status,
