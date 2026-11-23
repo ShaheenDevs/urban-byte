@@ -28,6 +28,19 @@ async function record(restaurantId,user,input={}){
   return payment;
  });
 }
+async function setCashOnDelivery(restaurantId,user,input={}) {
+ return sequelize.transaction(async transaction => {
+  const order=await Order.findOne({where:{id:Number(input.orderId),restaurantId},transaction,lock:transaction.LOCK.UPDATE});
+  if(!order)throw fail('Order not found.',404,'ORDER_NOT_FOUND');
+  assertBranch(user,order.branchId);
+  if(order.orderType!=='delivery')throw fail('Cash on delivery is only available for delivery orders.',409,'COD_DELIVERY_ONLY');
+  if(order.paymentStatus==='paid'||order.paymentStatus==='refunded')throw fail('This order cannot be changed to cash on delivery.',409);
+  const existingPayments=Number(await Payment.count({where:{orderId:order.id,restaurantId},transaction})||0);
+  if(existingPayments>0)throw fail('COD cannot be selected after a payment has been recorded.',409,'PAYMENT_ALREADY_RECORDED');
+  await order.update({paymentMethod:'cod',paymentStatus:'unpaid'},{transaction});
+  return order;
+ });
+}
 async function verify(restaurantId,user,paymentId){
  return sequelize.transaction(async transaction=>{
   const payment=await Payment.findOne({where:{id:Number(paymentId),restaurantId},transaction,lock:transaction.LOCK.UPDATE});
@@ -62,4 +75,4 @@ async function dailySummary(restaurantId,user,query={}){
  for(const row of rows)totals[row.method]+=Number(row.amount);
  return {date:start.toISOString().slice(0,10),currency:'PKR',verifiedPayments:rows.length,totals,total:Object.values(totals).reduce((a,b)=>a+b,0).toFixed(2)};
 }
-module.exports={record,verify,list,dailySummary};
+module.exports={record,setCashOnDelivery,verify,list,dailySummary};
