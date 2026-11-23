@@ -230,7 +230,7 @@ class _PosViewState extends State<PosView> {
                       labelText: 'Transaction reference (optional)')),
             const SizedBox(height: 8),
             const Text(
-                'Payment is recorded as pending until verified by an authorized user.',
+                'Confirm only after the customer has actually paid. Unconfirmed payments remain pending.',
                 style: TextStyle(fontSize: 12)),
           ])),
           actions: [
@@ -254,7 +254,8 @@ class _PosViewState extends State<PosView> {
                             orderId: orderId,
                             amount: paid,
                             method: method,
-                            reference: reference.text);
+                            reference: reference.text,
+                            markReceived: true);
                         final verified = payment['status'] == 'verified';
                         if (dialogContext.mounted) Navigator.pop(dialogContext);
                         if (mounted) {
