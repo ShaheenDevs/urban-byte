@@ -97,8 +97,9 @@ class _PosViewState extends State<PosView> {
     final prices = (variant['branchPrices'] as List? ?? [])
         .map((v) => Map<String, dynamic>.from(v as Map))
         .toList();
-    final branchPrice = prices.where((p) =>
-        p['branchId']?.toString() == _branchId).firstOrNull;
+    final matchingPrices = prices.where((p) =>
+        p['branchId']?.toString() == _branchId).toList();
+    final branchPrice = matchingPrices.isEmpty ? null : matchingPrices.first;
     if (branchPrice != null && branchPrice['isAvailable'] == false) {
       _message('Product unavailable at this branch.');
       return;
