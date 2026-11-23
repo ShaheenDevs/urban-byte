@@ -12,9 +12,15 @@ async function record(restaurantId,user,input={}){
  const amount=money(input.amount);
  if(Number(amount)>Number(order.grandTotal))throw fail('Payment cannot exceed the outstanding order total.');
  return sequelize.transaction(async transaction=>{
-  const payment=await Payment.create({restaurantId,branchId:order.branchId,orderId:order.id,method,status:'pending',amount,reference:input.reference?String(input.reference).trim().slice(0,120):null,recordedByUserId:user.id,notes:input.notes?String(input.notes).slice(0,500):null},{transaction});
-  await PaymentEvent.create({paymentId:payment.id,eventType:'recorded',actorUserId:user.id,notes:'Payment recorded; awaiting verification.'},{transaction});
-  if(order.paymentStatus==='unpaid')await order.update({paymentStatus:'pending',paymentMethod:method},{transaction});
+  const verifyCash = method === 'cash' && user.permissions.includes('payments.verify');
+  const payment=await Payment.create({restaurantId,branchId:order.branchId,orderId:order.id,method,status:verifyCash?'verified':'pending',amount,reference:input.reference?String(input.reference).trim().slice(0,120):null,recordedByUserId:user.id,verifiedByUserId:verifyCash?user.id:null,verifiedAt:verifyCash?new Date():null,notes:input.notes?String(input.notes).slice(0,500):null},{transaction});
+  await PaymentEvent.create({paymentId:payment.id,eventType:'recorded',actorUserId:user.id,notes:verifyCash?'Cash received and verified by authorized cashier.':'Payment recorded; awaiting verification.'},{transaction});
+  if(verifyCash) await PaymentEvent.create({paymentId:payment.id,eventType:'verified',actorUserId:user.id,notes:'Cash payment verified at POS.'},{transaction});
+  const alreadyPaid = verifyCash
+    ? Number(await Payment.sum('amount',{where:{orderId:order.id,restaurantId,status:'verified'},transaction}) || 0)
+    : Number(await Payment.sum('amount',{where:{orderId:order.id,restaurantId,status:'verified'},transaction}) || 0);
+  if(alreadyPaid >= Number(order.grandTotal)) await order.update({paymentStatus:'paid',paymentMethod:method},{transaction});
+  else await order.update({paymentStatus:'pending',paymentMethod:method},{transaction});
   return payment;
  });
 }
