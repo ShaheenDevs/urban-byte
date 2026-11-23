@@ -33,7 +33,6 @@ class RoleDashboardPlaceholder extends StatelessWidget {
       permissions.contains('orders.view_all') ||
       permissions.contains('orders.create') ||
       permissions.contains('kitchen.orders.view');
-  bool get _canViewOrderHistory => permissions.contains('orders.view_own') || permissions.contains('orders.view_all');
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
@@ -375,16 +374,6 @@ class _DashboardSummaryPanelState extends State<DashboardSummaryPanel> {
       ]),
     ));
   }
-}
-
-void _openHistory(BuildContext context, String title, {
-  String? statusGroup, String? paymentStatusGroup, String? paymentStatus,
-  String? startDate, String? endDate,
-}) {
-  Navigator.of(context).push(MaterialPageRoute(builder: (_) => DashboardOrdersView(
-    title: title, statusGroup: statusGroup, paymentStatusGroup: paymentStatusGroup,
-    paymentStatus: paymentStatus, initialStartDate: startDate, initialEndDate: endDate,
-  )));
 }
 
 class _MetricTile extends StatelessWidget {
