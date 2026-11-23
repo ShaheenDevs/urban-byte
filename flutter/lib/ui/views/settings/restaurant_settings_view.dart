@@ -23,6 +23,8 @@ class _RestaurantSettingsViewState extends State<RestaurantSettingsView> {
   List<Map<String, dynamic>> _kitchenGroups = [];
   List<Map<String, dynamic>> _products = [];
   List<Map<String, dynamic>> _printers = [];
+  List<Map<String, dynamic>> _deliveryDrivers = [];
+  String? _defaultDeliveryUserId;
   bool _taxEnabled = false,
       _taxInclusive = false,
       _discountEnabled = true,
@@ -62,6 +64,12 @@ class _RestaurantSettingsViewState extends State<RestaurantSettingsView> {
       } catch (_) {
         _printers = [];
       }
+      try {
+        _deliveryDrivers = await _operations.deliveryDrivers();
+      } catch (_) {
+        _deliveryDrivers = [];
+      }
+      _defaultDeliveryUserId = data['defaultDeliveryUserId']?.toString();
       _taxEnabled = data['taxEnabled'] == true;
       _taxInclusive = data['taxInclusive'] == true;
       _discountEnabled = data['discountEnabled'] != false;
@@ -102,6 +110,7 @@ class _RestaurantSettingsViewState extends State<RestaurantSettingsView> {
         'diningTables': _tables,
         'orderTypes': _orderTypes,
         'kitchenPrintGroups': _kitchenGroups,
+        'defaultDeliveryUserId': _defaultDeliveryUserId,
       });
       if (mounted)
         ScaffoldMessenger.of(context).showSnackBar(
@@ -380,6 +389,31 @@ class _RestaurantSettingsViewState extends State<RestaurantSettingsView> {
                     onPressed: _saving ? null : _addTable,
                     icon: const Icon(Icons.add),
                     label: const Text('Add table')),
+                const Divider(height: 32),
+                Text('Default delivery rider',
+                    style: Theme.of(context).textTheme.titleLarge),
+                const Text('This rider is preselected in POS for delivery orders. Waiters can choose another rider when creating an order.'),
+                DropdownButtonFormField<String?>(
+                  value: _deliveryDrivers.any((d) => d['id'].toString() == _defaultDeliveryUserId)
+                      ? _defaultDeliveryUserId
+                      : null,
+                  decoration: const InputDecoration(labelText: 'Default delivery staff'),
+                  items: [
+                    const DropdownMenuItem<String?>(value: null, child: Text('No default rider')),
+                    ..._deliveryDrivers.map((driver) => DropdownMenuItem<String?>(
+                      value: driver['id'].toString(),
+                      child: Text('${driver['name'] ?? 'Delivery staff'}${driver['phone'] == null ? '' : ' • ${driver['phone']}'}'),
+                    )),
+                  ],
+                  onChanged: _saving ? null : (value) => setState(() => _defaultDeliveryUserId = value),
+                ),
+                if (_deliveryDrivers.isEmpty)
+                  const ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.info_outline),
+                    title: Text('No active Delivery staff found.'),
+                    subtitle: Text('Create an employee in Staff Management, assign the Delivery role and a branch, then return here.'),
+                  ),
                 const Divider(height: 32),
                 Text('Order types',
                     style: Theme.of(context).textTheme.titleLarge),
