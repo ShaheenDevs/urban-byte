@@ -14,4 +14,5 @@ module.exports = (sequelize, DataTypes) => sequelize.define('RestaurantSetting',
   receiptFooter: { type: DataTypes.STRING(500), allowNull: true, field: 'receipt_footer' },
   diningTables: { type: DataTypes.JSON, allowNull: false, defaultValue: [], field: 'dining_tables' },
   orderTypes: { type: DataTypes.JSON, allowNull: false, defaultValue: [{ key: 'dine_in', name: 'Dine In' }, { key: 'takeaway', name: 'Takeaway' }, { key: 'delivery', name: 'Delivery' }], field: 'order_types' },
+  kitchenPrintGroups: { type: DataTypes.JSON, allowNull: true, field: 'kitchen_print_groups' },
 }, { tableName: 'restaurant_settings', underscored: true });
