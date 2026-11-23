@@ -28,7 +28,7 @@ function parsePeriod(query = {}) {
     const error = new Error('Provide a valid date range using YYYY-MM-DD; start must not be after end.');
     error.statusCode = 400; error.code = 'INVALID_DATE_RANGE'; throw error;
   }
-  const validTime = (value) => typeof value === 'string' && /^\\d{2}:\\d{2}$/.test(value) && Number(value.slice(0,2)) < 24 && Number(value.slice(3,5)) < 60;
+  const validTime = (value) => typeof value === 'string' && /^\d{2}:\d{2}$/.test(value) && Number(value.slice(0,2)) < 24 && Number(value.slice(3,5)) < 60;
   const startTime = query.startTime || null;
   const endTime = query.endTime || null;
   if ((startTime && !validTime(startTime)) || (endTime && !validTime(endTime)) || (!!startTime !== !!endTime)) {
