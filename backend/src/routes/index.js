@@ -13,6 +13,7 @@ router.use('/cash-shifts',require('./cash-shift-routes'));
 router.use('/expenses',require('./expense-routes'));
 router.use('/kitchen',require('./kitchen-routes'));
 router.use('/inventory',require('./inventory-routes'));
+router.use('/stock-transfers',require('./stock-transfer-routes'));
 router.use('/ai',require('./ai-routes'));
 router.use('/notifications',require('./notification-routes'));
 router.use('/dashboard',require('./dashboard-routes'));
