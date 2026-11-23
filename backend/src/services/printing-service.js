@@ -51,6 +51,46 @@ async function enqueueTestPrint(restaurantId,user,printerId){
  const renderedText=['URBAN BYTE','PRINTER CONNECTION TEST','-'.repeat(width),'Connection: '+printer.connectionType.toUpperCase(),'Printer: '+printer.name,'Paper: '+printer.paperWidth,'Time: '+now,'-'.repeat(width),'If you can read this,','the local print bridge is working.','',''].join('\n');
  return PrintJob.create({restaurantId,branchId:printer.branchId,printerId:printer.id,orderId:null,jobType:'receipt',status:'queued',payload:{test:true,printerId:printer.id},renderedText,requestedByUserId:user.id});
 }
+async function enqueueKitchenForOrder(restaurantId,user,orderId){
+ const order=await Order.findOne({where:{id:Number(orderId),restaurantId},include:[{model:OrderItem,as:'items'}]});
+ if(!order)return [];
+ const settings=await RestaurantSetting.findOne({where:{restaurantId}});
+ const groups=(settings?.kitchenPrintGroups||[]).filter(g=>g.isActive!==false&&(!g.branchId||Number(g.branchId)===Number(order.branchId)));
+ if(!groups.length)return [];
+ const variantIds=order.items.map(i=>i.productVariantId).filter(Boolean);
+ const variants=await require('../models').ProductVariant.findAll({
+  where:{id:{[Op.in]:variantIds}},
+  include:[{model:require('../models').Product,as:'product',include:[{model:require('../models').MenuCategory,as:'category'}]}]
+ });
+ const variantMap=new Map(variants.map(v=>[Number(v.id),v]));
+ const jobs=[];
+ for(const group of groups){
+  const excluded=new Set((group.excludedProductIds||[]).map(Number));
+  const products=new Set((group.productIds||[]).map(Number));
+  const categories=new Set((group.categoryIds||[]).map(Number));
+  const items=order.items.filter(item=>{
+   const variant=variantMap.get(Number(item.productVariantId));
+   const product=variant?.product;
+   if(!product||excluded.has(Number(product.id)))return false;
+   return products.has(Number(product.id))||categories.has(Number(product.categoryId));
+  });
+  if(!items.length)continue;
+  let printer=null;
+  if(group.printerId)printer=await PrinterDevice.findOne({where:{id:Number(group.printerId),restaurantId,branchId:order.branchId,isActive:true,connectionType:{[Op.in]:['bluetooth','network','usb','windows_bridge']}}});
+  if(!printer)printer=await PrinterDevice.findOne({where:{restaurantId,branchId:order.branchId,isActive:true,purpose:{[Op.in]:['kitchen','both']}},order:[['createdAt','ASC']]});
+  if(!printer)continue;
+  const plain=order.get({plain:true});
+  const filteredOrder={...plain,items:items.map(i=>i.get({plain:true}))};
+  const payload={orderId:order.id,orderNumber:order.orderNumber,jobType:'kitchen_ticket',groupId:group.id,groupName:group.name,paperWidth:printer.paperWidth,items:filteredOrder.items};
+  jobs.push(await PrintJob.create({
+   restaurantId,branchId:order.branchId,printerId:printer.id,orderId:order.id,
+   jobType:'kitchen_ticket',status:'queued',payload,
+   renderedText:renderOrder(filteredOrder,'kitchen_ticket',printer.paperWidth,settings?.get({plain:true})||{}),
+   requestedByUserId:user.id,
+  }));
+ }
+ return jobs;
+}
 async function listJobs(restaurantId,query={}){const where={restaurantId};if(query.branchId)where.branchId=Number(query.branchId);if(query.status)where.status=query.status;return PrintJob.findAll({where,order:[['createdAt','DESC']],limit:Math.min(Math.max(Number(query.limit)||50,1),100)});}
 async function claimNext(restaurantId,branchId,printerId){
  return sequelize.transaction(async transaction=>{
@@ -76,4 +116,4 @@ async function retry(restaurantId,jobId){
  await job.update({status:'queued',lastError:null,printedAt:null});
  return job;
 }
-module.exports={registerPrinter,updatePrinter,deletePrinter,listPrinters,enqueue,enqueueTestPrint,listJobs,claimNext,updateStatus,retry};
+module.exports={registerPrinter,updatePrinter,deletePrinter,listPrinters,enqueue,enqueueTestPrint,enqueueKitchenForOrder,listJobs,claimNext,updateStatus,retry};
