@@ -29,7 +29,7 @@ while (!stopping)
         try
         {
             var text = data.GetProperty("renderedText").GetString() ?? "";
-            var bytes = Encoding.GetEncoding(437).GetBytes(text + "\n\n");
+            var bytes = Encoding.Latin1.GetBytes(text + "\n\n");
             if (!string.IsNullOrWhiteSpace(cfg.BluetoothComPort))
             {
                 using var port = new SerialPort(cfg.BluetoothComPort, 9600, Parity.None, 8, StopBits.One) { WriteTimeout = 8000 };
