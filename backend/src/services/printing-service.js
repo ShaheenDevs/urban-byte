@@ -77,7 +77,7 @@ async function enqueueKitchenForOrder(restaurantId,user,orderId){
   });
   if(!items.length)continue;
   let printer=null;
-  if(group.printerId)printer=await PrinterDevice.findOne({where:{id:Number(group.printerId),restaurantId,branchId:order.branchId,isActive:true,connectionType:{[Op.in]:['bluetooth','network','usb','windows_bridge']}}});
+  if(group.printerId)printer=await PrinterDevice.findOne({where:{id:Number(group.printerId),restaurantId,branchId:order.branchId,isActive:true,connectionType:{[Op.in]:['bluetooth','network','usb','windows_bridge']},purpose:{[Op.in]:['kitchen','both']}}});
   if(!printer)printer=await PrinterDevice.findOne({where:{restaurantId,branchId:order.branchId,isActive:true,purpose:{[Op.in]:['kitchen','both']}},order:[['createdAt','ASC']]});
   if(!printer)continue;
   const plain=order.get({plain:true});
