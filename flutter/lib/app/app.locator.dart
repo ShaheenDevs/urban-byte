@@ -18,6 +18,7 @@ import '../services/financial_report_service.dart';
 import '../services/inventory_service.dart';
 import '../services/operations_service.dart';
 import '../services/staff_service.dart';
+import '../services/stock_transfer_service.dart';
 
 final locator = StackedLocator.instance;
 
@@ -37,4 +38,5 @@ Future<void> setupLocator(
   locator.registerLazySingleton(() => FinancialReportService());
   locator.registerLazySingleton(() => BranchOperationsService());
   locator.registerLazySingleton(() => AttendanceShiftService());
+  locator.registerLazySingleton(() => StockTransferService());
 }
