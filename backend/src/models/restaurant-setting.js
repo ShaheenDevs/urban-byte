@@ -12,4 +12,6 @@ module.exports = (sequelize, DataTypes) => sequelize.define('RestaurantSetting',
   maxDiscountPercent: { type: DataTypes.DECIMAL(7, 4), allowNull: false, defaultValue: 20, field: 'max_discount_percent' },
   receiptHeader: { type: DataTypes.STRING(250), allowNull: true, field: 'receipt_header' },
   receiptFooter: { type: DataTypes.STRING(500), allowNull: true, field: 'receipt_footer' },
+  diningTables: { type: DataTypes.JSON, allowNull: false, defaultValue: [], field: 'dining_tables' },
+  orderTypes: { type: DataTypes.JSON, allowNull: false, defaultValue: [{ key: 'dine_in', name: 'Dine In' }, { key: 'takeaway', name: 'Takeaway' }, { key: 'delivery', name: 'Delivery' }], field: 'order_types' },
 }, { tableName: 'restaurant_settings', underscored: true });
