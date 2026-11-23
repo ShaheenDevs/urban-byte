@@ -35,6 +35,10 @@ function parsePeriod(query = {}) {
     const error = new Error('Provide both startTime and endTime using HH:mm format.');
     error.statusCode = 400; error.code = 'INVALID_TIME_RANGE'; throw error;
   }
+  if (startDate === endDate && startTime && startTime >= endTime) {
+    const error = new Error('End time must be after start time for a single-day range.');
+    error.statusCode = 400; error.code = 'INVALID_TIME_RANGE'; throw error;
+  }
   return {
     startDate, endDate, startTime, endTime,
     start: new Date(startDate + 'T' + (startTime || '00:00') + ':00+05:00'),
