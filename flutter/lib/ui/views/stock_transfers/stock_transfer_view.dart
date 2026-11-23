@@ -62,7 +62,7 @@ class StockTransferView extends StackedView<StockTransferViewModel> {
     return Card(child: ExpansionTile(
       leading: const CircleAvatar(child: Icon(Icons.swap_horiz)),
       title: Text('${t['reference'] ?? 'Transfer #$id'}'),
-      subtitle: Text('$source → $dest\\n${status.replaceAll('_', ' ').toUpperCase()}'),
+      subtitle: Text('$source → $dest\n${status.replaceAll('_', ' ').toUpperCase()}'),
       children: [
         ...lines.map((line) {
           final item = line['inventoryItem'] is Map ? line['inventoryItem'] as Map : const {};
