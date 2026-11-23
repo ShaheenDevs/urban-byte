@@ -75,4 +75,43 @@ class CashShiftService {
   Future<Map<String, dynamic>> report(String shiftId) async =>
       Map<String, dynamic>.from(
           await _request('GET', '/$shiftId/report') as Map);
+
+  Future<List<Map<String, dynamic>>> history({
+    String? branchId,
+    String? from,
+    String? to,
+    String? reconciliationStatus,
+  }) async {
+    final query = <String, String>{
+      if (branchId != null && branchId.isNotEmpty) 'branchId': branchId,
+      if (from != null && from.isNotEmpty) 'from': from,
+      if (to != null && to.isNotEmpty) 'to': to,
+      if (reconciliationStatus != null && reconciliationStatus.isNotEmpty)
+        'reconciliationStatus': reconciliationStatus,
+      'limit': '100',
+    };
+    final data = await _request(
+        'GET', '/history?${Uri(queryParameters: query).query}');
+    if (data is! List) throw Exception('Invalid cash shift history response.');
+    return data.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  Future<void> approveReconciliation(String shiftId, {String? note}) async {
+    await _request('POST', '/$shiftId/reconciliation/approve',
+        body: {if (note != null && note.isNotEmpty) 'note': note});
+  }
+
+  Future<void> rejectReconciliation(String shiftId, String note) async {
+    await _request('POST', '/$shiftId/reconciliation/reject',
+        body: {'note': note});
+  }
+
+  Future<Map<String, dynamic>> consolidated({
+    required String from,
+    required String to,
+  }) async {
+    final query = Uri(queryParameters: {'from': from, 'to': to}).query;
+    return Map<String, dynamic>.from(
+        await _request('GET', '/reports/consolidated?$query') as Map);
+  }
 }
