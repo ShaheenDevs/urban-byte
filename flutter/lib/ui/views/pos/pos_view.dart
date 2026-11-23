@@ -292,7 +292,11 @@ class _PosViewState extends State<PosView> {
     try {
       final printers = await _printing.printers(branchId: _branchId);
       final candidates = printers.where((p) => p['connectionType'] == 'bluetooth' && p['isActive'] != false && (p['purpose'] == 'receipt' || p['purpose'] == 'both')).toList();
-      if (candidates.isEmpty) return;
+      if (candidates.isEmpty) {
+        final orderId = order['id']?.toString();
+        if (orderId != null) await _printing.enqueueReceipt(orderId);
+        return;
+      }
       final printer = candidates.first;
       final items = (order['items'] as List? ?? []);
       final lines = <String>[
