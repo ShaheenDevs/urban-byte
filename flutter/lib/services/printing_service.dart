@@ -73,9 +73,8 @@ class PrintingService {
   }
 
   Future<void> printBluetoothText(String mac, String text) async {
+    await _ensureBluetoothPermission();
     if (!await PrintBluetoothThermal.bluetoothEnabled) throw const PrintingException('Turn on Bluetooth on this phone.');
-    final granted = await PrintBluetoothThermal.isPermissionBluetoothGranted;
-    if (!granted) throw const PrintingException('Bluetooth permission is not granted.');
     final connected = await PrintBluetoothThermal.connect(macPrinterAddress: mac);
     if (!connected) throw const PrintingException('Could not connect to the selected Bluetooth printer. Pair it in phone settings first.');
     try {
