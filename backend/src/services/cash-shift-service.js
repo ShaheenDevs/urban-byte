@@ -1,10 +1,12 @@
 'use strict';
 const {Op}=require('sequelize');
-const {CashShift,CashShiftEntry,Payment,sequelize}=require('../models');
+const {CashShift,CashShiftEntry,Payment,Branch,sequelize}=require('../models');
 function fail(message,status=400,code='CASH_SHIFT_ERROR'){const e=new Error(message);e.statusCode=status;e.code=code;return e;}
+function assertBranch(user,branchId){if((user.roles||[]).includes('admin'))return;const allowed=(user.branchIds||[]).map(Number);if(!allowed.includes(Number(branchId)))throw fail('You are not assigned to this branch.',403,'BRANCH_FORBIDDEN');}
 function amount(value){const n=Number(value);if(!Number.isFinite(n)||n<0||n>9999999999.99)throw fail('Amount must be a valid non-negative value.');return n.toFixed(2);}
 async function open(restaurantId,user,input={}){
  const branchId=Number(input.branchId);if(!Number.isSafeInteger(branchId)||branchId<1)throw fail('A valid branchId is required.');
+ assertBranch(user,branchId);const branch=await Branch.findOne({where:{id:branchId,restaurantId,isActive:true},attributes:['id']});if(!branch)throw fail('Branch not found.',404,'BRANCH_NOT_FOUND');
  const openingCash=amount(input.openingCash);
  return sequelize.transaction(async transaction=>{
   const existing=await CashShift.findOne({where:{restaurantId,branchId,status:'open'},transaction,lock:transaction.LOCK.UPDATE});
@@ -18,6 +20,7 @@ async function addEntry(restaurantId,user,shiftId,input={}){
  return sequelize.transaction(async transaction=>{
   const shift=await CashShift.findOne({where:{id:Number(shiftId),restaurantId,status:'open'},transaction,lock:transaction.LOCK.UPDATE});
   if(!shift)throw fail('Open cash shift not found.',404,'SHIFT_NOT_FOUND');
+  assertBranch(user,shift.branchId);
   return CashShiftEntry.create({shiftId:shift.id,entryType:type,amount:amount(value),description:String(input.description||'').trim().slice(0,250)||'Cash movement',reference:input.reference?String(input.reference).trim().slice(0,100):null,recordedByUserId:user.id},{transaction});
  });
 }
@@ -34,6 +37,7 @@ async function close(restaurantId,user,shiftId,input={}){
  return sequelize.transaction(async transaction=>{
   const shift=await CashShift.findOne({where:{id:Number(shiftId),restaurantId,status:'open'},transaction,lock:transaction.LOCK.UPDATE});
   if(!shift)throw fail('Open cash shift not found.',404,'SHIFT_NOT_FOUND');
+  assertBranch(user,shift.branchId);
   shift.closedAt=new Date();
   const summary=await totals(shift,transaction);
   shift.expectedCash=summary.expectedCash.toFixed(2);shift.actualCash=amount(actual);
@@ -43,12 +47,12 @@ async function close(restaurantId,user,shiftId,input={}){
   return {shift,summary,actualCash:actual,cashVariance:Number(shift.cashVariance)};
  });
 }
-async function current(restaurantId,query={}){
- const where={restaurantId,status:'open'};if(query.branchId)where.branchId=Number(query.branchId);
+async function current(restaurantId,user,query={}){
+ const where={restaurantId,status:'open'};if((user.roles||[]).includes('admin')){if(query.branchId)where.branchId=Number(query.branchId);}else{const allowed=(user.branchIds||[]).map(Number);if(query.branchId&&!allowed.includes(Number(query.branchId)))throw fail('You are not assigned to this branch.',403,'BRANCH_FORBIDDEN');where.branchId=query.branchId?Number(query.branchId):{[Op.in]:allowed.length?allowed:[-1]};}
  return CashShift.findAll({where,order:[['openedAt','DESC']],limit:50});
 }
-async function report(restaurantId,shiftId){
- const shift=await CashShift.findOne({where:{id:Number(shiftId),restaurantId}});if(!shift)throw fail('Cash shift not found.',404);
+async function report(restaurantId,user,shiftId){
+ const shift=await CashShift.findOne({where:{id:Number(shiftId),restaurantId}});if(!shift)throw fail('Cash shift not found.',404);assertBranch(user,shift.branchId);
  const summary=await totals(shift);const entries=await CashShiftEntry.findAll({where:{shiftId:shift.id},order:[['createdAt','ASC']]});
  return {shift,summary,entries};
 }
