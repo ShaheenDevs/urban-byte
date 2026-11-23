@@ -62,7 +62,7 @@ async function getDashboardSummary(restaurantId, user, branchId, query = {}) {
     Order.count({ where: todayWhere }),
     Order.count({ where: { ...where, status: { [Op.in]: OPEN_STATUSES } } }),
     Order.count({ where: { ...todayWhere, status: 'completed' } }),
-    Order.count({ where: { ...where, paymentStatus: { [Op.in]: ['unpaid', 'pending'] } } }),
+    Order.count({ where: { ...todayWhere, paymentStatus: { [Op.in]: ['unpaid', 'pending'] } } }),
     Order.sum('grandTotal', { where: { ...todayWhere, paymentStatus: 'paid' } }),
     Order.findAll({ where, attributes: ['status', [fn('COUNT', col('id')), 'count']], group: ['status'], raw: true }),
     Order.findAll({
