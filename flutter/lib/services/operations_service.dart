@@ -35,6 +35,7 @@ class OperationsService {
       if (endDate != null) 'endDate': endDate,
       if (startTime != null) 'startTime': startTime,
       if (endTime != null) 'endTime': endTime,
+      'limit': '100',
     };
     final q = query.isEmpty ? '' : '?' + Uri(queryParameters: query).query;
     final data = await _request('GET', '/orders$q');
