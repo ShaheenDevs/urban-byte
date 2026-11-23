@@ -239,15 +239,18 @@ class _PosViewState extends State<PosView> {
                       }
                       setDialogState(() => saving = true);
                       try {
-                        await _payments.record(
+                        final payment = await _payments.record(
                             orderId: orderId,
                             amount: paid,
                             method: method,
                             reference: reference.text);
+                        final verified = payment['status'] == 'verified';
                         if (dialogContext.mounted) Navigator.pop(dialogContext);
-                        if (mounted)
-                          _message(
-                              'Payment recorded. Verification is required before the order is marked paid.');
+                        if (mounted) {
+                          _message(verified
+                              ? 'Cash payment verified and recorded.'
+                              : 'Payment recorded as pending. An authorized user must verify it.');
+                        }
                       } catch (e) {
                         setDialogState(() => saving = false);
                         if (dialogContext.mounted)
