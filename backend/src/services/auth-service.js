@@ -1,15 +1,15 @@
 'use strict';
 const bcrypt = require('bcryptjs'), jwt = require('jsonwebtoken'), { Op } = require('sequelize'), crypto = require('node:crypto');
-const { User, Role, Permission, RefreshToken, sequelize } = require('../models');
+const { User, Role, Permission, RefreshToken, Branch, sequelize } = require('../models');
 const { resolvePermissions } = require('./permission-resolver');
 function buildSession(user) {
-    const roles = user.roles.map(r => r.slug), roleKeys = user.roles.flatMap(r => r.permissions.map(p => p.permissionKey));
+    const roles = user.roles.map(r => r.slug), branchIds = (user.assignedBranches || []).map(b => String(b.id)), roleKeys = user.roles.flatMap(r => r.permissions.map(p => p.permissionKey));
     const overrides = user.permissionOverrides.map(e => ({ permissionKey: e.permissionKey, effect: e.UserPermission.effect }));
     const permissions = resolvePermissions([...new Set(roleKeys)], overrides);
-    const accessToken = jwt.sign({ sub: String(user.id), restaurantId: String(user.restaurantId), roles }, process.env.JWT_ACCESS_SECRET, { algorithm: 'HS256', expiresIn: process.env.JWT_ACCESS_TTL || '15m', issuer: 'urban-byte-api', audience: 'urban-byte-app' });
-    return { accessToken, tokenType: 'Bearer', expiresIn: process.env.JWT_ACCESS_TTL || '15m', user: { id: String(user.id), restaurantId: String(user.restaurantId), name: user.name, email: user.email, phone: user.phone, roles, permissions } };
+    const accessToken = jwt.sign({ sub: String(user.id), restaurantId: String(user.restaurantId), roles, branchIds }, process.env.JWT_ACCESS_SECRET, { algorithm: 'HS256', expiresIn: process.env.JWT_ACCESS_TTL || '15m', issuer: 'urban-byte-api', audience: 'urban-byte-app' });
+    return { accessToken, tokenType: 'Bearer', expiresIn: process.env.JWT_ACCESS_TTL || '15m', user: { id: String(user.id), restaurantId: String(user.restaurantId), name: user.name, email: user.email, phone: user.phone, roles, permissions, branchIds } };
 }
-const includes = [{ model: Role, as: 'roles', through: { attributes: [] }, include: [{ model: Permission, as: 'permissions', through: { attributes: [] } }] }, { model: Permission, as: 'permissionOverrides', through: { attributes: ['effect'] } }];
+const includes = [{ model: Branch, as: 'assignedBranches', attributes: ['id'] }, { model: Role, as: 'roles', through: { attributes: [] }, include: [{ model: Permission, as: 'permissions', through: { attributes: [] } }] }, { model: Permission, as: 'permissionOverrides', through: { attributes: ['effect'] } }];
 async function loadUser(identifier) { return User.findOne({ where: { [Op.or]: [{ email: identifier.toLowerCase() }, { phone: identifier }] }, include: includes }); }
 const hash = t => crypto.createHash('sha256').update(t).digest('hex');
 async function issueRefreshToken(userId, transaction) { const token = crypto.randomBytes(48).toString('base64url'); await RefreshToken.create({ userId, tokenHash: hash(token), expiresAt: new Date(Date.now() + 30 * 86400000) }, { transaction }); return token; }
@@ -23,7 +23,7 @@ async function getCurrentUser(userId) {
     if (!user || !user.isActive) return null;
     const keys = user.roles.flatMap(r => r.permissions.map(p => p.permissionKey));
     const overrides = user.permissionOverrides.map(e => ({ permissionKey: e.permissionKey, effect: e.UserPermission.effect }));
-    return { id: String(user.id), restaurantId: String(user.restaurantId), name: user.name, email: user.email, phone: user.phone, roles: user.roles.map(r => r.slug), permissions: resolvePermissions([...new Set(keys)], overrides) };
+    return { id: String(user.id), restaurantId: String(user.restaurantId), name: user.name, email: user.email, phone: user.phone, roles: user.roles.map(r => r.slug), permissions: resolvePermissions([...new Set(keys)], overrides), branchIds: (user.assignedBranches || []).map(b => Number(b.id)) };
 }
 async function refresh(raw) {
     if (typeof raw !== 'string' || raw.length < 40) { const e = new Error('Invalid refresh token.'); e.statusCode = 401; e.code = 'INVALID_REFRESH_TOKEN'; throw e; }
