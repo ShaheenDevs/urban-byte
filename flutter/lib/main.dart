@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'app/app.locator.dart';
 import './ui/views/setup/setup_wizard_view.dart';
 
@@ -9,7 +10,8 @@ Future<void> main() async {
 }
 
 class UrbanByteApp extends StatelessWidget {
-  const UrbanByteApp({super.key});
+  const UrbanByteApp({super.key, this.setupClient});
+  final http.Client? setupClient;
   @override
   Widget build(BuildContext context) => MaterialApp(
         title: 'Urban Byte',
@@ -20,6 +22,6 @@ class UrbanByteApp extends StatelessWidget {
           ),
           useMaterial3: true,
         ),
-        home: const SetupWizardView(),
+        home: SetupWizardView(client: setupClient),
       );
 }
