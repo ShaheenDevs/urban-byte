@@ -185,7 +185,7 @@ class _Orders extends StatelessWidget {
       final value=double.tryParse(amount.text.trim());
       if(value==null||value<=0||value>due){if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Enter an amount within the remaining balance.')));amount.dispose();reference.dispose();return;}
       try {
-        await PaymentService().record(orderId:'${order['id']}',amount:value,method:method,reference:reference.text,markReceived:true);
+        await PaymentService().record(orderId:'${order['id']}',amount:value,method:method,reference:reference.text,markReceived:method != 'cod');
         await vm.load();
         if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Payment received and updated.')));
       } catch(e) { if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(e.toString()))); }
