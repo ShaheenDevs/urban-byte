@@ -14,6 +14,7 @@ import '../reports/financial_reports_view.dart';
 import '../branch_operations/branch_operations_view.dart';
 import '../attendance_shifts/attendance_shift_view.dart';
 import '../stock_transfers/stock_transfer_view.dart';
+import '../owner_dashboard/consolidated_owner_dashboard_view.dart';
 import '../expenses/expenses_view.dart';
 import '../suppliers/suppliers_view.dart';
 import '../purchases/purchases_view.dart';
@@ -64,6 +65,18 @@ class RoleDashboardPlaceholder extends StatelessWidget {
           const SizedBox(height: 6),
           Text('Welcome to your $roleName workspace.'),
           const SizedBox(height: 16),
+          if (roleName.trim().toLowerCase() == 'admin' && permissions.contains('reports.view'))
+            Card(
+              child: ListTile(
+                leading: const CircleAvatar(child: Icon(Icons.dashboard_customize_outlined)),
+                title: const Text('Consolidated Owner Dashboard'),
+                subtitle: const Text('All branches: sales, profit, expenses, cash and supplier dues'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const ConsolidatedOwnerDashboardView()),
+                ),
+              ),
+            ),
           if (permissions.contains('dashboard.view'))
             DashboardSummaryPanel(permissions: permissions),
           const SizedBox(height: 20),
