@@ -16,6 +16,9 @@ class _ExpensesViewState extends State<ExpensesView> {
   List<RestaurantBranch> _branches = [];
   String _status = 'all';
   String? _branchId;
+  Map<String, dynamic> _summary = {};
+  String? _fromDate;
+  String? _toDate;
   bool _loading = true;
   bool _busy = false;
   String? _error;
@@ -32,12 +35,21 @@ class _ExpensesViewState extends State<ExpensesView> {
       _error = null;
     });
     try {
-      final results = await Future.wait(
-          [_service.getExpenses(status: _status), _inventory.branches()]);
+      final results = await Future.wait([
+        _service.getExpenses(
+            status: _status,
+            branchId: _branchId,
+            from: _fromDate,
+            to: _toDate),
+        _inventory.branches(),
+        _service.getSummary(
+            branchId: _branchId, from: _fromDate, to: _toDate),
+      ]);
       if (!mounted) return;
       setState(() {
         _expenses = results[0] as List<Map<String, dynamic>>;
         _branches = results[1] as List<RestaurantBranch>;
+        _summary = results[2] as Map<String, dynamic>;
         _loading = false;
       });
     } catch (e) {
@@ -52,6 +64,37 @@ class _ExpensesViewState extends State<ExpensesView> {
   String _today() {
     final d = DateTime.now();
     return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  }
+
+  String _formatDate(DateTime date) =>
+      '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+  Future<void> _pickDate(bool isFrom) async {
+    final initial = DateTime.tryParse(
+            (isFrom ? _fromDate : _toDate) ?? _today()) ??
+        DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+    );
+    if (picked == null) return;
+    final value = _formatDate(picked);
+    setState(() {
+      if (isFrom) {
+        _fromDate = value;
+        if (_toDate != null && _toDate!.compareTo(value) < 0) {
+          _toDate = value;
+        }
+      } else {
+        _toDate = value;
+        if (_fromDate != null && _fromDate!.compareTo(value) > 0) {
+          _fromDate = value;
+        }
+      }
+    });
+    await _load();
   }
 
   Future<void> _create() async {
@@ -252,26 +295,79 @@ class _ExpensesViewState extends State<ExpensesView> {
             label: const Text('Add expense')),
         body: Column(children: [
           Padding(
-              padding: const EdgeInsets.all(12),
-              child: DropdownButtonFormField<String>(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+            child: Column(
+              children: [
+                DropdownButtonFormField<String?>(
+                  value: _branchId,
+                  decoration: const InputDecoration(labelText: 'Branch filter'),
+                  items: [
+                    const DropdownMenuItem<String?>(
+                        value: null, child: Text('All assigned branches')),
+                    ..._branches.map((b) => DropdownMenuItem<String?>(
+                        value: b.id, child: Text(b.name))),
+                  ],
+                  onChanged: (v) {
+                    setState(() => _branchId = v);
+                    _load();
+                  },
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: _busy ? null : () => _pickDate(true),
+                      icon: const Icon(Icons.calendar_today),
+                      label: Text('From: ${_fromDate ?? 'Any'}'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _busy ? null : () => _pickDate(false),
+                      icon: const Icon(Icons.event),
+                      label: Text('To: ${_toDate ?? 'Any'}'),
+                    ),
+                    if (_fromDate != null || _toDate != null)
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _fromDate = null;
+                            _toDate = null;
+                          });
+                          _load();
+                        },
+                        child: const Text('Clear dates'),
+                      ),
+                  ],
+                ),
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.account_balance_wallet_outlined),
+                    title: const Text('Approved expenses in selected period'),
+                    subtitle: Text(
+                        'PKR ${_summary['total'] ?? '0.00'} · excludes pending/rejected'),
+                  ),
+                ),
+                DropdownButtonFormField<String>(
                   value: _status,
-                  decoration:
-                      const InputDecoration(labelText: 'Expense status'),
+                  decoration: const InputDecoration(labelText: 'Expense status'),
                   items: const [
                     DropdownMenuItem(value: 'all', child: Text('All expenses')),
                     DropdownMenuItem(
                         value: 'pending', child: Text('Pending approval')),
-                    DropdownMenuItem(
-                        value: 'approved', child: Text('Approved')),
-                    DropdownMenuItem(
-                        value: 'rejected', child: Text('Rejected')),
+                    DropdownMenuItem(value: 'approved', child: Text('Approved')),
+                    DropdownMenuItem(value: 'rejected', child: Text('Rejected')),
                   ],
                   onChanged: (v) {
                     if (v != null) {
                       setState(() => _status = v);
                       _load();
                     }
-                  })),
+                  },
+                ),
+              ],
+            ),
+          ),
           if (_busy) const LinearProgressIndicator(),
           Expanded(
             child: _loading

@@ -2,22 +2,43 @@
 const {Op}=require('sequelize');
 const {Order,OrderItem,Payment,Expense,Purchase,PurchasePayment,Branch,StockMovement,sequelize}=require('../models');
 function invalid(message){const e=new Error(message);e.statusCode=400;e.code='INVALID_REPORT_FILTER';return e;}
+
+function branchScope(restaurantId, actor = {}, requestedBranchId) {
+ const isAdmin=(actor.roles||[]).includes('admin');
+ const allowed=(actor.branchIds||[]).map(Number).filter(id=>Number.isSafeInteger(id)&&id>0);
+ if(requestedBranchId!==undefined&&requestedBranchId!==null&&requestedBranchId!==''){
+  const id=Number(requestedBranchId);
+  if(!Number.isSafeInteger(id)||id<1)throw invalid('Invalid branchId.');
+  if(!isAdmin&&!allowed.includes(id)){const e=invalid('You are not assigned to this branch.');e.statusCode=403;e.code='BRANCH_FORBIDDEN';throw e;}
+  return {branchId:id};
+ }
+ return isAdmin?{}:{branchId:{[Op.in]:allowed.length?allowed:[-1]}};
+}
+
 function range(query={}){
- const from=query.from||query.date||new Date().toISOString().slice(0,10);
+ const todayInPakistan=new Date(Date.now()+5*60*60*1000).toISOString().slice(0,10);
+ const from=query.from||query.date||todayInPakistan;
  const to=query.to||query.date||from;
- const valid=v=>/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v+'T00:00:00Z'));
+ const valid=value=>{
+  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
+  const [year,month,day]=value.split('-').map(Number);
+  const date=new Date(Date.UTC(year,month-1,day));
+  return date.getUTCFullYear()===year&&date.getUTCMonth()===month-1&&date.getUTCDate()===day;
+ };
  if(!valid(from)||!valid(to)||from>to)throw invalid('Use a valid YYYY-MM-DD date range.');
- const start=new Date(new Date(from+'T00:00:00.000Z').getTime()-5*60*60*1000);const end=new Date(new Date(to+'T00:00:00.000Z').getTime()-5*60*60*1000+24*60*60*1000);
+ const pakistanOffset=5*60*60*1000;
+ const start=new Date(Date.parse(from+'T00:00:00.000Z')-pakistanOffset);
+ const end=new Date(Date.parse(to+'T00:00:00.000Z')-pakistanOffset+24*60*60*1000);
  return {from,to,start,end};
 }
-async function overview(restaurantId,query={}){
+async function overview(restaurantId,query={},actor={}){
  const {from,to,start,end}=range(query);const branchId=query.branchId?Number(query.branchId):null;
  if(branchId!==null&&(!Number.isSafeInteger(branchId)||branchId<1))throw invalid('Invalid branchId.');
- const scope={restaurantId,placedAt:{[Op.gte]:start,[Op.lt]:end},status:{[Op.ne]:'cancelled'}};if(branchId)scope.branchId=branchId;
+ const scope={restaurantId,placedAt:{[Op.gte]:start,[Op.lt]:end},status:{[Op.ne]:'cancelled'},...branchScope(restaurantId,actor,branchId)};
  const [orders,payments,approvedExpenses]=await Promise.all([
   Order.findAll({where:scope,attributes:['id','grandTotal','paymentStatus','orderType','status'],raw:true}),
-  Payment.findAll({where:{restaurantId,status:'verified',verifiedAt:{[Op.gte]:start,[Op.lt]:end},...(branchId?{branchId}:{})},attributes:['method','amount'],raw:true}),
-  Expense.findAll({where:{restaurantId,status:'approved',expenseDate:{[Op.gte]:from,[Op.lte]:to},...(branchId?{branchId}:{})},attributes:['category','paymentMethod','amount'],raw:true})
+  Payment.findAll({where:{restaurantId,status:'verified',verifiedAt:{[Op.gte]:start,[Op.lt]:end},...branchScope(restaurantId,actor,branchId)},attributes:['method','amount'],raw:true}),
+  Expense.findAll({where:{restaurantId,status:'approved',expenseDate:{[Op.gte]:from,[Op.lte]:to},...branchScope(restaurantId,actor,branchId)},attributes:['category','paymentMethod','amount'],raw:true})
  ]);
  const methods={cash:0,card:0,easypaisa:0,jazzcash:0,bank_transfer:0,cod:0};
  for(const p of payments)methods[p.method]=(methods[p.method]||0)+Number(p.amount);
@@ -38,12 +59,12 @@ async function overview(restaurantId,query={}){
  return {period:{from,to},timezone:'Asia/Karachi',currency:'PKR',orders:{count:orders.length,grossSales:gross.toFixed(2),paidOrderValue:paidOrderValue.toFixed(2),averageOrderValue:orders.length?(gross/orders.length).toFixed(2):'0.00',byType:typeCounts},verifiedPayments:{count:payments.length,total:payments.reduce((s,p)=>s+Number(p.amount),0).toFixed(2),byMethod:Object.fromEntries(Object.entries(methods).map(([k,v])=>[k,v.toFixed(2)]))},bestSellingProducts:topProducts.map(p=>({name:p.productName,quantity:Number(p.quantity),revenue:Number(p.revenue).toFixed(2)})),expenses:{tracked:true,count:approvedExpenses.length,total:expenseTotal.toFixed(2),byCategory:Object.fromEntries(Object.entries(expensesByCategory).map(([key,value])=>[key,value.toFixed(2)]))}};
 }
 
-async function financial(restaurantId,query={}){
+async function financial(restaurantId,query={},actor={}){
  const {from,to,start,end}=range(query);
  const branchId=query.branchId?Number(query.branchId):null;
  if(branchId!==null&&(!Number.isSafeInteger(branchId)||branchId<1))throw invalid('Invalid branchId.');
  if(branchId){const branch=await Branch.findOne({where:{id:branchId,restaurantId},attributes:['id']});if(!branch){const e=invalid('Branch not found for this restaurant.');e.statusCode=404;throw e;}}
- const base={restaurantId,...(branchId?{branchId}:{})};
+ const base={restaurantId,...branchScope(restaurantId,actor,branchId)};
  const [payments,expenses,purchases,branchPurchases,completedOrders]=await Promise.all([
   Payment.findAll({where:{...base,status:'verified',verifiedAt:{[Op.gte]:start,[Op.lt]:end}},attributes:['method','amount'],raw:true}),
   Expense.findAll({where:{...base,status:'approved',expenseDate:{[Op.gte]:from,[Op.lte]:to}},attributes:['paymentMethod','amount'],raw:true}),
@@ -96,16 +117,16 @@ async function financial(restaurantId,query={}){
 }
 
 
-async function analytics(restaurantId,query={}){
+async function analytics(restaurantId,query={},actor={}){
  const {from,to,start,end}=range(query);
  const branchId=query.branchId?Number(query.branchId):null;
  if(branchId!==null&&(!Number.isSafeInteger(branchId)||branchId<1))throw invalid('Invalid branchId.');
  if(branchId){const branch=await Branch.findOne({where:{id:branchId,restaurantId},attributes:['id']});if(!branch){const e=invalid('Branch not found for this restaurant.');e.statusCode=404;throw e;}}
- const scope={restaurantId,status:'completed',completedAt:{[Op.gte]:start,[Op.lt]:end},...(branchId?{branchId}:{})};
+ const scope={restaurantId,status:'completed',completedAt:{[Op.gte]:start,[Op.lt]:end},...branchScope(restaurantId,actor,branchId)};
  const [orders,branches,waste]=await Promise.all([
   Order.findAll({where:scope,include:[{model:OrderItem,as:'items'}],order:[['completedAt','ASC']]}),
-  Branch.findAll({where:{restaurantId,isActive:true,...(branchId?{id:branchId}:{})},attributes:['id','name'],raw:true}),
-  StockMovement.findAll({where:{restaurantId,movementType:'waste',createdAt:{[Op.gte]:start,[Op.lt]:end},...(branchId?{branchId}:{})},attributes:['branchId','inventoryItemId','quantityChange','unitCost'],raw:true})
+  Branch.findAll({where:{restaurantId,isActive:true,...(branchId?{id:branchId}:((actor.roles||[]).includes('admin')?{}:{id:{[Op.in]:(actor.branchIds||[]).map(Number)}}))},attributes:['id','name'],raw:true}),
+  StockMovement.findAll({where:{restaurantId,movementType:'waste',createdAt:{[Op.gte]:start,[Op.lt]:end},...branchScope(restaurantId,actor,branchId)},attributes:['branchId','inventoryItemId','quantityChange','unitCost'],raw:true})
  ]);
  const daily=new Map(),products=new Map(),branchStats=new Map();
  for(const order of orders){
@@ -138,4 +159,18 @@ async function analytics(restaurantId,query={}){
  };
 }
 
-module.exports={overview,financial,analytics,range};
+
+async function consolidated(restaurantId,query={},actor={}) {
+ if(!(actor.roles||[]).includes('admin')){const e=invalid('Only restaurant administrators can view the consolidated owner dashboard.');e.statusCode=403;e.code='OWNER_ACCESS_REQUIRED';throw e;}
+ const {from,to}=range(query);
+ const branches=await Branch.findAll({where:{restaurantId,isActive:true},attributes:['id','name','code'],order:[['name','ASC']],raw:true});
+ const rows=await Promise.all(branches.map(async branch=>{
+  const data=await financial(restaurantId,{from,to,branchId:branch.id},{...actor,branchIds:[branch.id]});
+  return {branchId:branch.id,branchName:branch.name,branchCode:branch.code,ordersCompleted:data.profitability.completedOrders,salesRevenue:data.profitability.salesRevenue,estimatedCogs:data.profitability.estimatedCogs,grossProfit:data.profitability.grossProfit,operatingExpenses:data.profitability.approvedOperatingExpenses,netProfit:data.profitability.netProfit,profitabilityStatus:data.profitability.status,collections:data.collections.total,cashMovement:data.cashFlow.netCashMovement,purchaseReceivedTotal:data.purchases.receivedTotal,supplierOutstanding:data.purchases.supplierOutstanding};
+ }));
+ const total=(key)=>rows.reduce((sum,row)=>sum+(row[key]===null?0:Number(row[key]||0)),0);
+ const allCostsComplete=rows.every(row=>row.profitabilityStatus==='complete');
+ return {period:{from,to},timezone:'Asia/Karachi',currency:'PKR',branchCount:rows.length,totals:{ordersCompleted:rows.reduce((n,r)=>n+r.ordersCompleted,0),salesRevenue:total('salesRevenue').toFixed(2),estimatedCogs:total('estimatedCogs').toFixed(2),grossProfit:allCostsComplete?total('grossProfit').toFixed(2):null,operatingExpenses:total('operatingExpenses').toFixed(2),netProfit:allCostsComplete?total('netProfit').toFixed(2):null,profitabilityStatus:allCostsComplete?'complete':'incomplete',collections:total('collections').toFixed(2),cashMovement:total('cashMovement').toFixed(2),purchaseReceivedTotal:total('purchaseReceivedTotal').toFixed(2),supplierOutstanding:total('supplierOutstanding').toFixed(2)},branches:rows};
+}
+
+module.exports={overview,financial,analytics,consolidated,range};

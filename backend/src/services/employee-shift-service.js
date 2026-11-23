@@ -7,6 +7,12 @@ const { EmployeeShift, User, UserBranch, Branch, AuditLog, sequelize } = require
 function fail(message, status = 400, code = 'SHIFT_ERROR') {
   return Object.assign(new Error(message), { statusCode: status, code });
 }
+function validDate(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const d = new Date(value + 'T00:00:00Z');
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value;
+}
+function validTime(value) { return typeof value === 'string' && /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(value); }
 async function branchAccess(restaurantId, actor, branchId, transaction) {
   const branch = await Branch.findOne({ where: { id: branchId, restaurantId, isActive: true }, transaction });
   if (!branch) throw fail('Branch not found or inactive.', 404, 'BRANCH_NOT_FOUND');
@@ -19,6 +25,8 @@ async function audit(transaction, restaurantId, actorId, shift, action, ipAddres
   await AuditLog.create({
     restaurantId, actorUserId: actorId, entityType: 'employee_shift', entityId: String(shift.id),
     action, metadata: { branchId: shift.branchId, userId: shift.userId, shiftDate: shift.shiftDate, startTime: shift.startTime, endTime: shift.endTime, status: shift.status },
+    restaurantId, branchId: shift.branchId, actorUserId: actorId, entityType: 'employee_shift', entityId: String(shift.id),
+    action, metadata: { branchId: shift.branchId, userId: shift.userId, shiftDate: shift.shiftDate, startTime: shift.startTime, endTime: shift.endTime, status: shift.status }, afterData: { branchId: shift.branchId, userId: shift.userId, shiftDate: shift.shiftDate, startTime: shift.startTime, endTime: shift.endTime, status: shift.status }, 
     ipAddress: ipAddress || null,
   }, { transaction });
 }

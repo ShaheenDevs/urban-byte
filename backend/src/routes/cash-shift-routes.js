@@ -3,7 +3,11 @@ const router=require('express').Router();const {authenticate}=require('../middle
 router.use(authenticate);
 router.post('/open',requirePermission('cash_shifts.open'),c.open);
 router.get('/current',requirePermission('cash_shifts.view'),c.current);
+router.get('/history',requirePermission('cash_shifts.view'),c.history);
+router.get('/reports/consolidated',requirePermission('cash_shifts.view'),c.consolidated);
 router.post('/:shiftId/entries',requirePermission('cash_shifts.manage'),c.entry);
 router.post('/:shiftId/close',requirePermission('cash_shifts.close'),c.close);
+router.post('/:shiftId/reconciliation/approve',requirePermission('cash_shifts.reconcile.approve'),c.approveReconciliation);
+router.post('/:shiftId/reconciliation/reject',requirePermission('cash_shifts.reconcile.approve'),c.rejectReconciliation);
 router.get('/:shiftId/report',requirePermission('cash_shifts.view'),c.report);
 module.exports=router;

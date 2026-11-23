@@ -2,6 +2,7 @@
 const router=require('express').Router();const {authenticate}=require('../middleware/auth');const {requirePermission}=require('../middleware/require-permission');const controller=require('../controllers/report-controller');
 router.use(authenticate);
 router.get('/sales',requirePermission('reports.view'),controller.overview);
+router.get('/consolidated',requirePermission('reports.view'),controller.consolidated);
 router.get('/financial',requirePermission('reports.view'),controller.financial);
 router.get('/analytics',requirePermission('reports.view'),controller.analytics);
 router.get('/financial/export.csv',requirePermission('reports.view'),controller.financialCsv);

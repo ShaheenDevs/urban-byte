@@ -105,12 +105,17 @@ class _FinancialReportsViewState extends State<FinancialReportsView> {
     final expenses =
         Map<String, dynamic>.from(f['approvedExpenses'] as Map? ?? {});
     final purchases = Map<String, dynamic>.from(f['purchases'] as Map? ?? {});
+    final supplierPayments = Map<String, dynamic>.from(f['supplierPayments'] as Map? ?? {});
     final cash = Map<String, dynamic>.from(f['cashFlow'] as Map? ?? {});
     final profit = Map<String, dynamic>.from(f['profitability'] as Map? ?? {});
     final notes = Map<String, dynamic>.from(f['accountingNotes'] as Map? ?? {});
     final analytics = _analytics ?? {};
     final days = analytics['dailySales'] as List? ?? [];
     final products = analytics['bestSellingProducts'] as List? ?? [];
+    final branchRows = analytics['branchComparison'] as List? ?? [];
+    final lowMarginProducts = analytics['lowestMarginProducts'] as List? ?? [];
+    final wastage = Map<String, dynamic>.from(analytics['wastage'] as Map? ?? {});
+    final productProfitability = f['productProfitability'] as List? ?? [];
 
     return Scaffold(
       appBar: AppBar(title: const Text('Financial Reports'), actions: [
@@ -125,12 +130,12 @@ class _FinancialReportsViewState extends State<FinancialReportsView> {
         Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
             child: Column(children: [
-              DropdownButtonFormField<String>(
+              DropdownButtonFormField<String?>(
                   value: _branchId,
                   decoration: const InputDecoration(
                       labelText: 'All branches / Select branch'),
                   items: [
-                    const DropdownMenuItem<String>(
+                    const DropdownMenuItem<String?>(
                         value: null, child: Text('All branches')),
                     ..._branches.map((b) =>
                         DropdownMenuItem(value: b.id, child: Text(b.name)))
@@ -196,6 +201,8 @@ class _FinancialReportsViewState extends State<FinancialReportsView> {
                                         purchases['receivedTotal']),
                                     _metric('Cash net movement',
                                         cash['netCashMovement']),
+                                    _metric('Estimated COGS', profit['estimatedCogs']),
+                                    _metric('Supplier outstanding', purchases['supplierOutstanding']),
                                     _metric(
                                         'Gross profit', profit['grossProfit'],
                                         prominent: true),
@@ -252,6 +259,59 @@ class _FinancialReportsViewState extends State<FinancialReportsView> {
                                             _line('Net cash movement',
                                                 cash['netCashMovement']),
                                           ]))),
+                              Card(
+                                  child: Padding(
+                                      padding: const EdgeInsets.all(14),
+                                      child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text('Supplier payments & liabilities',
+                                                style: Theme.of(context).textTheme.titleMedium),
+                                            _line('Paid against received purchases',
+                                                purchases['supplierPaidForReceived']),
+                                            _line('Supplier payments in selected period',
+                                                supplierPayments['total']),
+                                            _line('Outstanding on selected purchases',
+                                                purchases['supplierOutstanding']),
+                                            _line('Received purchase count',
+                                                purchases['receivedCount']),
+                                          ]))),
+                              Text('Branch profitability comparison',
+                                  style: Theme.of(context).textTheme.titleLarge),
+                              if (branchRows.isEmpty)
+                                const ListTile(title: Text('No branch comparison available for this period.')),
+                              ...branchRows.map((b) => Card(
+                                  child: ListTile(
+                                      title: Text(b['branchName']?.toString() ?? 'Branch'),
+                                      subtitle: Text('Orders: ${b['orders'] ?? 0} · Revenue: ${_money(b['revenue'])} · COGS: ${_money(b['estimatedCogs'])}'),
+                                      trailing: Text(b['grossProfit'] == null
+                                          ? 'COGS incomplete'
+                                          : _money(b['grossProfit'])))),
+                              Text('Product profitability',
+                                  style: Theme.of(context).textTheme.titleLarge),
+                              if (productProfitability.isEmpty)
+                                const ListTile(title: Text('No product profitability data available.')),
+                              ...productProfitability.take(15).map((p) => ListTile(
+                                  dense: true,
+                                  title: Text(p['productName']?.toString() ?? 'Product'),
+                                  subtitle: Text('Qty: ${p['quantity'] ?? 0} · Revenue: ${_money(p['revenue'])} · COGS: ${_money(p['cogs'])}'),
+                                  trailing: Text(p['grossProfit'] == null
+                                      ? 'Incomplete'
+                                      : 'Profit: ${_money(p['grossProfit'])}'))),
+                              Text('Lowest-margin products',
+                                  style: Theme.of(context).textTheme.titleLarge),
+                              if (lowMarginProducts.isEmpty)
+                                const ListTile(title: Text('No products with complete margin data.')),
+                              ...lowMarginProducts.take(10).map((p) => ListTile(
+                                  dense: true,
+                                  title: Text(p['productName']?.toString() ?? 'Product'),
+                                  subtitle: Text('Revenue: ${_money(p['revenue'])} · Gross profit: ${_money(p['grossProfit'])}'),
+                                  trailing: Text('${p['marginPercent'] ?? 0}%'))),
+                              Card(
+                                  child: ListTile(
+                                      title: const Text('Inventory wastage'),
+                                      subtitle: Text('Movements: ${wastage['movementCount'] ?? 0} · Quantity: ${wastage['totalQuantity'] ?? 0} · Unpriced: ${wastage['unpricedMovementCount'] ?? 0}'),
+                                      trailing: Text(_money(wastage['estimatedCost'])))),
                               Text('Daily sales',
                                   style:
                                       Theme.of(context).textTheme.titleLarge),
@@ -289,6 +349,7 @@ class _FinancialReportsViewState extends State<FinancialReportsView> {
     final expenses =
         Map<String, dynamic>.from(f['approvedExpenses'] as Map? ?? {});
     final purchases = Map<String, dynamic>.from(f['purchases'] as Map? ?? {});
+    final supplierPayments = Map<String, dynamic>.from(f['supplierPayments'] as Map? ?? {});
     final cash = Map<String, dynamic>.from(f['cashFlow'] as Map? ?? {});
     final profit = Map<String, dynamic>.from(f['profitability'] as Map? ?? {});
     final rows = <List<String>>[
@@ -305,6 +366,10 @@ class _FinancialReportsViewState extends State<FinancialReportsView> {
       ['Verified collections', '${collections['total'] ?? 0}'],
       ['Approved expenses', '${expenses['total'] ?? 0}'],
       ['Received purchases', '${purchases['receivedTotal'] ?? 0}'],
+      ['Supplier paid for received purchases', '${purchases['supplierPaidForReceived'] ?? 0}'],
+      ['Supplier outstanding', '${purchases['supplierOutstanding'] ?? 0}'],
+      ['Supplier payments in period', '${supplierPayments['total'] ?? 0}'],
+      ['Estimated COGS', '${profit['estimatedCogs'] ?? 0}'],
       ['Cash collections', '${cash['cashCollections'] ?? 0}'],
       ['Cash expenses', '${cash['cashExpenses'] ?? 0}'],
       ['Cash supplier payments', '${cash['cashSupplierPayments'] ?? 0}'],
