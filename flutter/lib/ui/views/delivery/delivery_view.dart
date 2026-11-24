@@ -421,7 +421,7 @@ class DeliveryViewModel extends BaseViewModel {
       collected = true;
     }
     setBusy(true); loadingError = null;
-    try { await api.updateDeliveryStatus(id, 'delivered', codCollected: collected); await load(); }
+    try { await api.updateDeliveryStatus(id, 'delivered', codCollected: collected); await _locationSubscriptions.remove(id)?.cancel(); await load(); }
     catch (e) { loadingError = e.toString(); }
     finally { setBusy(false); notifyListeners(); }
   }
