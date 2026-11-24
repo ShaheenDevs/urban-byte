@@ -1,6 +1,6 @@
 'use strict';
 const {Op}=require('sequelize');
-const {DeliveryAssignment,Order,Payment,PaymentEvent,User,Role,UserBranch,OrderStatusHistory,sequelize}=require('../models');
+const {DeliveryAssignment,DeliveryCashSettlement,Order,Payment,PaymentEvent,User,Role,UserBranch,OrderStatusHistory,AuditLog,sequelize}=require('../models');
 const {validateTransition}=require('./order-lifecycle');
 function fail(message,status=400,code='DELIVERY_ERROR'){const e=new Error(message);e.statusCode=status;e.code=code;return e;}
 function id(value){const n=Number(value);if(!Number.isSafeInteger(n)||n<1)throw fail('A valid ID is required.');return n;}
@@ -156,4 +156,66 @@ async function analytics(restaurantId,user,filters={}) {
  return {totalAssignments:rows.length,delivered:delivered.length,cancelled:rows.filter(x=>x.status==='cancelled').length,pending:rows.length-closed.length,deliverySuccessRate:rows.length?Number((delivered.length/rows.length*100).toFixed(1)):0,averageDeliveryMinutes:durations.length?Number((durations.reduce((a,b)=>a+b,0)/durations.length).toFixed(1)):null,codCollected:Number(totalCod.toFixed(2)),riders:[...byRider.values()].map(x=>({riderId:x.riderId,total:x.total,delivered:x.delivered,cancelled:x.cancelled,pending:x.pending,deliverySuccessRate:x.total?Number((x.delivered/x.total*100).toFixed(1)):0,codCollected:x.codCollected,codAmount:Number(x.codAmount.toFixed(2)),averageDeliveryMinutes:x.durationCount?Number((x.durationTotal/x.durationCount).toFixed(1)):null}))};
 }
 
-module.exports={assign,list,drivers,unassigned,updateStatus,history,codCollections,analytics};
+
+function validSettlementDate(value) {
+ if(typeof value!=='string'||!/^\\d{4}-\\d{2}-\\d{2}$/.test(value))return false;
+ const [y,m,d]=value.split('-').map(Number);const date=new Date(Date.UTC(y,m-1,d));
+ return date.getUTCFullYear()===y&&date.getUTCMonth()===m-1&&date.getUTCDate()===d;
+}
+function settlementDayBounds(day) {
+ if(!validSettlementDate(day))throw fail('Settlement date must use YYYY-MM-DD.');
+ return { [Op.gte]:new Date(day+'T00:00:00+05:00'), [Op.lt]:new Date(new Date(day+'T00:00:00+05:00').getTime()+86400000) };
+}
+function money(value,label) {
+ const n=Number(value);if(!Number.isFinite(n)||n<0||n>9999999999.99)throw fail(label+' must be a valid non-negative amount.');
+ return Math.round(n*100)/100;
+}
+async function submitCodSettlement(restaurantId,user,input={}) {
+ const branchId=id(input.branchId);assertBranch(user,branchId);
+ const settlementDate=input.date||new Date(Date.now()+5*60*60*1000).toISOString().slice(0,10);
+ const bounds=settlementDayBounds(settlementDate);
+ const handed=money(input.handedAmount,'Handed amount');
+ return sequelize.transaction(async transaction=>{
+  const assignments=await DeliveryAssignment.findAll({where:{restaurantId,branchId,deliveryUserId:user.id,codCollected:true,codSettlementId:null,codCollectedAt:bounds},transaction,lock:transaction.LOCK.UPDATE});
+  if(!assignments.length)throw fail('No unsettled COD collections were found for this branch and date.',409,'NO_UNSETTLED_COD');
+  const expected=Math.round(assignments.reduce((sum,row)=>sum+Number(row.codAmount||0),0)*100)/100;
+  const settlement=await DeliveryCashSettlement.create({
+   restaurantId,branchId,riderUserId:user.id,submittedByUserId:user.id,settlementDate,
+   expectedAmount:expected.toFixed(2),handedAmount:handed.toFixed(2),variance:(handed-expected).toFixed(2),
+   status:'pending_approval',riderNote:String(input.note||'').trim().slice(0,500)||null,submittedAt:new Date()
+  },{transaction});
+  await DeliveryAssignment.update({codSettlementId:settlement.id},{where:{id:{[Op.in]:assignments.map(x=>x.id)}},transaction});
+  await AuditLog.create({restaurantId,branchId,actorUserId:user.id,entityType:'delivery_cod_settlement',entityId:String(settlement.id),action:'delivery_cod_settlement.submitted',metadata:{riderUserId:user.id,settlementDate,expectedAmount:expected,handedAmount:handed,assignmentCount:assignments.length},afterData:{status:settlement.status,variance:settlement.variance}},{transaction});
+  return settlement;
+ });
+}
+async function listCodSettlements(restaurantId,user,filters={}) {
+ const where={restaurantId};
+ const manager=(user.permissions||[]).includes('delivery.assignments.view_all');
+ if(!manager)where.riderUserId=id(user.id);
+ else if(filters.riderId)where.riderUserId=id(filters.riderId);
+ if(filters.branchId){where.branchId=id(filters.branchId);assertBranch(user,where.branchId);}
+ else if(!(user.roles||[]).includes('admin'))where.branchId={[Op.in]:(user.branchIds||[]).map(Number).filter(n=>n>0).length?(user.branchIds||[]).map(Number):[-1]};
+ if(filters.status){if(!['pending_approval','approved','rejected'].includes(filters.status))throw fail('Invalid COD settlement status.');where.status=filters.status;}
+ if(filters.date){where.settlementDate=filters.date;if(!validSettlementDate(filters.date))throw fail('Settlement date must use YYYY-MM-DD.');}
+ return DeliveryCashSettlement.findAll({where,include:[{model:User,as:'rider',attributes:['id','name','phone']},{model:User,as:'reviewedBy',attributes:['id','name']}],order:[['submittedAt','DESC']],limit:Math.min(Math.max(Number(filters.limit)||100,1),250)});
+}
+async function reviewCodSettlement(restaurantId,user,settlementId,approve,input={}) {
+ return sequelize.transaction(async transaction=>{
+  const settlement=await DeliveryCashSettlement.findOne({where:{id:id(settlementId),restaurantId},transaction,lock:transaction.LOCK.UPDATE});
+  if(!settlement)throw fail('COD settlement not found.',404,'SETTLEMENT_NOT_FOUND');
+  assertBranch(user,settlement.branchId);
+  if(!['admin','supervisor'].some(role=>(user.roles||[]).includes(role)))throw fail('Only an admin or supervisor can review COD settlements.',403,'REVIEW_FORBIDDEN');
+  if(Number(settlement.riderUserId)===Number(user.id))throw fail('A rider cannot approve their own COD handover.',403,'SELF_APPROVAL_FORBIDDEN');
+  if(settlement.status!=='pending_approval')throw fail('Only pending COD settlements can be reviewed.',409,'SETTLEMENT_ALREADY_REVIEWED');
+  const note=String(input.note||'').trim().slice(0,500);
+  if(!approve&&!note)throw fail('A rejection reason is required.');
+  settlement.status=approve?'approved':'rejected';settlement.reviewedByUserId=user.id;settlement.reviewedAt=new Date();settlement.reviewNote=note||null;
+  await settlement.save({transaction});
+  if(!approve)await DeliveryAssignment.update({codSettlementId:null},{where:{restaurantId,codSettlementId:settlement.id},transaction});
+  await AuditLog.create({restaurantId,branchId:settlement.branchId,actorUserId:user.id,entityType:'delivery_cod_settlement',entityId:String(settlement.id),action:approve?'delivery_cod_settlement.approved':'delivery_cod_settlement.rejected',metadata:{riderUserId:settlement.riderUserId,expectedAmount:settlement.expectedAmount,handedAmount:settlement.handedAmount,note},afterData:{status:settlement.status,variance:settlement.variance}},{transaction});
+  return settlement;
+ });
+}
+
+module.exports={assign,list,drivers,unassigned,updateStatus,history,codCollections,analytics,submitCodSettlement,listCodSettlements,reviewCodSettlement};
