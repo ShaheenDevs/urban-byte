@@ -190,7 +190,7 @@ class DeliveryViewModel extends BaseViewModel {
   DeliveryViewModel(this.api, this.permissions);
   final OperationsService api;
   final Set<String> permissions;
-  bool get canManage => permissions.contains('delivery.assign');
+  bool get canManage => permissions.contains('delivery.assignments.view_all');
   List<Map<String, dynamic>> assignments = [];
   List<Map<String, dynamic>> unassignedOrders = [];
   final Map<String, List<Map<String, dynamic>>> _driversByBranch = {};
