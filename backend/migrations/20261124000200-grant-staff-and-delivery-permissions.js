@@ -17,6 +17,13 @@ module.exports = {
       "WHERE r.slug = 'waiter'",
       { replacements: { now } }
     );
+    await queryInterface.sequelize.query(
+      "INSERT IGNORE INTO role_permissions (role_id, permission_id, created_at, updated_at) " +
+      "SELECT r.id, p.id, :now, :now FROM roles r " +
+      "JOIN permissions p ON p.permission_key = 'delivery.assign' " +
+      "WHERE r.slug = 'supervisor'",
+      { replacements: { now } }
+    );
   },
 
   async down(queryInterface) {
