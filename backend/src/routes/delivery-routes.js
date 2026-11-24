@@ -8,5 +8,8 @@ router.get('/assignments',requireAnyPermission('delivery.assignments.view_all','
 router.get('/history',requireAnyPermission('delivery.assignments.view_all','delivery.view_assigned'),c.history);
 router.get('/reports/cod-collections',requireAnyPermission('delivery.assignments.view_all','delivery.view_assigned'),c.codCollections);
 router.get('/reports/performance',requireAnyPermission('delivery.assignments.view_all','delivery.view_assigned'),c.analytics);
+router.get('/cod-settlements',requireAnyPermission('delivery.assignments.view_all','delivery.view_assigned'),c.listCodSettlements);
+router.post('/cod-settlements',requirePermission('delivery.view_assigned'),c.submitCodSettlement);
+router.patch('/cod-settlements/:settlementId/review',requirePermission('delivery.assignments.view_all'),c.reviewCodSettlement);
 router.patch('/assignments/:assignmentId/status',requirePermission('delivery.status.update'),c.status);
 module.exports=router;
