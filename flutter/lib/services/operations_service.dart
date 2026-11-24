@@ -109,6 +109,14 @@ class OperationsService {
     return _list(await _request('GET', '/delivery/drivers$suffix'));
   }
 
+  Future<List<Map<String, dynamic>>> deliveryHistory({String? riderId, String? branchId, String? from, String? to}) async => _list(await _request('GET', _deliveryReportPath('/delivery/history', riderId: riderId, branchId: branchId, from: from, to: to)));
+  Future<Map<String, dynamic>> deliveryCodCollections({String? riderId, String? branchId, String? from, String? to}) async => Map<String, dynamic>.from(await _request('GET', _deliveryReportPath('/delivery/reports/cod-collections', riderId: riderId, branchId: branchId, from: from, to: to)) as Map);
+  Future<Map<String, dynamic>> deliveryPerformance({String? riderId, String? branchId, String? from, String? to}) async => Map<String, dynamic>.from(await _request('GET', _deliveryReportPath('/delivery/reports/performance', riderId: riderId, branchId: branchId, from: from, to: to)) as Map);
+  String _deliveryReportPath(String path, {String? riderId, String? branchId, String? from, String? to}) {
+    final query = <String, String>{if (riderId != null) 'riderId': riderId, if (branchId != null) 'branchId': branchId, if (from != null) 'from': from, if (to != null) 'to': to};
+    return query.isEmpty ? path : '$path?\u0024{Uri(queryParameters: query).query}';
+  }
+
   Future<void> assignDelivery(String orderId, String deliveryUserId) async {
     await _request('POST', '/delivery/orders/$orderId/assign',
         body: {'deliveryUserId': int.parse(deliveryUserId)});
@@ -142,7 +150,7 @@ class OperationsService {
       String? customerPhone,
       String? deliveryAddress,
       String? paymentMethod,
-      double? discountAmount}) async {
+      double? discountAmount,\n      double? deliveryDistanceKm}) async {
     final key = 'ub-' + DateTime.now().microsecondsSinceEpoch.toString();
     final data = await _request('POST', '/orders', body: {
       'branchId': int.parse(branchId),
@@ -151,7 +159,7 @@ class OperationsService {
       if (tableLabel != null) 'tableLabel': tableLabel,
       if (customerName != null) 'customerName': customerName,
       if (customerPhone != null) 'customerPhone': customerPhone,
-      if (deliveryAddress != null) 'deliveryAddress': deliveryAddress,
+      if (deliveryAddress != null) 'deliveryAddress': deliveryAddress,\n      if (deliveryDistanceKm != null) 'deliveryDistanceKm': deliveryDistanceKm,
       if (paymentMethod != null) 'paymentMethod': paymentMethod,
       if (discountAmount != null && discountAmount > 0)
         'discountAmount': discountAmount
