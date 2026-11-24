@@ -43,13 +43,13 @@ class DeliveryView extends StackedView<DeliveryViewModel> {
                   title: const Text('Today COD collection'),
                   subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text('PKR ' + '${vm.codReport['totalCollected'] ?? 0}' + ' · Orders: ' + '${vm.codReport['orders'] ?? 0}'),
-                    ...((vm.codReport['byRider'] as List? ?? []).map((r) => Text('\${r['riderName'] ?? 'Rider'}: Collected PKR \${r['amount'] ?? 0} · Approved PKR \${r['settledAmount'] ?? 0} · Pending approval PKR \${r['pendingAmount'] ?? 0} · Not handed over PKR \${r['unsettledAmount'] ?? 0}'))),
+                    ...((vm.codReport['byRider'] as List? ?? []).map((r) => Text('${r['riderName'] ?? 'Rider'}: Collected PKR ${r['amount'] ?? 0} · Approved PKR ${r['settledAmount'] ?? 0} · Pending approval PKR ${r['pendingAmount'] ?? 0} · Not handed over PKR ${r['unsettledAmount'] ?? 0}'))),
                   ]),
                 )),
                 if (!manager && vm.codPendingByBranch.isNotEmpty) ...[
                   Text('COD cash handover', style: Theme.of(context).textTheme.titleLarge),
                   ...vm.codPendingByBranch.entries.map((entry) => Card(child: ListTile(
-                    title: Text('Branch \${entry.key} · Pending cash PKR \${entry.value.toStringAsFixed(2)}'),
+                    title: Text('Branch ${entry.key} · Pending cash PKR ${entry.value.toStringAsFixed(2)}'),
                     subtitle: const Text('Submit collected COD cash to the cashier for manager approval.'),
                     trailing: FilledButton(
                       onPressed: vm.isBusy ? null : () => vm.submitCash(context, entry.key, entry.value),
@@ -62,12 +62,12 @@ class DeliveryView extends StackedView<DeliveryViewModel> {
                   ...vm.pendingCodSettlements.map((settlement) => Card(child: Padding(
                     padding: const EdgeInsets.all(12),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('\${settlement['rider']?['name'] ?? 'Rider'} · \${settlement['settlementDate'] ?? ''}', style: Theme.of(context).textTheme.titleMedium),
-                      Text('Expected: PKR \${settlement['expectedAmount']} · Handed: PKR \${settlement['handedAmount']} · Variance: PKR \${settlement['variance']}'),
-                      if ((settlement['riderNote'] ?? '').toString().isNotEmpty) Text('Rider note: \${settlement['riderNote']}'),
+                      Text('${settlement['rider']?['name'] ?? 'Rider'} · ${settlement['settlementDate'] ?? ''}', style: Theme.of(context).textTheme.titleMedium),
+                      Text('Expected: PKR ${settlement['expectedAmount']} · Handed: PKR ${settlement['handedAmount']} · Variance: PKR ${settlement['variance']}'),
+                      if ((settlement['riderNote'] ?? '').toString().isNotEmpty) Text('Rider note: ${settlement['riderNote']}'),
                       Wrap(spacing: 8, children: [
-                        FilledButton(onPressed: vm.isBusy ? null : () => vm.reviewCash(context, '\${settlement['id']}', true), child: const Text('Approve')),
-                        OutlinedButton(onPressed: vm.isBusy ? null : () => vm.reviewCash(context, '\${settlement['id']}', false), child: const Text('Reject')),
+                        FilledButton(onPressed: vm.isBusy ? null : () => vm.reviewCash(context, '${settlement['id']}', true), child: const Text('Approve')),
+                        OutlinedButton(onPressed: vm.isBusy ? null : () => vm.reviewCash(context, '${settlement['id']}', false), child: const Text('Reject')),
                       ]),
                     ]),
                   ))),
@@ -207,8 +207,8 @@ class DeliveryViewModel extends BaseViewModel {
     final result = <String, double>{};
     for (final a in assignments) {
       if (a['codCollected'] == true && a['codSettlementId'] == null) {
-        final branch = '\${a['branchId']}';
-        result[branch] = (result[branch] ?? 0) + (double.tryParse('\${a['codAmount'] ?? 0}') ?? 0);
+        final branch = '${a['branchId']}';
+        result[branch] = (result[branch] ?? 0) + (double.tryParse('${a['codAmount'] ?? 0}') ?? 0);
       }
     }
     return result;
@@ -252,7 +252,7 @@ class DeliveryViewModel extends BaseViewModel {
     final result = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(
       title: const Text('Submit COD cash handover'),
       content: Column(mainAxisSize: MainAxisSize.min, children: [
-        Text('Expected COD: PKR \${expected.toStringAsFixed(2)}'),
+        Text('Expected COD: PKR ${expected.toStringAsFixed(2)}'),
         TextField(controller: amount, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Cash handed over (PKR)')),
         TextField(controller: note, decoration: const InputDecoration(labelText: 'Note (optional)')),
       ]),
