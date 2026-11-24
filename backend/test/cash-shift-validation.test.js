@@ -9,7 +9,7 @@ test('cash amount validation accepts zero only when permitted', () => {
   assert.equal(amount('125.5'), '125.50');
   assert.throws(() => amount(-1));
   assert.throws(() => amount('NaN'));
-  assert.throws(() => amount(1, false));
+  assert.throws(() => amount(0, false));
 });
 
 test('cash report date range validates real calendar dates and Pakistan day bounds', () => {
