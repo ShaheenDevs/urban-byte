@@ -169,7 +169,12 @@ class _PosViewState extends State<PosView> {
   }
 
   (double, double)? _coordinatesFromMapLink(String value) {
-    final decoded = Uri.decodeComponent(value.trim());
+    late final String decoded;
+    try {
+      decoded = Uri.decodeComponent(value.trim());
+    } on FormatException {
+      return null;
+    }
     final patterns = <RegExp>[
       RegExp(r'!3d(-?\\d+(?:\\.\\d+)?)!4d(-?\\d+(?:\\.\\d+)?)'),
       RegExp(r'@(-?\\d+(?:\\.\\d+)?),\\s*(-?\\d+(?:\\.\\d+)?)'),
