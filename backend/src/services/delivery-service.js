@@ -109,7 +109,7 @@ async function updateStatus(restaurantId,user,assignmentId,input={}){
 }
 
 function dateBounds(filters={}) {
- const valid=value=>typeof value==='string'&&/^\\d{4}-\\d{2}-\\d{2}$/.test(value)&&!Number.isNaN(Date.parse(value+'T00:00:00Z'));
+ const valid=value=>{if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;const [y,m,d]=value.split('-').map(Number);const date=new Date(Date.UTC(y,m-1,d));return date.getUTCFullYear()===y&&date.getUTCMonth()===m-1&&date.getUTCDate()===d;};
  const from=filters.from||filters.startDate, to=filters.to||filters.endDate;
  if((from&&!valid(from))||(to&&!valid(to)))throw fail('Dates must use YYYY-MM-DD format.');
  if(from&&to&&from>to)throw fail('Start date cannot be after end date.');
