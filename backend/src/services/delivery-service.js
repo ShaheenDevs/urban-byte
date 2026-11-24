@@ -134,10 +134,10 @@ async function codCollections(restaurantId,user,filters={}) {
  if(filters.branchId){const branchId=id(filters.branchId);assertBranch(user,branchId);where.branchId=branchId;}
  else if(!(user.roles||[]).includes('admin'))where.branchId={[Op.in]:(user.branchIds||[]).map(Number).filter(n=>n>0).length?(user.branchIds||[]).map(Number):[-1]};
  const bounds=dateBounds(filters);if(bounds)where.codCollectedAt=bounds;
- const rows=await DeliveryAssignment.findAll({where,include:[{model:Order,as:'order',attributes:['id','orderNumber','customerName','grandTotal']},{model:User,as:'deliveryUser',attributes:['id','name']}],order:[['codCollectedAt','DESC']],limit:500});
+ const rows=await DeliveryAssignment.findAll({where,include:[{model:Order,as:'order',attributes:['id','orderNumber','customerName','grandTotal']},{model:User,as:'deliveryUser',attributes:['id','name']},{model:DeliveryCashSettlement,as:'codSettlement',attributes:['id','status','expectedAmount','handedAmount','variance']}],order:[['codCollectedAt','DESC']],limit:500});
  const byRider=new Map();let total=0;
- for(const row of rows){const rider=row.deliveryUser||{};const key=String(rider.id||row.deliveryUserId);const amount=Number(row.codAmount||0);total+=amount;const current=byRider.get(key)||{riderId:key,riderName:rider.name||'Delivery staff',orders:0,amount:0};current.orders++;current.amount+=amount;byRider.set(key,current);}
- return {dateFrom:filters.from||filters.startDate||null,dateTo:filters.to||filters.endDate||null,totalCollected:Number(total.toFixed(2)),orders:rows.length,byRider:[...byRider.values()].map(x=>({...x,amount:Number(x.amount.toFixed(2))})),items:rows};
+ for(const row of rows){const rider=row.deliveryUser||{};const key=String(rider.id||row.deliveryUserId);const amount=Number(row.codAmount||0);total+=amount;const current=byRider.get(key)||{riderId:key,riderName:rider.name||'Delivery staff',orders:0,amount:0,settledAmount:0,pendingAmount:0,unsettledAmount:0};current.orders++;current.amount+=amount;const settlement=row.codSettlement;if(settlement?.status==='approved')current.settledAmount+=amount;else if(settlement?.status==='pending_approval')current.pendingAmount+=amount;else current.unsettledAmount+=amount;byRider.set(key,current);}
+ return {dateFrom:filters.from||filters.startDate||null,dateTo:filters.to||filters.endDate||null,totalCollected:Number(total.toFixed(2)),orders:rows.length,byRider:[...byRider.values()].map(x=>({...x,amount:Number(x.amount.toFixed(2)),settledAmount:Number(x.settledAmount.toFixed(2)),pendingAmount:Number(x.pendingAmount.toFixed(2)),unsettledAmount:Number(x.unsettledAmount.toFixed(2))})),items:rows};
 }
 async function analytics(restaurantId,user,filters={}) {
  const where={restaurantId};
