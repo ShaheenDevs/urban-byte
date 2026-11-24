@@ -19,7 +19,7 @@ module.exports = {
     }], { ignoreDuplicates: true });
     const [roles] = await queryInterface.sequelize.query("SELECT id FROM roles WHERE slug IN ('admin','supervisor')");
     const [permissions] = await queryInterface.sequelize.query("SELECT id FROM permissions WHERE permission_key = 'cash_shifts.reconcile.approve'");
-    if (permissions[0]) {
+    if (permissions[0] && roles.length) {
       await queryInterface.bulkInsert('role_permissions', roles.map((role) => ({
         role_id: role.id, permission_id: permissions[0].id, created_at: now, updated_at: now,
       })), { ignoreDuplicates: true });
