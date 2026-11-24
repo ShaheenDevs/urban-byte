@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:stacked/stacked.dart';
 import '../../../app/app.locator.dart';
@@ -161,6 +163,7 @@ class DeliveryView extends StackedView<DeliveryViewModel> {
         Text('Order total: PKR ${order['grandTotal'] ?? '0.00'}'),
         Text('Delivery fee: PKR ${order['deliveryFee'] ?? 0} · Distance: ${order['deliveryDistanceKm'] ?? 0} km'),
         if (vm.canManage) Text('Rider: ${rider['name'] ?? 'Unknown'}'),
+        if (vm.canManage && status != 'delivered' && status != 'cancelled') OutlinedButton.icon(onPressed: vm.isBusy ? null : () => vm.copyTrackingLink(context, assignmentId), icon: const Icon(Icons.link), label: const Text('Copy customer tracking link')),
         if (vm.canManage && a['riderLatitude'] != null && a['riderLongitude'] != null) Text('Last rider location: ${a['riderLatitude']}, ${a['riderLongitude']} · ${a['riderLocationUpdatedAt'] ?? ''}'),
         if (cod > 0) Text('COD: PKR ${cod.toStringAsFixed(2)} • ${collected ? 'Collected' : 'Not collected'}'),
         if (canReassign && drivers.isNotEmpty) ...[
@@ -180,7 +183,7 @@ class DeliveryView extends StackedView<DeliveryViewModel> {
           if (status == 'assigned') FilledButton(onPressed: vm.isBusy ? null : () => vm.update(assignmentId, 'picked_up'), child: const Text('Picked up')),
           if (status == 'picked_up') FilledButton(onPressed: vm.isBusy ? null : () => vm.update(assignmentId, 'out_for_delivery'), child: const Text('Start delivery')),
           if (status == 'out_for_delivery') ...[
-            OutlinedButton.icon(onPressed: vm.isBusy ? null : () => vm.shareLocation(context, assignmentId), icon: const Icon(Icons.my_location), label: const Text('Update my location')),
+            OutlinedButton.icon(onPressed: vm.isBusy ? null : () => vm.toggleLiveLocationSharing(context, assignmentId), icon: Icon(vm.isSharingLocation(assignmentId) ? Icons.location_off : Icons.my_location), label: Text(vm.isSharingLocation(assignmentId) ? 'Stop live sharing' : 'Start live sharing')),
             FilledButton.tonal(onPressed: vm.isBusy ? null : () => vm.complete(context, assignmentId, cod > 0 && !collected), child: const Text('Mark delivered')),
           ],
         ]),
@@ -251,7 +254,16 @@ class DeliveryViewModel extends BaseViewModel {
   }
 
 
-  Future<void> shareLocation(BuildContext context, String assignmentId) async {
+  final Map<String, StreamSubscription<Position>> _locationSubscriptions = {};
+  final Set<String> _locationUpdatesInFlight = {};
+  bool isSharingLocation(String assignmentId) => _locationSubscriptions.containsKey(assignmentId);
+
+  Future<void> toggleLiveLocationSharing(BuildContext context, String assignmentId) async {
+    if (isSharingLocation(assignmentId)) {
+      await _locationSubscriptions.remove(assignmentId)?.cancel();
+      notifyListeners();
+      return;
+    }
     setBusy(true); loadingError = null;
     try {
       if (!await Geolocator.isLocationServiceEnabled()) {
@@ -260,23 +272,51 @@ class DeliveryViewModel extends BaseViewModel {
       var permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
-        throw Exception('Location permission is required to share delivery location.');
+        throw Exception('Location permission is required for live delivery tracking.');
       }
-      final position = await Geolocator.getCurrentPosition(
+      final subscription = Geolocator.getPositionStream(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 15),
+          distanceFilter: 10,
         ),
-      );
-      await api.updateRiderLocation(
-        assignmentId,
-        latitude: position.latitude,
-        longitude: position.longitude,
-        accuracy: position.accuracy,
-      );
-      await load();
+      ).listen((position) async {
+        if (_locationUpdatesInFlight.contains(assignmentId)) return;
+        _locationUpdatesInFlight.add(assignmentId);
+        try {
+          await api.updateRiderLocation(
+            assignmentId,
+            latitude: position.latitude,
+            longitude: position.longitude,
+            accuracy: position.accuracy,
+          );
+        } catch (e) {
+          loadingError = 'Location update failed: $e';
+          notifyListeners();
+        } finally {
+          _locationUpdatesInFlight.remove(assignmentId);
+        }
+      }, onError: (Object error) {
+        loadingError = 'GPS sharing stopped: $error';
+        _locationSubscriptions.remove(assignmentId)?.cancel();
+        notifyListeners();
+      });
+      _locationSubscriptions[assignmentId] = subscription;
+      notifyListeners();
+    } catch (e) {
+      loadingError = e.toString();
+    } finally {
+      setBusy(false);
+      notifyListeners();
+    }
+  }
+
+  Future<void> copyTrackingLink(BuildContext context, String assignmentId) async {
+    setBusy(true); loadingError = null;
+    try {
+      final link = await api.createDeliveryTrackingLink(assignmentId);
+      await Clipboard.setData(ClipboardData(text: link));
       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Delivery location updated successfully.')),
+        const SnackBar(content: Text('Customer tracking link copied. Send it to the customer.')),
       );
     } catch (e) {
       loadingError = e.toString();
@@ -284,6 +324,15 @@ class DeliveryViewModel extends BaseViewModel {
       setBusy(false);
       notifyListeners();
     }
+  }
+
+  @override
+  void dispose() {
+    for (final subscription in _locationSubscriptions.values) {
+      subscription.cancel();
+    }
+    _locationSubscriptions.clear();
+    super.dispose();
   }
 
   Future<void> submitCash(BuildContext context, String branchId, double expected) async {
