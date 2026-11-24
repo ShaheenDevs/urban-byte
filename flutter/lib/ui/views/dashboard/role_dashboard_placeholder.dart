@@ -297,6 +297,7 @@ class RoleDashboardPlaceholder extends StatelessWidget {
                   builder: (_) => PrintingView(permissions: permissions))),
             )),
           if (permissions.contains('delivery.view_assigned') ||
+              permissions.contains('delivery.assign') ||
               permissions.contains('delivery.assignments.view_all'))
             Card(
                 child: ListTile(
