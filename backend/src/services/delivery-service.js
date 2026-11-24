@@ -11,7 +11,7 @@ async function assign(restaurantId,actor,orderId,input={}){
   const order=await Order.findOne({where:{id:id(orderId),restaurantId,orderType:'delivery'},transaction:t,lock:t.LOCK.UPDATE});
   if(!order)throw fail('Delivery order not found.',404,'ORDER_NOT_FOUND');
   assertBranch(actor,order.branchId);
-  if(!['placed','confirmed','ready'].includes(order.status))throw fail('Order is not eligible for delivery assignment.',409);
+  if(!['placed','confirmed','preparing','ready'].includes(order.status))throw fail('Order is not eligible for delivery assignment.',409);
   const isWaiter=(actor.roles||[]).includes('waiter')&&!(actor.roles||[]).includes('admin')&&!(actor.roles||[]).includes('supervisor');
   if(isWaiter&&Number(order.createdByUserId)!==Number(actor.id))throw fail('Waiters can only assign delivery riders to their own orders.',403,'DELIVERY_ASSIGNMENT_FORBIDDEN');
   const driver=await User.findOne({where:{id:targetId,restaurantId,isActive:true},include:[{model:Role,as:'roles',where:{slug:'delivery'},through:{attributes:[]},required:true}],transaction:t});
