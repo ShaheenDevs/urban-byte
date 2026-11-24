@@ -11,5 +11,5 @@ router.get('/reports/performance',requireAnyPermission('delivery.assignments.vie
 router.get('/cod-settlements',requireAnyPermission('delivery.assignments.view_all','delivery.view_assigned'),c.listCodSettlements);
 router.post('/cod-settlements',requirePermission('delivery.view_assigned'),c.submitCodSettlement);
 router.patch('/cod-settlements/:settlementId/review',requirePermission('delivery.assignments.view_all'),c.reviewCodSettlement);
-router.patch('/assignments/:assignmentId/status',requirePermission('delivery.status.update'),c.status);
+router.patch('/assignments/:assignmentId/location',requirePermission('delivery.view_assigned'),c.updateLocation);\nrouter.patch('/assignments/:assignmentId/status',requirePermission('delivery.status.update'),c.status);
 module.exports=router;
