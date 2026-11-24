@@ -1,5 +1,6 @@
 'use strict';
 const {estimateDeliveryEtaMinutes}=require('./delivery-eta');
+const {getDrivingRoute}=require('./delivery-routing');
 const crypto=require('node:crypto');
 const {Op}=require('sequelize');
 const {DeliveryAssignment,DeliveryCashSettlement,Order,Payment,PaymentEvent,User,Role,UserBranch,OrderStatusHistory,AuditLog,sequelize}=require('../models');
@@ -175,20 +176,26 @@ async function createTrackingLink(restaurantId,user,assignmentId) {
 async function getPublicTracking(token) {
  if(typeof token!=='string'||!/^[a-f0-9]{64}$/.test(token))throw fail('Tracking link is invalid or expired.',404,'TRACKING_NOT_FOUND');
  const tokenHash=crypto.createHash('sha256').update(token).digest('hex');
- const assignment=await DeliveryAssignment.findOne({where:{trackingTokenHash:tokenHash},include:[{model:Order,as:'order',attributes:['orderNumber','status','placedAt','completedAt','deliveryDistanceKm']} ]});
+ const assignment=await DeliveryAssignment.findOne({where:{trackingTokenHash:tokenHash},include:[{model:Order,as:'order',attributes:['orderNumber','status','placedAt','completedAt','deliveryDistanceKm','deliveryLatitude','deliveryLongitude']} ]});
  if(!assignment||!assignment.trackingTokenExpiresAt||new Date(assignment.trackingTokenExpiresAt)<=new Date())throw fail('Tracking link is invalid or expired.',404,'TRACKING_NOT_FOUND');
  const locationAt=assignment.riderLocationUpdatedAt?new Date(assignment.riderLocationUpdatedAt):null;
  const locationFresh=locationAt&&Date.now()-locationAt.getTime()<=10*60*1000;
  const order=assignment.order||{};
+ const riderLocation=locationFresh&&assignment.riderLatitude!==null&&assignment.riderLongitude!==null?{latitude:Number(assignment.riderLatitude),longitude:Number(assignment.riderLongitude),accuracy:assignment.riderLocationAccuracy===null?null:Number(assignment.riderLocationAccuracy),updatedAt:locationAt.toISOString()}:null;
+ const destination=order.deliveryLatitude!==null&&order.deliveryLatitude!==undefined&&order.deliveryLongitude!==null&&order.deliveryLongitude!==undefined?{latitude:Number(order.deliveryLatitude),longitude:Number(order.deliveryLongitude)}:null;
+ const roadRoute=assignment.status==='out_for_delivery'&&riderLocation&&destination?await getDrivingRoute({assignmentId:assignment.id,origin:riderLocation,destination}):null;
  return {
   orderNumber:order.orderNumber||'Delivery',
   status:assignment.status==='delivered'?'delivered':assignment.status==='cancelled'?'cancelled':assignment.status==='out_for_delivery'?'on_the_way':assignment.status==='picked_up'?'picked_up':'preparing',
   placedAt:order.placedAt||null,
   completedAt:assignment.deliveredAt||order.completedAt||null,
-  location:locationFresh&&assignment.riderLatitude!==null&&assignment.riderLongitude!==null?{latitude:Number(assignment.riderLatitude),longitude:Number(assignment.riderLongitude),accuracy:assignment.riderLocationAccuracy===null?null:Number(assignment.riderLocationAccuracy),updatedAt:locationAt.toISOString()}:null,
+  location:riderLocation,
+  destination,
+  routeGeometry:roadRoute?.geometry||null,
+  routeDistanceKm:roadRoute?.distanceKm??null,
   locationStale:!locationFresh,
-  etaMinutes:assignment.status==='out_for_delivery'?estimateDeliveryEtaMinutes(order.deliveryDistanceKm,assignment.outForDeliveryAt):null,
-  etaBasis:'recorded_delivery_distance'
+  etaMinutes:assignment.status==='out_for_delivery'?(roadRoute?.etaMinutes??estimateDeliveryEtaMinutes(order.deliveryDistanceKm,assignment.outForDeliveryAt)):null,
+  etaBasis:roadRoute?'road_route':'recorded_delivery_distance'
  };
 }
 
