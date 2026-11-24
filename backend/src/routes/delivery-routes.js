@@ -1,6 +1,6 @@
 'use strict';
 const router=require('express').Router(),{authenticate}=require('../middleware/auth'),{requirePermission}=require('../middleware/require-permission'),{requireAnyPermission}=require('../middleware/require-any-permission'),c=require('../controllers/delivery-controller');
-router.use(authenticate);
+router.get('/track/:token',c.track);\nrouter.use(authenticate);
 router.get('/drivers',requireAnyPermission('orders.create','settings.manage','delivery.assign'),c.drivers);
 router.get('/unassigned',requirePermission('delivery.assign'),c.unassigned);
 router.post('/orders/:orderId/assign',requirePermission('delivery.assign'),c.assign);
@@ -11,6 +11,6 @@ router.get('/reports/performance',requireAnyPermission('delivery.assignments.vie
 router.get('/cod-settlements',requireAnyPermission('delivery.assignments.view_all','delivery.view_assigned'),c.listCodSettlements);
 router.post('/cod-settlements',requirePermission('delivery.view_assigned'),c.submitCodSettlement);
 router.patch('/cod-settlements/:settlementId/review',requirePermission('delivery.assignments.view_all'),c.reviewCodSettlement);
-router.patch('/assignments/:assignmentId/location',requirePermission('delivery.view_assigned'),c.updateLocation);
+router.post('/assignments/:assignmentId/tracking-link',requirePermission('delivery.assignments.view_all'),c.createTrackingLink);\nrouter.patch('/assignments/:assignmentId/location',requirePermission('delivery.view_assigned'),c.updateLocation);
 router.patch('/assignments/:assignmentId/status',requirePermission('delivery.status.update'),c.status);
 module.exports=router;
