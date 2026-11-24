@@ -66,7 +66,7 @@ async function list(restaurantId,user,filters={}){
  if(filters.branchId){const branchId=id(filters.branchId);assertBranch(user,branchId);where.branchId=branchId;}
  else if(!(user.roles||[]).includes('admin'))where.branchId={[Op.in]:(user.branchIds||[]).map(Number).filter(n=>Number.isSafeInteger(n)&&n>0).length?(user.branchIds||[]).map(Number):[-1]};
  if(filters.status){if(!['assigned','picked_up','out_for_delivery','delivered','cancelled'].includes(filters.status))throw fail('Invalid delivery status.');where.status=filters.status;}
- return DeliveryAssignment.findAll({where,include:[{model:Order,as:'order',attributes:['id','orderNumber','orderType','customerName','customerPhone','deliveryAddress','grandTotal','deliveryFee','deliveryDistanceKm','paymentMethod','paymentStatus','status','notes']},{model:User,as:'deliveryUser',attributes:['id','name','phone']}],order:[['assignedAt','DESC']],limit:Math.min(Math.max(Number(filters.limit)||50,1),100)});
+ return DeliveryAssignment.findAll({where,attributes:{exclude:['trackingTokenHash']},include:[{model:Order,as:'order',attributes:['id','orderNumber','orderType','customerName','customerPhone','deliveryAddress','grandTotal','deliveryFee','deliveryDistanceKm','paymentMethod','paymentStatus','status','notes']},{model:User,as:'deliveryUser',attributes:['id','name','phone']}],order:[['assignedAt','DESC']],limit:Math.min(Math.max(Number(filters.limit)||50,1),100)});
 }
 async function updateStatus(restaurantId,user,assignmentId,input={}){
  const next=input.status;
@@ -104,7 +104,7 @@ async function updateStatus(restaurantId,user,assignmentId,input={}){
    changes.deliveredAt=now;
   }
   if(input.note!==undefined)changes.deliveryNote=String(input.note).slice(0,500);
-  if(next==='delivered')Object.assign(changes,{riderLatitude:null,riderLongitude:null,riderLocationAccuracy:null,riderLocationUpdatedAt:null,trackingTokenHash:null,trackingTokenExpiresAt:null});
+  if(next==='delivered')Object.assign(changes,{riderLatitude:null,riderLongitude:null,riderLocationAccuracy:null,riderLocationUpdatedAt:null});
   await assignment.update(changes,{transaction:t});
   return DeliveryAssignment.findByPk(assignment.id,{include:[{model:Order,as:'order'}],transaction:t});
  });
