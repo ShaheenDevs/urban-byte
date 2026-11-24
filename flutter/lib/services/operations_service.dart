@@ -117,6 +117,21 @@ class OperationsService {
     return query.isEmpty ? path : path + '?' + Uri(queryParameters: query).query;
   }
 
+  Future<List<Map<String, dynamic>>> deliveryCodSettlements({String? branchId, String? riderId, String? status, String? date}) async {
+    final query = <String, String>{if (branchId != null) 'branchId': branchId, if (riderId != null) 'riderId': riderId, if (status != null) 'status': status, if (date != null) 'date': date};
+    final suffix = query.isEmpty ? '' : '?' + Uri(queryParameters: query).query;
+    return _list(await _request('GET', '/delivery/cod-settlements$suffix'));
+  }
+
+  Future<Map<String, dynamic>> submitDeliveryCodSettlement({required String branchId, required String date, required double handedAmount, String? note}) async {
+    final data = await _request('POST', '/delivery/cod-settlements', body: {'branchId': int.parse(branchId), 'date': date, 'handedAmount': handedAmount, if (note != null && note.trim().isNotEmpty) 'note': note.trim()});
+    return Map<String, dynamic>.from(data as Map);
+  }
+
+  Future<void> reviewDeliveryCodSettlement(String id, {required bool approve, String? note}) async {
+    await _request('PATCH', '/delivery/cod-settlements/$id/review', body: {'approve': approve, if (note != null && note.trim().isNotEmpty) 'note': note.trim()});
+  }
+
   Future<void> assignDelivery(String orderId, String deliveryUserId) async {
     await _request('POST', '/delivery/orders/$orderId/assign',
         body: {'deliveryUserId': int.parse(deliveryUserId)});
