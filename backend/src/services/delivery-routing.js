@@ -12,7 +12,7 @@ async function getDrivingRoute({ assignmentId, origin, destination, fetchImpl = 
       values[3] < -180 || values[3] > 180 || !fetchImpl) return null;
 
   const [originLat, originLon, destinationLat, destinationLon] = values;
-  const cacheKey = String(assignmentId || '') + ':' + values.join(',');
+  const cacheKey = String(assignmentId || '');
   const cached = ROUTE_CACHE.get(cacheKey);
   if (cached && cached.expiresAt > now) return cached.value;
   const baseUrl = (process.env.DELIVERY_ROUTING_BASE_URL || 'https://router.project-osrm.org').replace(/\/$/, '');
