@@ -31,6 +31,28 @@ class DeliveryView extends StackedView<DeliveryViewModel> {
                   _count('On route', vm.count('out_for_delivery')),
                   _count('Delivered', vm.count('delivered')),
                 ]),
+
+                if (vm.performance.isNotEmpty) Card(child: ListTile(
+                  title: const Text('Today rider performance'),
+                  subtitle: Text('Delivered: ' + '${vm.performance['delivered'] ?? 0}' + ' · Cancelled: ' + '${vm.performance['cancelled'] ?? 0}' + ' · Pending: ' + '${vm.performance['pending'] ?? 0}' + ' · Success: ' + '${vm.performance['deliverySuccessRate'] ?? 0}%' + ' · Avg minutes: ' + '${vm.performance['averageDeliveryMinutes'] ?? '-'}'),
+                )),
+                if (vm.codReport.isNotEmpty) Card(child: ListTile(
+                  title: const Text('Today COD collection'),
+                  subtitle: Text('PKR ' + '${vm.codReport['totalCollected'] ?? 0}' + ' · Orders: ' + '${vm.codReport['orders'] ?? 0}'),
+                )),
+                if (vm.history.isNotEmpty) ...[
+                  Text('Recent rider delivery history', style: Theme.of(context).textTheme.titleLarge),
+                  ...vm.history.take(10).map((h) {
+                    final order = Map<String, dynamic>.from(h['order'] as Map? ?? {});
+                    final rider = Map<String, dynamic>.from(h['deliveryUser'] as Map? ?? {});
+                    return ListTile(
+                      leading: const Icon(Icons.check_circle_outline),
+                      title: Text('${order['orderNumber'] ?? 'Delivery'} · ${order['customerName'] ?? 'Customer'}'),
+                      subtitle: Text('${rider['name'] ?? 'Rider'} · ${h['deliveredAt'] ?? ''}'),
+                      trailing: Text('PKR ' + '${order['deliveryFee'] ?? 0}'),
+                    );
+                  }),
+                ],
                 if (manager) ...[
                   const SizedBox(height: 20),
                   Text('Unassigned delivery orders', style: Theme.of(context).textTheme.titleLarge),
