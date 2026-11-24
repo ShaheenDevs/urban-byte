@@ -21,6 +21,7 @@ module.exports = (sequelize, DataTypes) => {
     Model.belongsTo(models.Branch, { foreignKey: 'branchId', as: 'branch' });
     Model.belongsTo(models.User, { foreignKey: 'riderUserId', as: 'rider' });
     Model.belongsTo(models.User, { foreignKey: 'reviewedByUserId', as: 'reviewedBy' });
+    Model.hasMany(models.DeliveryAssignment, { foreignKey: 'codSettlementId', as: 'assignments' });
   };
   return Model;
 };
