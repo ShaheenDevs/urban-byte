@@ -175,7 +175,9 @@ class OperationsService {
       String? deliveryAddress,
       String? paymentMethod,
       double? discountAmount,
-      double? deliveryDistanceKm}) async {
+      double? deliveryDistanceKm,
+      double? deliveryLatitude,
+      double? deliveryLongitude}) async {
     final key = 'ub-' + DateTime.now().microsecondsSinceEpoch.toString();
     final data = await _request('POST', '/orders', body: {
       'branchId': int.parse(branchId),
@@ -186,6 +188,8 @@ class OperationsService {
       if (customerPhone != null) 'customerPhone': customerPhone,
       if (deliveryAddress != null) 'deliveryAddress': deliveryAddress,
       if (deliveryDistanceKm != null) 'deliveryDistanceKm': deliveryDistanceKm,
+      if (deliveryLatitude != null) 'deliveryLatitude': deliveryLatitude,
+      if (deliveryLongitude != null) 'deliveryLongitude': deliveryLongitude,
       if (paymentMethod != null) 'paymentMethod': paymentMethod,
       if (discountAmount != null && discountAmount > 0)
         'discountAmount': discountAmount
