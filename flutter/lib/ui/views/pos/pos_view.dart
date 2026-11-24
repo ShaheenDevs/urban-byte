@@ -412,7 +412,8 @@ class _PosViewState extends State<PosView> {
         '',
       ];
       await _printing.printBluetoothText(
-          printer['deviceIdentifier'].toString(), lines.join('\n'));
+          printer['deviceIdentifier'].toString(), lines.join('
+'));
       if (mounted) _message('Receipt printed on mobile Bluetooth printer.');
     } catch (e) {
       if (mounted) _message('Order saved, but Bluetooth receipt failed: $e');
