@@ -341,3 +341,12 @@ If this command fails, share the complete terminal output from the first error l
 - The API rejects completion unless the order's payment status is `paid` (fully verified payment). The Orders screen shows a Complete order action for eligible paid orders.
 - Order balances are calculated from verified payments only. Pending/unverified payments are shown separately and reduce the amount currently available to collect, but do not count as received funds.
 - Login displays one role-preview button per configured role. Selecting one opens that role's workspace using its permission catalogue; this is a UI preview, not authentication or a way to grant access. Protected API calls still require a real login and server-side permissions.
+
+
+## Delivery GPS tracking and road ETA
+- Delivery orders may store optional customer pin coordinates as `deliveryLatitude` and `deliveryLongitude`. The Flutter POS accepts a full Google Maps URL containing coordinates or direct latitude/longitude values; short links such as `maps.app.goo.gl` must be expanded to a full Maps URL first.
+- Apply the latest database migrations with `npm run db:migrate` before creating coordinate-enabled orders.
+- When the assigned rider shares a fresh GPS position and the order has a customer pin, the public customer tracking page requests a driving route and displays its road distance, route line and estimated travel time. Route results are cached for up to 60 seconds and refreshed when the rider has moved roughly 200 metres or more.
+- If the routing service is unavailable, the tracking page falls back to the existing approximate ETA based on the delivery distance recorded at order creation. The fallback is labelled Approx.; road results are labelled Road route.
+- `DELIVERY_ROUTING_BASE_URL` selects the OSRM-compatible routing server. The default public OSRM demo endpoint is for development/testing only and has no production SLA; configure a compliant hosted or self-hosted routing service before production use. Routing estimates do not include live traffic unless the chosen provider supplies it.
+- Public tracking links expose the customer pin and the rider's fresh location to anyone holding the unexpired private link. Share links only with the relevant customer.
