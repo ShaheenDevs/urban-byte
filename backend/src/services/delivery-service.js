@@ -56,7 +56,7 @@ async function unassigned(restaurantId,user,filters={}) {
  const existing=await DeliveryAssignment.findAll({where:{restaurantId},attributes:['orderId']});
  const assignedIds=existing.map(row=>Number(row.orderId));
  if(assignedIds.length)where.id={[Op.notIn]:assignedIds};
- const rows=await Order.findAll({where,attributes:['id','branchId','orderNumber','customerName','customerPhone','deliveryAddress','grandTotal','paymentMethod','paymentStatus','status','notes','placedAt'],order:[['placedAt','ASC']],limit:100});
+ const rows=await Order.findAll({where,attributes:['id','branchId','orderNumber','customerName','customerPhone','deliveryAddress','grandTotal','deliveryFee','deliveryDistanceKm','paymentMethod','paymentStatus','status','notes','placedAt'],order:[['placedAt','ASC']],limit:100});
  return rows.map(row=>row.toJSON());
 }
 async function list(restaurantId,user,filters={}){
@@ -65,7 +65,7 @@ async function list(restaurantId,user,filters={}){
  if(filters.branchId){const branchId=id(filters.branchId);assertBranch(user,branchId);where.branchId=branchId;}
  else if(!(user.roles||[]).includes('admin'))where.branchId={[Op.in]:(user.branchIds||[]).map(Number).filter(n=>Number.isSafeInteger(n)&&n>0).length?(user.branchIds||[]).map(Number):[-1]};
  if(filters.status){if(!['assigned','picked_up','out_for_delivery','delivered','cancelled'].includes(filters.status))throw fail('Invalid delivery status.');where.status=filters.status;}
- return DeliveryAssignment.findAll({where,include:[{model:Order,as:'order',attributes:['id','orderNumber','orderType','customerName','customerPhone','deliveryAddress','grandTotal','paymentMethod','paymentStatus','status','notes']},{model:User,as:'deliveryUser',attributes:['id','name','phone']}],order:[['assignedAt','DESC']],limit:Math.min(Math.max(Number(filters.limit)||50,1),100)});
+ return DeliveryAssignment.findAll({where,include:[{model:Order,as:'order',attributes:['id','orderNumber','orderType','customerName','customerPhone','deliveryAddress','grandTotal','deliveryFee','deliveryDistanceKm','paymentMethod','paymentStatus','status','notes']},{model:User,as:'deliveryUser',attributes:['id','name','phone']}],order:[['assignedAt','DESC']],limit:Math.min(Math.max(Number(filters.limit)||50,1),100)});
 }
 async function updateStatus(restaurantId,user,assignmentId,input={}){
  const next=input.status;
