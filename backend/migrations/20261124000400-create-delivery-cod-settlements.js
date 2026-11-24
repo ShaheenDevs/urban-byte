@@ -25,12 +25,12 @@ module.exports = {
     await queryInterface.addColumn('delivery_assignments', 'cod_settlement_id', {
       type: Sequelize.BIGINT.UNSIGNED, allowNull: true,
     });
-    await queryInterface.addConstraint('delivery_assignments', { fields: ['cod_settlement_id'], type: 'foreign key', name: 'delivery_assignments_cod_settlement_fk', references: { table: 'delivery_cash_settlements', field: 'id' }, onUpdate: 'CASCADE', onDelete: 'SET NULL' });
     await queryInterface.addIndex('delivery_assignments', ['cod_settlement_id'], { name: 'delivery_assignment_cod_settlement_idx' });
+    await queryInterface.addConstraint('delivery_assignments', { fields: ['cod_settlement_id'], type: 'foreign key', name: 'delivery_assignments_cod_settlement_fk', references: { table: 'delivery_cash_settlements', field: 'id' }, onUpdate: 'CASCADE', onDelete: 'SET NULL' });
   },
   async down(queryInterface) {
-    await queryInterface.removeIndex('delivery_assignments', 'delivery_assignment_cod_settlement_idx');
     await queryInterface.removeConstraint('delivery_assignments', 'delivery_assignments_cod_settlement_fk');
+    await queryInterface.removeIndex('delivery_assignments', 'delivery_assignment_cod_settlement_idx');
     await queryInterface.removeColumn('delivery_assignments', 'cod_settlement_id');
     await queryInterface.dropTable('delivery_cash_settlements');
   },
