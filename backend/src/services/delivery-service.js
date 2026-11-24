@@ -1,4 +1,5 @@
 'use strict';
+const crypto=require('node:crypto');
 const {Op}=require('sequelize');
 const {DeliveryAssignment,DeliveryCashSettlement,Order,Payment,PaymentEvent,User,Role,UserBranch,OrderStatusHistory,AuditLog,sequelize}=require('../models');
 const {validateTransition}=require('./order-lifecycle');
@@ -103,8 +104,7 @@ async function updateStatus(restaurantId,user,assignmentId,input={}){
    changes.deliveredAt=now;
   }
   if(input.note!==undefined)changes.deliveryNote=String(input.note).slice(0,500);
-  if(next==='delivered')Object.assign(changes,{riderLatitude:null,riderLongitude:null,riderLocationAccuracy:null,riderLocationUpdatedAt:null});
-  if(next==='delivered')Object.assign(changes,{riderLatitude:null,riderLongitude:null,riderLocationAccuracy:null,riderLocationUpdatedAt:null});
+  if(next==='delivered')Object.assign(changes,{riderLatitude:null,riderLongitude:null,riderLocationAccuracy:null,riderLocationUpdatedAt:null,trackingTokenHash:null,trackingTokenExpiresAt:null});
   await assignment.update(changes,{transaction:t});
   return DeliveryAssignment.findByPk(assignment.id,{include:[{model:Order,as:'order'}],transaction:t});
  });
@@ -159,6 +159,35 @@ async function analytics(restaurantId,user,filters={}) {
 }
 
 
+
+
+async function createTrackingLink(restaurantId,user,assignmentId) {
+ const assignment=await DeliveryAssignment.findOne({where:{id:id(assignmentId),restaurantId}});
+ if(!assignment)throw fail('Delivery assignment not found.',404,'ASSIGNMENT_NOT_FOUND');
+ assertBranch(user,assignment.branchId);
+ if(!['assigned','picked_up','out_for_delivery'].includes(assignment.status))throw fail('Tracking links are only available for active deliveries.',409,'TRACKING_NOT_AVAILABLE');
+ const token=crypto.randomBytes(32).toString('hex');
+ const expiresAt=new Date(Date.now()+24*60*60*1000);
+ await assignment.update({trackingTokenHash:crypto.createHash('sha256').update(token).digest('hex'),trackingTokenExpiresAt:expiresAt});
+ return {assignmentId:String(assignment.id),trackingPath:'/api/v1/delivery/track/'+token,expiresAt};
+}
+async function getPublicTracking(token) {
+ if(typeof token!=='string'||!/^[a-f0-9]{64}$/.test(token))throw fail('Tracking link is invalid or expired.',404,'TRACKING_NOT_FOUND');
+ const tokenHash=crypto.createHash('sha256').update(token).digest('hex');
+ const assignment=await DeliveryAssignment.findOne({where:{trackingTokenHash:tokenHash},include:[{model:Order,as:'order',attributes:['orderNumber','status','placedAt','completedAt']} ]});
+ if(!assignment||!assignment.trackingTokenExpiresAt||new Date(assignment.trackingTokenExpiresAt)<=new Date())throw fail('Tracking link is invalid or expired.',404,'TRACKING_NOT_FOUND');
+ const locationAt=assignment.riderLocationUpdatedAt?new Date(assignment.riderLocationUpdatedAt):null;
+ const locationFresh=locationAt&&Date.now()-locationAt.getTime()<=10*60*1000;
+ const order=assignment.order||{};
+ return {
+  orderNumber:order.orderNumber||'Delivery',
+  status:assignment.status==='delivered'?'delivered':assignment.status==='cancelled'?'cancelled':assignment.status==='out_for_delivery'?'on_the_way':assignment.status==='picked_up'?'picked_up':'preparing',
+  placedAt:order.placedAt||null,
+  completedAt:assignment.deliveredAt||order.completedAt||null,
+  location:locationFresh&&assignment.riderLatitude!==null&&assignment.riderLongitude!==null?{latitude:Number(assignment.riderLatitude),longitude:Number(assignment.riderLongitude),accuracy:assignment.riderLocationAccuracy===null?null:Number(assignment.riderLocationAccuracy),updatedAt:locationAt.toISOString()}:null,
+  locationStale:!locationFresh
+ };
+}
 
 async function updateRiderLocation(restaurantId,user,assignmentId,input={}) {
  const latitude=Number(input.latitude),longitude=Number(input.longitude);
@@ -236,4 +265,4 @@ async function reviewCodSettlement(restaurantId,user,settlementId,approve,input=
  });
 }
 
-module.exports={assign,list,drivers,unassigned,updateStatus,updateRiderLocation,history,codCollections,analytics,submitCodSettlement,listCodSettlements,reviewCodSettlement};
+module.exports={assign,list,drivers,unassigned,updateStatus,createTrackingLink,getPublicTracking,updateRiderLocation,history,codCollections,analytics,submitCodSettlement,listCodSettlements,reviewCodSettlement};
