@@ -4,10 +4,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:urban_byte/main.dart';
+import 'package:urban_byte/app/app.locator.dart';
 
 void main() {
   testWidgets('App checks first-time setup then opens the login screen',
       (WidgetTester tester) async {
+    await setupLocator();
     final client = MockClient((request) async {
       expect(request.url.path, endsWith('/health/setup'));
       return http.Response(
