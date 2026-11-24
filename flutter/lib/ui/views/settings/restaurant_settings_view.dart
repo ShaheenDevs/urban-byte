@@ -43,7 +43,10 @@ class _RestaurantSettingsViewState extends State<RestaurantSettingsView> {
     _taxRate.dispose();
     _maxDiscount.dispose();
     _header.dispose();
-    _footer.dispose();\n    _deliveryBaseFee.dispose();\n    _deliveryPerKmFee.dispose();\n    _deliveryFreeRadius.dispose();
+    _footer.dispose();
+    _deliveryBaseFee.dispose();
+    _deliveryPerKmFee.dispose();
+    _deliveryFreeRadius.dispose();
     super.dispose();
   }
 
@@ -69,7 +72,10 @@ class _RestaurantSettingsViewState extends State<RestaurantSettingsView> {
       } catch (_) {
         _deliveryDrivers = [];
       }
-      _defaultDeliveryUserId = data['defaultDeliveryUserId']?.toString();\n      _deliveryBaseFee.text = '${data['deliveryBaseFee'] ?? 0}';\n      _deliveryPerKmFee.text = '${data['deliveryPerKmFee'] ?? 0}';\n      _deliveryFreeRadius.text = '${data['deliveryFreeRadiusKm'] ?? 0}';
+      _defaultDeliveryUserId = data['defaultDeliveryUserId']?.toString();
+      _deliveryBaseFee.text = '${data['deliveryBaseFee'] ?? 0}';
+      _deliveryPerKmFee.text = '${data['deliveryPerKmFee'] ?? 0}';
+      _deliveryFreeRadius.text = '${data['deliveryFreeRadiusKm'] ?? 0}';
       _taxEnabled = data['taxEnabled'] == true;
       _taxInclusive = data['taxInclusive'] == true;
       _discountEnabled = data['discountEnabled'] != false;
@@ -110,7 +116,10 @@ class _RestaurantSettingsViewState extends State<RestaurantSettingsView> {
         'diningTables': _tables,
         'orderTypes': _orderTypes,
         'kitchenPrintGroups': _kitchenGroups,
-        'defaultDeliveryUserId': _defaultDeliveryUserId,\n        'deliveryBaseFee': double.tryParse(_deliveryBaseFee.text) ?? 0,\n        'deliveryPerKmFee': double.tryParse(_deliveryPerKmFee.text) ?? 0,\n        'deliveryFreeRadiusKm': double.tryParse(_deliveryFreeRadius.text) ?? 0,
+        'defaultDeliveryUserId': _defaultDeliveryUserId,
+        'deliveryBaseFee': double.tryParse(_deliveryBaseFee.text) ?? 0,
+        'deliveryPerKmFee': double.tryParse(_deliveryPerKmFee.text) ?? 0,
+        'deliveryFreeRadiusKm': double.tryParse(_deliveryFreeRadius.text) ?? 0,
       });
       if (mounted)
         ScaffoldMessenger.of(context).showSnackBar(
