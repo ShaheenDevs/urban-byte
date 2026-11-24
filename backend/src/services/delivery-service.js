@@ -102,7 +102,7 @@ async function updateStatus(restaurantId,user,assignmentId,input={}){
    else if(order.status!=='completed')throw fail('Order must be out for delivery before completion.',409);
    changes.deliveredAt=now;
   }
-  if(input.note!==undefined)changes.deliveryNote=String(input.note).slice(0,500);
+  if(input.note!==undefined)changes.deliveryNote=String(input.note).slice(0,500);\n  if(next==='delivered')Object.assign(changes,{riderLatitude:null,riderLongitude:null,riderLocationAccuracy:null,riderLocationUpdatedAt:null});
   await assignment.update(changes,{transaction:t});
   return DeliveryAssignment.findByPk(assignment.id,{include:[{model:Order,as:'order'}],transaction:t});
  });
@@ -157,7 +157,22 @@ async function analytics(restaurantId,user,filters={}) {
 }
 
 
-function validSettlementDate(value) {
+
+async function updateRiderLocation(restaurantId,user,assignmentId,input={}) {
+ const latitude=Number(input.latitude),longitude=Number(input.longitude);
+ const accuracy=input.accuracy===undefined||input.accuracy===null?null:Number(input.accuracy);
+ if(!Number.isFinite(latitude)||latitude < -90||latitude > 90)throw fail('Latitude must be between -90 and 90.');
+ if(!Number.isFinite(longitude)||longitude < -180||longitude > 180)throw fail('Longitude must be between -180 and 180.');
+ if(accuracy!==null&&(!Number.isFinite(accuracy)||accuracy<0||accuracy>10000))throw fail('Location accuracy must be between 0 and 10000 metres.');
+ const assignment=await DeliveryAssignment.findOne({where:{id:id(assignmentId),restaurantId,deliveryUserId:id(user.id)}});
+ if(!assignment)throw fail('Delivery assignment not found.',404,'ASSIGNMENT_NOT_FOUND');
+ assertBranch(user,assignment.branchId);
+ if(assignment.status!=='out_for_delivery')throw fail('Location can only be shared while an order is out for delivery.',409,'LOCATION_SHARING_NOT_ACTIVE');
+ const updatedAt=new Date();
+ await assignment.update({riderLatitude:latitude,riderLongitude:longitude,riderLocationAccuracy:accuracy,riderLocationUpdatedAt:updatedAt});
+ return {assignmentId:String(assignment.id),latitude,longitude,accuracy,updatedAt};
+}
+\nfunction validSettlementDate(value) {
  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
  const [y,m,d]=value.split('-').map(Number);const date=new Date(Date.UTC(y,m-1,d));
  return date.getUTCFullYear()===y&&date.getUTCMonth()===m-1&&date.getUTCDate()===d;
@@ -218,4 +233,4 @@ async function reviewCodSettlement(restaurantId,user,settlementId,approve,input=
  });
 }
 
-module.exports={assign,list,drivers,unassigned,updateStatus,history,codCollections,analytics,submitCodSettlement,listCodSettlements,reviewCodSettlement};
+module.exports={assign,list,drivers,unassigned,updateStatus,updateRiderLocation,history,codCollections,analytics,submitCodSettlement,listCodSettlements,reviewCodSettlement};
