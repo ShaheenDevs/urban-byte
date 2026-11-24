@@ -14,7 +14,11 @@ async function getDrivingRoute({ assignmentId, origin, destination, fetchImpl = 
   const [originLat, originLon, destinationLat, destinationLon] = values;
   const cacheKey = String(assignmentId || '');
   const cached = ROUTE_CACHE.get(cacheKey);
-  if (cached && cached.expiresAt > now) return cached.value;
+  const closeToCachedOrigin = cached && Math.abs(cached.origin[0] - originLat) < 0.002 &&
+    Math.abs(cached.origin[1] - originLon) < 0.002;
+  const sameDestination = cached && cached.destination[0] === destinationLat &&
+    cached.destination[1] === destinationLon;
+  if (cached && cached.expiresAt > now && closeToCachedOrigin && sameDestination) return cached.value;
   const baseUrl = (process.env.DELIVERY_ROUTING_BASE_URL || 'https://router.project-osrm.org').replace(/\/$/, '');
   const url = baseUrl + '/route/v1/driving/' +
     originLon + ',' + originLat + ';' + destinationLon + ',' + destinationLat +
@@ -38,7 +42,7 @@ async function getDrivingRoute({ assignmentId, origin, destination, fetchImpl = 
         .map(point => [Number(point[1]), Number(point[0])])
     };
     if (value.geometry.length < 2) return null;
-    ROUTE_CACHE.set(cacheKey, { value, expiresAt: now + CACHE_TTL_MS });
+    ROUTE_CACHE.set(cacheKey, { value, origin: [originLat, originLon], destination: [destinationLat, destinationLon], expiresAt: now + CACHE_TTL_MS });
     return value;
   } catch (_) {
     return null;
