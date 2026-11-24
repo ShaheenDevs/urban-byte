@@ -176,6 +176,24 @@ class _PosViewState extends State<PosView> {
       _message('Enter delivery address.');
       return;
     }
+    if (_type == 'delivery') {
+      final latitudeText = _deliveryLatitude.text.trim();
+      final longitudeText = _deliveryLongitude.text.trim();
+      if (latitudeText.isNotEmpty != longitudeText.isNotEmpty) {
+        _message('Enter both customer latitude and longitude, or leave both blank.');
+        return;
+      }
+      if (latitudeText.isNotEmpty) {
+        final latitude = double.tryParse(latitudeText);
+        final longitude = double.tryParse(longitudeText);
+        if (latitude == null || longitude == null ||
+            latitude < -90 || latitude > 90 ||
+            longitude < -180 || longitude > 180) {
+          _message('Enter valid customer GPS coordinates.');
+          return;
+        }
+      }
+    }
     if (_type == 'delivery' && (_selectedDeliveryUserId == null ||
         !_deliveryDrivers.any((d) => d['id'].toString() == _selectedDeliveryUserId))) {
       _message(_deliveryDrivers.isEmpty
