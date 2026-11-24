@@ -102,7 +102,9 @@ async function updateStatus(restaurantId,user,assignmentId,input={}){
    else if(order.status!=='completed')throw fail('Order must be out for delivery before completion.',409);
    changes.deliveredAt=now;
   }
-  if(input.note!==undefined)changes.deliveryNote=String(input.note).slice(0,500);\n  if(next==='delivered')Object.assign(changes,{riderLatitude:null,riderLongitude:null,riderLocationAccuracy:null,riderLocationUpdatedAt:null});\n  if(next==='delivered')Object.assign(changes,{riderLatitude:null,riderLongitude:null,riderLocationAccuracy:null,riderLocationUpdatedAt:null});
+  if(input.note!==undefined)changes.deliveryNote=String(input.note).slice(0,500);
+  if(next==='delivered')Object.assign(changes,{riderLatitude:null,riderLongitude:null,riderLocationAccuracy:null,riderLocationUpdatedAt:null});
+  if(next==='delivered')Object.assign(changes,{riderLatitude:null,riderLongitude:null,riderLocationAccuracy:null,riderLocationUpdatedAt:null});
   await assignment.update(changes,{transaction:t});
   return DeliveryAssignment.findByPk(assignment.id,{include:[{model:Order,as:'order'}],transaction:t});
  });
@@ -172,7 +174,8 @@ async function updateRiderLocation(restaurantId,user,assignmentId,input={}) {
  await assignment.update({riderLatitude:latitude,riderLongitude:longitude,riderLocationAccuracy:accuracy,riderLocationUpdatedAt:updatedAt});
  return {assignmentId:String(assignment.id),latitude,longitude,accuracy,updatedAt};
 }
-\nfunction validSettlementDate(value) {
+
+function validSettlementDate(value) {
  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
  const [y,m,d]=value.split('-').map(Number);const date=new Date(Date.UTC(y,m-1,d));
  return date.getUTCFullYear()===y&&date.getUTCMonth()===m-1&&date.getUTCDate()===d;
