@@ -75,11 +75,21 @@ class OperationsService {
   }
 
   Future<List<Map<String, dynamic>>> deliveryAssignments(
-      {String? status}) async {
-    final path = status == null
-        ? '/delivery/assignments'
-        : '/delivery/assignments?status=${Uri.encodeQueryComponent(status)}';
-    return _list(await _request('GET', path));
+      {String? status, String? branchId}) async {
+    final query = <String, String>{
+      if (status != null) 'status': status,
+      if (branchId != null && branchId.isNotEmpty) 'branchId': branchId,
+    };
+    final suffix = query.isEmpty ? '' : '?'+Uri(queryParameters: query).query;
+    return _list(await _request('GET', '/delivery/assignments$suffix'));
+  }
+
+  Future<List<Map<String, dynamic>>> unassignedDeliveryOrders(
+      {String? branchId}) async {
+    final suffix = branchId == null || branchId.isEmpty
+        ? ''
+        : '?branchId=${Uri.encodeQueryComponent(branchId)}';
+    return _list(await _request('GET', '/delivery/unassigned$suffix'));
   }
 
   Future<void> updateDeliveryStatus(String assignmentId, String status,
