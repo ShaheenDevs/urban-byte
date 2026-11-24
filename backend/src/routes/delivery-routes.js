@@ -5,5 +5,8 @@ router.get('/drivers',requireAnyPermission('orders.create','settings.manage','de
 router.get('/unassigned',requirePermission('delivery.assign'),c.unassigned);
 router.post('/orders/:orderId/assign',requirePermission('delivery.assign'),c.assign);
 router.get('/assignments',requireAnyPermission('delivery.assignments.view_all','delivery.view_assigned'),c.list);
+router.get('/history',requireAnyPermission('delivery.assignments.view_all','delivery.view_assigned'),c.history);
+router.get('/reports/cod-collections',requireAnyPermission('delivery.assignments.view_all','delivery.view_assigned'),c.codCollections);
+router.get('/reports/performance',requireAnyPermission('delivery.assignments.view_all','delivery.view_assigned'),c.analytics);
 router.patch('/assignments/:assignmentId/status',requirePermission('delivery.status.update'),c.status);
 module.exports=router;
