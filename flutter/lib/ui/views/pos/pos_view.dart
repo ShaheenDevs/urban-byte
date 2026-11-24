@@ -27,6 +27,7 @@ class _PosViewState extends State<PosView> {
   final _deliveryDistance = TextEditingController(text: '0');
   final _deliveryLatitude = TextEditingController();
   final _deliveryLongitude = TextEditingController();
+  final _deliveryMapLink = TextEditingController();
   final _discount = TextEditingController(text: '0');
   List<RestaurantBranch> _branches = [];
   List<Map<String, dynamic>> _products = [];
@@ -55,6 +56,7 @@ class _PosViewState extends State<PosView> {
     _deliveryDistance.dispose();
     _deliveryLatitude.dispose();
     _deliveryLongitude.dispose();
+    _deliveryMapLink.dispose();
     _discount.dispose();
     super.dispose();
   }
@@ -164,6 +166,41 @@ class _PosViewState extends State<PosView> {
         };
       }
     });
+  }
+
+  (double, double)? _coordinatesFromMapLink(String value) {
+    final decoded = Uri.decodeComponent(value.trim());
+    final patterns = <RegExp>[
+      RegExp(r'!3d(-?\\d+(?:\\.\\d+)?)!4d(-?\\d+(?:\\.\\d+)?)'),
+      RegExp(r'@(-?\\d+(?:\\.\\d+)?),\\s*(-?\\d+(?:\\.\\d+)?)'),
+      RegExp(r'(?:[?&](?:q|query|destination|daddr)=)(-?\\d+(?:\\.\\d+)?)[,%2C]+(-?\\d+(?:\\.\\d+)?)', caseSensitive: false),
+      RegExp(r'geo:(-?\\d+(?:\\.\\d+)?),\\s*(-?\\d+(?:\\.\\d+)?)'),
+    ];
+    for (final pattern in patterns) {
+      final match = pattern.firstMatch(decoded);
+      if (match == null) continue;
+      final latitude = double.tryParse(match.group(1)!);
+      final longitude = double.tryParse(match.group(2)!);
+      if (latitude != null && longitude != null &&
+          latitude >= -90 && latitude <= 90 &&
+          longitude >= -180 && longitude <= 180) {
+        return (latitude, longitude);
+      }
+    }
+    return null;
+  }
+
+  void _readDeliveryMapLink() {
+    final coordinates = _coordinatesFromMapLink(_deliveryMapLink.text);
+    if (coordinates == null) {
+      _message('Coordinates were not found. Paste a full Google Maps pin link, not a shortened maps.app.goo.gl link.');
+      return;
+    }
+    setState(() {
+      _deliveryLatitude.text = coordinates.$1.toStringAsFixed(7);
+      _deliveryLongitude.text = coordinates.$2.toStringAsFixed(7);
+    });
+    _message('Customer map pin coordinates added.');
   }
 
   Future<void> _place() async {
@@ -670,6 +707,8 @@ class _PosViewState extends State<PosView> {
           const SizedBox(height: 8),
           const Text('Customer map pin coordinates (optional)', style: TextStyle(fontWeight: FontWeight.w600)),
           const SizedBox(height: 4),
+          TextField(controller: _deliveryMapLink, keyboardType: TextInputType.url, decoration: const InputDecoration(labelText: 'Paste Google Maps pin link', hintText: 'https://www.google.com/maps/...')),
+          Align(alignment: Alignment.centerRight, child: TextButton.icon(onPressed: _readDeliveryMapLink, icon: const Icon(Icons.location_searching), label: const Text('Read coordinates from link'))),
           Row(children: [
             Expanded(child: TextField(controller: _deliveryLatitude, keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), decoration: const InputDecoration(labelText: 'Latitude', hintText: '31.1234567'))),
             const SizedBox(width: 8),
