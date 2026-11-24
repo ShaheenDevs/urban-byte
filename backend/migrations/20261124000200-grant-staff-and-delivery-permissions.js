@@ -32,7 +32,8 @@ module.exports = {
       "JOIN roles r ON r.id = rp.role_id " +
       "JOIN permissions p ON p.id = rp.permission_id " +
       "WHERE (r.slug = 'supervisor' AND p.permission_key = 'staff.manage') " +
-      "OR (r.slug = 'waiter' AND p.permission_key = 'delivery.assign')"
+      "OR (r.slug = 'waiter' AND p.permission_key = 'delivery.assign') " +
+      "OR (r.slug = 'supervisor' AND p.permission_key = 'delivery.assign')"
     );
   },
 };
