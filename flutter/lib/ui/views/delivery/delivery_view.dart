@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';\nimport 'package:geolocator/geolocator.dart';
+import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:stacked/stacked.dart';
 import '../../../app/app.locator.dart';
 import '../../../services/operations_service.dart';
@@ -159,7 +160,8 @@ class DeliveryView extends StackedView<DeliveryViewModel> {
         Text('${order['deliveryAddress'] ?? 'No delivery address'}'),
         Text('Order total: PKR ${order['grandTotal'] ?? '0.00'}'),
         Text('Delivery fee: PKR ${order['deliveryFee'] ?? 0} · Distance: ${order['deliveryDistanceKm'] ?? 0} km'),
-        if (vm.canManage) Text('Rider: ${rider['name'] ?? 'Unknown'}'),\n        if (vm.canManage && a['riderLatitude'] != null && a['riderLongitude'] != null) Text('Last rider location: ${a['riderLatitude']}, ${a['riderLongitude']} · ${a['riderLocationUpdatedAt'] ?? ''}'),
+        if (vm.canManage) Text('Rider: ${rider['name'] ?? 'Unknown'}'),
+        if (vm.canManage && a['riderLatitude'] != null && a['riderLongitude'] != null) Text('Last rider location: ${a['riderLatitude']}, ${a['riderLongitude']} · ${a['riderLocationUpdatedAt'] ?? ''}'),
         if (cod > 0) Text('COD: PKR ${cod.toStringAsFixed(2)} • ${collected ? 'Collected' : 'Not collected'}'),
         if (canReassign && drivers.isNotEmpty) ...[
           const SizedBox(height: 8),
@@ -177,7 +179,10 @@ class DeliveryView extends StackedView<DeliveryViewModel> {
         if (!vm.canManage) Wrap(spacing: 8, children: [
           if (status == 'assigned') FilledButton(onPressed: vm.isBusy ? null : () => vm.update(assignmentId, 'picked_up'), child: const Text('Picked up')),
           if (status == 'picked_up') FilledButton(onPressed: vm.isBusy ? null : () => vm.update(assignmentId, 'out_for_delivery'), child: const Text('Start delivery')),
-          if (status == 'out_for_delivery') ...[\n            OutlinedButton.icon(onPressed: vm.isBusy ? null : () => vm.shareLocation(context, assignmentId), icon: const Icon(Icons.my_location), label: const Text('Update my location')),\n            FilledButton.tonal(onPressed: vm.isBusy ? null : () => vm.complete(context, assignmentId, cod > 0 && !collected), child: const Text('Mark delivered')),\n          ],
+          if (status == 'out_for_delivery') ...[
+            OutlinedButton.icon(onPressed: vm.isBusy ? null : () => vm.shareLocation(context, assignmentId), icon: const Icon(Icons.my_location), label: const Text('Update my location')),
+            FilledButton.tonal(onPressed: vm.isBusy ? null : () => vm.complete(context, assignmentId, cod > 0 && !collected), child: const Text('Mark delivered')),
+          ],
         ]),
       ]),
     ));
