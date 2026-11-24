@@ -140,6 +140,9 @@ class DeliveryViewModel extends BaseViewModel {
   final Map<String, List<Map<String, dynamic>>> _driversByBranch = {};
   final Map<String, String?> selectedDrivers = {};
   String? loadingError;
+  Map<String, dynamic> performance = {};
+  Map<String, dynamic> codReport = {};
+  List<Map<String, dynamic>> history = [];
   bool loaded = false;
 
   List<Map<String, dynamic>> driversFor(String branchId) => _driversByBranch[branchId] ?? [];
@@ -150,6 +153,15 @@ class DeliveryViewModel extends BaseViewModel {
     setBusy(true); loadingError = null;
     try {
       assignments = await api.deliveryAssignments();
+      final today = DateTime.now().toIso8601String().substring(0, 10);
+      final reports = await Future.wait<dynamic>([
+        api.deliveryHistory(),
+        api.deliveryPerformance(from: today, to: today),
+        api.deliveryCodCollections(from: today, to: today),
+      ]);
+      history = reports[0] as List<Map<String, dynamic>>;
+      performance = Map<String, dynamic>.from(reports[1] as Map);
+      codReport = Map<String, dynamic>.from(reports[2] as Map);
       if (canManage) {
         unassignedOrders = await api.unassignedDeliveryOrders();
         final branchIds = <String>{...assignments.map((a) => '${a['branchId']}'), ...unassignedOrders.map((o) => '${o['branchId']}')};
