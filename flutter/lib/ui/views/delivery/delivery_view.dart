@@ -9,112 +9,124 @@ class DeliveryView extends StackedView<DeliveryViewModel> {
   @override
   DeliveryViewModel viewModelBuilder(BuildContext context) =>
       DeliveryViewModel(locator<OperationsService>(), permissions)..load();
+
   @override
-  Widget builder(BuildContext context, DeliveryViewModel vm, Widget? child) =>
-      Scaffold(
-        appBar: AppBar(title: const Text('My deliveries'), actions: [
-          IconButton(
-              onPressed: vm.isBusy ? null : vm.load,
-              icon: const Icon(Icons.refresh))
-        ]),
-        body: vm.isBusy && !vm.loaded
-            ? const Center(child: CircularProgressIndicator())
-            : RefreshIndicator(
-                onRefresh: vm.load,
-                child: ListView(padding: const EdgeInsets.all(16), children: [
-                  if (vm.loadingError != null)
-                    Text(vm.loadingError!,
-                        style: TextStyle(
-                            color: Theme.of(context).colorScheme.error)),
-                  Wrap(spacing: 8, children: [
-                    _count('Assigned', vm.count('assigned')),
-                    _count('Picked up', vm.count('picked_up')),
-                    _count('On route', vm.count('out_for_delivery')),
-                    _count('Delivered', vm.count('delivered')),
-                  ]),
-                  const SizedBox(height: 16),
-                  if (vm.assignments.isEmpty)
-                    const Card(
-                        child: ListTile(
-                            leading: Icon(Icons.delivery_dining),
-                            title: Text('No delivery assignments'),
-                            subtitle: Text(
-                                'New assigned deliveries will appear here.'))),
-                  ...vm.assignments.map((a) {
-                    final order =
-                        Map<String, dynamic>.from(a['order'] as Map? ?? {});
-                    final status = '${a['status']}';
-                    final cod = double.tryParse('${a['codAmount'] ?? 0}') ?? 0.0;
-                    final collected = a['codCollected'] == true;
-                    return Card(
-                        child: Padding(
-                            padding: const EdgeInsets.all(14),
-                            child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(children: [
-                                    Expanded(
-                                        child: Text(
-                                            '${order['orderNumber'] ?? 'Delivery #${a['id']}'}',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .titleMedium)),
-                                    Chip(
-                                        label:
-                                            Text(status.replaceAll('_', ' ')))
-                                  ]),
-                                  Text(
-                                      '${order['customerName'] ?? 'Customer'} • ${order['customerPhone'] ?? 'No phone'}'),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                      '${order['deliveryAddress'] ?? 'No delivery address'}'),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                      'Order total: PKR ${order['grandTotal'] ?? '0.00'}'),
-                                  if (cod > 0)
-                                    Text(
-                                        'COD: PKR ${cod.toStringAsFixed(2)} • ${collected ? 'Collected' : 'Not collected'}',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            color: collected
-                                                ? Colors.green
-                                                : Theme.of(context)
-                                                    .colorScheme
-                                                    .error)),
-                                  if (order['notes'] != null &&
-                                      '${order['notes']}'.isNotEmpty)
-                                    Text('Notes: ${order['notes']}'),
-                                  const SizedBox(height: 10),
-                                  Wrap(spacing: 8, runSpacing: 8, children: [
-                                    if (status == 'assigned')
-                                      FilledButton(
-                                          onPressed: vm.isBusy
-                                              ? null
-                                              : () => vm.update(
-                                                  '${a['id']}', 'picked_up'),
-                                          child: const Text('Picked up')),
-                                    if (status == 'picked_up')
-                                      FilledButton(
-                                          onPressed: vm.isBusy
-                                              ? null
-                                              : () => vm.update('${a['id']}',
-                                                  'out_for_delivery'),
-                                          child: const Text('Start delivery')),
-                                    if (status == 'out_for_delivery')
-                                      FilledButton.tonal(
-                                          onPressed: vm.isBusy
-                                              ? null
-                                              : () => vm.complete(
-                                                  context,
-                                                  '${a['id']}',
-                                                  cod > 0 && !collected),
-                                          child: const Text('Mark delivered')),
-                                  ])
-                                ])));
-                  }),
+  Widget builder(BuildContext context, DeliveryViewModel vm, Widget? child) {
+    final manager = vm.canManage;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(manager ? 'Delivery Management' : 'My deliveries'),
+        actions: [IconButton(onPressed: vm.isBusy ? null : vm.load, icon: const Icon(Icons.refresh))],
+      ),
+      body: vm.isBusy && !vm.loaded
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: vm.load,
+              child: ListView(padding: const EdgeInsets.all(16), children: [
+                if (vm.loadingError != null)
+                  Text(vm.loadingError!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                Wrap(spacing: 8, children: [
+                  _count('Assigned', vm.count('assigned')),
+                  _count('Picked up', vm.count('picked_up')),
+                  _count('On route', vm.count('out_for_delivery')),
+                  _count('Delivered', vm.count('delivered')),
                 ]),
-              ),
-      );
+                if (manager) ...[
+                  const SizedBox(height: 20),
+                  Text('Unassigned delivery orders', style: Theme.of(context).textTheme.titleLarge),
+                  const SizedBox(height: 8),
+                  if (vm.unassignedOrders.isEmpty)
+                    const Card(child: ListTile(leading: Icon(Icons.check_circle_outline), title: Text('No unassigned delivery orders'))),
+                  ...vm.unassignedOrders.map((order) => _unassignedCard(context, vm, order)),
+                  const SizedBox(height: 20),
+                  Text('Assigned deliveries', style: Theme.of(context).textTheme.titleLarge),
+                ],
+                if (vm.assignments.isEmpty)
+                  const Card(child: ListTile(leading: Icon(Icons.delivery_dining), title: Text('No delivery assignments'))),
+                ...vm.assignments.map((assignment) => _assignmentCard(context, vm, assignment)),
+              ]),
+            ),
+    );
+  }
+
+  Widget _unassignedCard(BuildContext context, DeliveryViewModel vm, Map<String, dynamic> order) {
+    final id = '${order['id']}';
+    final branchId = '${order['branchId']}';
+    final drivers = vm.driversFor(branchId);
+    final selected = vm.selectedDrivers[id];
+    return Card(child: Padding(
+      padding: const EdgeInsets.all(14),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('${order['orderNumber'] ?? 'Order #$id'}', style: Theme.of(context).textTheme.titleMedium),
+        Text('${order['customerName'] ?? 'Customer'} • ${order['customerPhone'] ?? 'No phone'}'),
+        Text('${order['deliveryAddress'] ?? 'No delivery address'}'),
+        Text('Total: PKR ${order['grandTotal'] ?? '0.00'}'),
+        const SizedBox(height: 8),
+        if (drivers.isEmpty)
+          const Text('No active Delivery employee is assigned to this branch.')
+        else
+          DropdownButtonFormField<String>(
+            value: drivers.any((d) => d['id'].toString() == selected) ? selected : null,
+            decoration: const InputDecoration(labelText: 'Select delivery rider'),
+            items: drivers.map((d) => DropdownMenuItem<String>(
+              value: d['id'].toString(), child: Text(d['name']?.toString() ?? 'Delivery staff'),
+            )).toList(),
+            onChanged: vm.isBusy ? null : (value) => vm.selectDriver(id, value),
+          ),
+        Align(alignment: Alignment.centerRight, child: FilledButton.icon(
+          onPressed: vm.isBusy || selected == null || drivers.isEmpty ? null : () => vm.assign(id, selected),
+          icon: const Icon(Icons.person_add_alt_1), label: const Text('Assign rider'),
+        )),
+      ]),
+    ));
+  }
+
+  Widget _assignmentCard(BuildContext context, DeliveryViewModel vm, Map<String, dynamic> a) {
+    final order = Map<String, dynamic>.from(a['order'] as Map? ?? {});
+    final rider = Map<String, dynamic>.from(a['deliveryUser'] as Map? ?? {});
+    final status = '${a['status']}';
+    final assignmentId = '${a['id']}';
+    final orderId = '${order['id'] ?? a['orderId']}';
+    final branchId = '${a['branchId']}';
+    final cod = double.tryParse('${a['codAmount'] ?? 0}') ?? 0.0;
+    final collected = a['codCollected'] == true;
+    final drivers = vm.driversFor(branchId);
+    final selected = vm.selectedDrivers[orderId];
+    final canReassign = vm.canManage && status == 'assigned';
+    return Card(child: Padding(
+      padding: const EdgeInsets.all(14),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Expanded(child: Text('${order['orderNumber'] ?? 'Delivery #$assignmentId'}', style: Theme.of(context).textTheme.titleMedium)),
+          Chip(label: Text(status.replaceAll('_', ' '))),
+        ]),
+        Text('${order['customerName'] ?? 'Customer'} • ${order['customerPhone'] ?? 'No phone'}'),
+        Text('${order['deliveryAddress'] ?? 'No delivery address'}'),
+        Text('Order total: PKR ${order['grandTotal'] ?? '0.00'}'),
+        if (vm.canManage) Text('Rider: ${rider['name'] ?? 'Unknown'}'),
+        if (cod > 0) Text('COD: PKR ${cod.toStringAsFixed(2)} • ${collected ? 'Collected' : 'Not collected'}'),
+        if (canReassign && drivers.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            value: drivers.any((d) => d['id'].toString() == selected) ? selected : rider['id']?.toString(),
+            decoration: const InputDecoration(labelText: 'Change delivery rider'),
+            items: drivers.map((d) => DropdownMenuItem<String>(value: d['id'].toString(), child: Text(d['name']?.toString() ?? 'Delivery staff'))).toList(),
+            onChanged: vm.isBusy ? null : (value) => vm.selectDriver(orderId, value),
+          ),
+          Align(alignment: Alignment.centerRight, child: TextButton.icon(
+            onPressed: vm.isBusy || selected == null || selected == rider['id']?.toString() ? null : () => vm.assign(orderId, selected),
+            icon: const Icon(Icons.swap_horiz), label: const Text('Reassign rider'),
+          )),
+        ],
+        if (!vm.canManage) Wrap(spacing: 8, children: [
+          if (status == 'assigned') FilledButton(onPressed: vm.isBusy ? null : () => vm.update(assignmentId, 'picked_up'), child: const Text('Picked up')),
+          if (status == 'picked_up') FilledButton(onPressed: vm.isBusy ? null : () => vm.update(assignmentId, 'out_for_delivery'), child: const Text('Start delivery')),
+          if (status == 'out_for_delivery') FilledButton.tonal(onPressed: vm.isBusy ? null : () => vm.complete(context, assignmentId, cod > 0 && !collected), child: const Text('Mark delivered')),
+        ]),
+      ]),
+    ));
+  }
+
   Widget _count(String label, int value) => Chip(label: Text('$label: $value'));
 }
 
@@ -122,70 +134,66 @@ class DeliveryViewModel extends BaseViewModel {
   DeliveryViewModel(this.api, this.permissions);
   final OperationsService api;
   final Set<String> permissions;
+  bool get canManage => permissions.contains('delivery.assign');
   List<Map<String, dynamic>> assignments = [];
+  List<Map<String, dynamic>> unassignedOrders = [];
+  final Map<String, List<Map<String, dynamic>>> _driversByBranch = {};
+  final Map<String, String?> selectedDrivers = {};
   String? loadingError;
   bool loaded = false;
-  int count(String status) =>
-      assignments.where((a) => a['status'] == status).length;
+
+  List<Map<String, dynamic>> driversFor(String branchId) => _driversByBranch[branchId] ?? [];
+  int count(String status) => assignments.where((a) => a['status'] == status).length;
+  void selectDriver(String orderId, String? driverId) { selectedDrivers[orderId] = driverId; notifyListeners(); }
+
   Future<void> load() async {
-    setBusy(true);
-    loadingError = null;
+    setBusy(true); loadingError = null;
     try {
       assignments = await api.deliveryAssignments();
+      if (canManage) {
+        unassignedOrders = await api.unassignedDeliveryOrders();
+        final branchIds = <String>{...assignments.map((a) => '${a['branchId']}'), ...unassignedOrders.map((o) => '${o['branchId']}')};
+        _driversByBranch.clear();
+        for (final branchId in branchIds) {
+          _driversByBranch[branchId] = await api.deliveryDrivers(branchId: branchId);
+        }
+      } else { unassignedOrders = []; }
       loaded = true;
-    } catch (e) {
-      loadingError = e.toString();
-    } finally {
-      setBusy(false);
-      notifyListeners();
-    }
+    } catch (e) { loadingError = e.toString(); }
+    finally { setBusy(false); notifyListeners(); }
+  }
+
+  Future<void> assign(String orderId, String driverId) async {
+    setBusy(true); loadingError = null;
+    try { await api.assignDelivery(orderId, driverId); selectedDrivers.remove(orderId); await load(); }
+    catch (e) { loadingError = e.toString(); }
+    finally { setBusy(false); notifyListeners(); }
   }
 
   Future<void> update(String id, String status) async {
-    setBusy(true);
-    loadingError = null;
-    try {
-      await api.updateDeliveryStatus(id, status);
-      await load();
-    } catch (e) {
-      loadingError = e.toString();
-    } finally {
-      setBusy(false);
-      notifyListeners();
-    }
+    setBusy(true); loadingError = null;
+    try { await api.updateDeliveryStatus(id, status); await load(); }
+    catch (e) { loadingError = e.toString(); }
+    finally { setBusy(false); notifyListeners(); }
   }
 
   Future<void> complete(BuildContext context, String id, bool needsCod) async {
     var collected = !needsCod;
     if (needsCod) {
-      final answer = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-                title: const Text('Confirm COD collection'),
-                content: const Text(
-                    'Did you receive the full cash amount from the customer?'),
-                actions: [
-                  TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Not yet')),
-                  FilledButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Yes, collected'))
-                ],
-              ));
+      final answer = await showDialog<bool>(context: context, builder: (context) => AlertDialog(
+        title: const Text('Confirm COD collection'),
+        content: const Text('Did you receive the full cash amount from the customer?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Not yet')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Yes, collected')),
+        ],
+      ));
       if (answer != true) return;
       collected = true;
     }
-    setBusy(true);
-    loadingError = null;
-    try {
-      await api.updateDeliveryStatus(id, 'delivered', codCollected: collected);
-      await load();
-    } catch (e) {
-      loadingError = e.toString();
-    } finally {
-      setBusy(false);
-      notifyListeners();
-    }
+    setBusy(true); loadingError = null;
+    try { await api.updateDeliveryStatus(id, 'delivered', codCollected: collected); await load(); }
+    catch (e) { loadingError = e.toString(); }
+    finally { setBusy(false); notifyListeners(); }
   }
 }
