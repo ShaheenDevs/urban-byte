@@ -55,7 +55,13 @@ async function createOrder(restaurantId,user,input,idempotencyKey,options={}){
   throw error('You are not authorized to apply discounts.', 403, 'DISCOUNT_FORBIDDEN');
  }
  if (discountPaisa > maxDiscountPaisa || discountPaisa > subtotalPaisa) throw error('Discount exceeds the configured limit.', 400, 'DISCOUNT_LIMIT_EXCEEDED');
- const deliveryPaisa=0;
+ const distanceKm = isDelivery ? Number(input.deliveryDistanceKm ?? 0) : 0;
+ if (!Number.isFinite(distanceKm) || distanceKm < 0 || distanceKm > 250) throw error('Delivery distance must be between 0 and 250 km.');
+ const baseFeePaisa = isDelivery ? amount(settings?.deliveryBaseFee ?? 0, 'Delivery base fee') : 0;
+ const perKmFeePaisa = isDelivery ? amount(settings?.deliveryPerKmFee ?? 0, 'Delivery per-km fee') : 0;
+ const freeRadiusKm = isDelivery ? Number(settings?.deliveryFreeRadiusKm ?? 0) : 0;
+ const chargeableKm = Math.max(0, distanceKm - freeRadiusKm);
+ const deliveryPaisa = baseFeePaisa + Math.round(perKmFeePaisa * chargeableKm);
  const taxablePaisa=subtotalPaisa-discountPaisa;
  const taxRate=settings?.taxEnabled ? Number(settings.taxRate) : 0;
  const taxPaisa=taxRate > 0
@@ -67,7 +73,7 @@ async function createOrder(restaurantId,user,input,idempotencyKey,options={}){
  const orderNumber='UB-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-'+crypto.randomBytes(3).toString('hex').toUpperCase();
  try{const created=await sequelize.transaction(async transaction=>{
   if(idempotencyKey){const existing=await Order.findOne({where:{restaurantId,idempotencyKey},include:[{model:OrderItem,as:'items'}],transaction,lock:transaction.LOCK.UPDATE});if(existing)return existing;}
-  const order=await Order.create({restaurantId,branchId,orderNumber,idempotencyKey:idempotencyKey||null,createdByUserId:user.id,customerName:input.customerName?String(input.customerName).trim().slice(0,150):null,customerPhone:input.customerPhone?String(input.customerPhone).trim().slice(0,30):null,orderType:input.orderType,source:options.source==='ai'?'ai':'staff',tableLabel:isDineIn?((settings?.diningTables || []).find((t) => t.id === String(input.tableLabel) || t.name === String(input.tableLabel))?.name || input.tableLabel).trim().slice(0,40):null,deliveryAddress:input.orderType==='delivery'?input.deliveryAddress.trim():null,notes:input.notes?String(input.notes).slice(0,2000):null,status:'placed',paymentMethod,paymentStatus:'unpaid',subtotal:asMoney(subtotalPaisa),discountAmount:asMoney(discountPaisa),taxAmount:asMoney(taxPaisa),serviceChargeAmount:asMoney(serviceChargePaisa),deliveryFee:asMoney(deliveryPaisa),grandTotal:asMoney(grandPaisa),placedAt:new Date()},{transaction});
+  const order=await Order.create({restaurantId,branchId,orderNumber,idempotencyKey:idempotencyKey||null,createdByUserId:user.id,customerName:input.customerName?String(input.customerName).trim().slice(0,150):null,customerPhone:input.customerPhone?String(input.customerPhone).trim().slice(0,30):null,orderType:input.orderType,source:options.source==='ai'?'ai':'staff',tableLabel:isDineIn?((settings?.diningTables || []).find((t) => t.id === String(input.tableLabel) || t.name === String(input.tableLabel))?.name || input.tableLabel).trim().slice(0,40):null,deliveryAddress:input.orderType==='delivery'?input.deliveryAddress.trim():null,notes:input.notes?String(input.notes).slice(0,2000):null,status:'placed',paymentMethod,paymentStatus:'unpaid',subtotal:asMoney(subtotalPaisa),discountAmount:asMoney(discountPaisa),taxAmount:asMoney(taxPaisa),serviceChargeAmount:asMoney(serviceChargePaisa),deliveryFee:asMoney(deliveryPaisa),deliveryDistanceKm:isDelivery?distanceKm.toFixed(2):null,grandTotal:asMoney(grandPaisa),placedAt:new Date()},{transaction});
   await OrderItem.bulkCreate(prepared.map(item=>({...item,orderId:order.id})),{transaction});
   await OrderStatusHistory.create({orderId:order.id,fromStatus:null,toStatus:'placed',changedByUserId:user.id,note:'Order created'},{transaction});
   return Order.findByPk(order.id,{include:[{model:OrderItem,as:'items'},{model:OrderStatusHistory,as:'statusHistory'}],transaction});
