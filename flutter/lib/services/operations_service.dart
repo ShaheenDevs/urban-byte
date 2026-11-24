@@ -102,6 +102,11 @@ class OperationsService {
         });
   }
 
+  Future<String> createDeliveryTrackingLink(String assignmentId) async {
+    final data = Map<String, dynamic>.from(await _request('POST', '/delivery/assignments/$assignmentId/tracking-link') as Map);
+    return apiBaseUrl + data['trackingPath'].toString().replaceFirst('/api/v1', '');
+  }
+
   Future<void> updateRiderLocation(String assignmentId, {required double latitude, required double longitude, double? accuracy}) async {
     await _request('PATCH', '/delivery/assignments/$assignmentId/location', body: {'latitude': latitude, 'longitude': longitude, if (accuracy != null) 'accuracy': accuracy});
   }
