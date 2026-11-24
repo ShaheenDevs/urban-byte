@@ -31,6 +31,9 @@ function serialize(row) {
     orderTypes: row.orderTypes || [{ key: 'dine_in', name: 'Dine In' }, { key: 'takeaway', name: 'Takeaway' }, { key: 'delivery', name: 'Delivery' }],
     kitchenPrintGroups: row.kitchenPrintGroups || [],
     defaultDeliveryUserId: row.defaultDeliveryUserId == null ? null : String(row.defaultDeliveryUserId),
+    deliveryBaseFee: Number(row.deliveryBaseFee || 0),
+    deliveryPerKmFee: Number(row.deliveryPerKmFee || 0),
+    deliveryFreeRadiusKm: Number(row.deliveryFreeRadiusKm || 0),
   };
 }
 
@@ -50,6 +53,9 @@ async function update(restaurantId, input = {}) {
     maxDiscountPercent: rate(input.maxDiscountPercent ?? 20, 'Maximum discount', 100),
     receiptHeader: input.receiptHeader == null ? null : String(input.receiptHeader).trim().slice(0, 250),
     receiptFooter: input.receiptFooter == null ? null : String(input.receiptFooter).trim().slice(0, 500),
+    deliveryBaseFee: rate(input.deliveryBaseFee ?? 0, 'Delivery base fee', 99999999),
+    deliveryPerKmFee: rate(input.deliveryPerKmFee ?? 0, 'Delivery per-km fee', 99999999),
+    deliveryFreeRadiusKm: rate(input.deliveryFreeRadiusKm ?? 0, 'Free delivery radius', 1000),
     diningTables: Array.isArray(input.diningTables) ? input.diningTables.map((t) => ({ id: String(t.id || '').slice(0, 40), name: String(t.name || '').trim().slice(0, 80), branchId: t.branchId ? Number(t.branchId) : null, isActive: t.isActive !== false })).filter((t) => t.id && t.name).slice(0, 200) : undefined,
     orderTypes: Array.isArray(input.orderTypes) ? input.orderTypes.map((t) => ({ key: String(t.key || '').trim().toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 40), name: String(t.name || '').trim().slice(0, 80) })).filter((t) => t.key && t.name).slice(0, 30) : undefined,
     kitchenPrintGroups: Array.isArray(input.kitchenPrintGroups) ? input.kitchenPrintGroups.map((g) => ({
