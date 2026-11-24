@@ -102,7 +102,7 @@ class OperationsService {
         });
   }
 
-  Future<List<Map<String, dynamic>>> deliveryDrivers({String? branchId}) async {
+  Future<void> updateRiderLocation(String assignmentId, {required double latitude, required double longitude, double? accuracy}) async {\n    await _request('PATCH', '/delivery/assignments/$assignmentId/location', body: {'latitude': latitude, 'longitude': longitude, if (accuracy != null) 'accuracy': accuracy});\n  }\n\n  Future<List<Map<String, dynamic>>> deliveryDrivers({String? branchId}) async {
     final suffix = branchId == null || branchId.isEmpty
         ? ''
         : '?branchId=${Uri.encodeQueryComponent(branchId)}';
