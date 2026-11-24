@@ -18,6 +18,9 @@ class _RestaurantSettingsViewState extends State<RestaurantSettingsView> {
   final _header = TextEditingController(text: 'URBAN BYTE');
   final _footer =
       TextEditingController(text: 'Thank you for choosing Urban Byte!');
+  final _deliveryBaseFee = TextEditingController(text: '0');
+  final _deliveryPerKmFee = TextEditingController(text: '0');
+  final _deliveryFreeRadius = TextEditingController(text: '0');
   List<Map<String, dynamic>> _tables = [];
   List<Map<String, dynamic>> _orderTypes = [];
   List<Map<String, dynamic>> _kitchenGroups = [];
@@ -423,6 +426,12 @@ class _RestaurantSettingsViewState extends State<RestaurantSettingsView> {
                     title: Text('No active Delivery staff found.'),
                     subtitle: Text('Create an employee in Staff Management, assign the Delivery role and a branch, then return here.'),
                   ),
+                const Divider(height: 32),
+                Text('Delivery charges', style: Theme.of(context).textTheme.titleLarge),
+                const Text('Set a base delivery fee, an additional per-kilometre fee, and a free radius. POS distance is entered by staff; the server calculates the final fee.'),
+                TextField(controller: _deliveryBaseFee, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Base delivery fee (PKR)')),
+                TextField(controller: _deliveryPerKmFee, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Fee per chargeable km (PKR)')),
+                TextField(controller: _deliveryFreeRadius, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Free delivery radius (km)')),
                 const Divider(height: 32),
                 Text('Order types',
                     style: Theme.of(context).textTheme.titleLarge),
