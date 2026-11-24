@@ -1,4 +1,5 @@
 'use strict';
+const {estimateDeliveryEtaMinutes}=require('./delivery-eta');
 const crypto=require('node:crypto');
 const {Op}=require('sequelize');
 const {DeliveryAssignment,DeliveryCashSettlement,Order,Payment,PaymentEvent,User,Role,UserBranch,OrderStatusHistory,AuditLog,sequelize}=require('../models');
@@ -174,7 +175,7 @@ async function createTrackingLink(restaurantId,user,assignmentId) {
 async function getPublicTracking(token) {
  if(typeof token!=='string'||!/^[a-f0-9]{64}$/.test(token))throw fail('Tracking link is invalid or expired.',404,'TRACKING_NOT_FOUND');
  const tokenHash=crypto.createHash('sha256').update(token).digest('hex');
- const assignment=await DeliveryAssignment.findOne({where:{trackingTokenHash:tokenHash},include:[{model:Order,as:'order',attributes:['orderNumber','status','placedAt','completedAt']} ]});
+ const assignment=await DeliveryAssignment.findOne({where:{trackingTokenHash:tokenHash},include:[{model:Order,as:'order',attributes:['orderNumber','status','placedAt','completedAt','deliveryDistanceKm']} ]});
  if(!assignment||!assignment.trackingTokenExpiresAt||new Date(assignment.trackingTokenExpiresAt)<=new Date())throw fail('Tracking link is invalid or expired.',404,'TRACKING_NOT_FOUND');
  const locationAt=assignment.riderLocationUpdatedAt?new Date(assignment.riderLocationUpdatedAt):null;
  const locationFresh=locationAt&&Date.now()-locationAt.getTime()<=10*60*1000;
@@ -185,7 +186,9 @@ async function getPublicTracking(token) {
   placedAt:order.placedAt||null,
   completedAt:assignment.deliveredAt||order.completedAt||null,
   location:locationFresh&&assignment.riderLatitude!==null&&assignment.riderLongitude!==null?{latitude:Number(assignment.riderLatitude),longitude:Number(assignment.riderLongitude),accuracy:assignment.riderLocationAccuracy===null?null:Number(assignment.riderLocationAccuracy),updatedAt:locationAt.toISOString()}:null,
-  locationStale:!locationFresh
+  locationStale:!locationFresh,
+  etaMinutes:assignment.status==='out_for_delivery'?estimateDeliveryEtaMinutes(order.deliveryDistanceKm,assignment.outForDeliveryAt):null,
+  etaBasis:'recorded_delivery_distance'
  };
 }
 
