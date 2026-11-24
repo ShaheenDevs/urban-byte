@@ -176,10 +176,10 @@ class _PosViewState extends State<PosView> {
       return null;
     }
     final patterns = <RegExp>[
-      RegExp(r'!3d(-?\\d+(?:\\.\\d+)?)!4d(-?\\d+(?:\\.\\d+)?)'),
-      RegExp(r'@(-?\\d+(?:\\.\\d+)?),\\s*(-?\\d+(?:\\.\\d+)?)'),
-      RegExp(r'(?:[?&](?:q|query|destination|daddr)=)(-?\\d+(?:\\.\\d+)?)[,%2C]+(-?\\d+(?:\\.\\d+)?)', caseSensitive: false),
-      RegExp(r'geo:(-?\\d+(?:\\.\\d+)?),\\s*(-?\\d+(?:\\.\\d+)?)'),
+      RegExp(r'!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)'),
+      RegExp(r'@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)'),
+      RegExp(r'(?:[?&](?:q|query|destination|daddr)=)(-?\d+(?:\.\d+)?)[,%2C]+(-?\d+(?:\.\d+)?)', caseSensitive: false),
+      RegExp(r'geo:(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)'),
     ];
     for (final pattern in patterns) {
       final match = pattern.firstMatch(decoded);
