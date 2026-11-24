@@ -21,7 +21,7 @@ async function assign(restaurantId,actor,orderId,input={}){
   let assignment=await DeliveryAssignment.findOne({where:{restaurantId,orderId:order.id},transaction:t,lock:t.LOCK.UPDATE});
   if(isWaiter&&assignment)throw fail('Waiters cannot reassign an order that already has a delivery rider.',403,'DELIVERY_REASSIGNMENT_FORBIDDEN');
   const now=new Date();
-  if(assignment){if(['delivered','cancelled'].includes(assignment.status))throw fail('This delivery assignment is already closed.',409);await assignment.update({deliveryUserId:driver.id,assignedByUserId:actor.id,status:'assigned',assignedAt:now,pickedUpAt:null,outForDeliveryAt:null,deliveredAt:null},{transaction:t});}
+  if(assignment){if(['delivered','cancelled'].includes(assignment.status))throw fail('This delivery assignment is already closed.',409);await assignment.update({deliveryUserId:driver.id,assignedByUserId:actor.id,status:'assigned',assignedAt:now,pickedUpAt:null,outForDeliveryAt:null,deliveredAt:null,riderLatitude:null,riderLongitude:null,riderLocationAccuracy:null,riderLocationUpdatedAt:null},{transaction:t});}
   else assignment=await DeliveryAssignment.create({restaurantId,branchId:order.branchId,orderId:order.id,deliveryUserId:driver.id,assignedByUserId:actor.id,status:'assigned',assignedAt:now,codAmount:order.paymentMethod==='cod'?order.grandTotal:0},{transaction:t});
   return assignment;
  });
