@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:stacked/stacked.dart';
 import '../../../app/app.locator.dart';
 import '../../../services/operations_service.dart';
@@ -183,7 +185,7 @@ class DeliveryView extends StackedView<DeliveryViewModel> {
           if (status == 'assigned') FilledButton(onPressed: vm.isBusy ? null : () => vm.update(assignmentId, 'picked_up'), child: const Text('Picked up')),
           if (status == 'picked_up') FilledButton(onPressed: vm.isBusy ? null : () => vm.update(assignmentId, 'out_for_delivery'), child: const Text('Start delivery')),
           if (status == 'out_for_delivery') ...[
-            OutlinedButton.icon(onPressed: vm.isBusy ? null : () => vm.toggleLiveLocationSharing(context, assignmentId), icon: Icon(vm.isSharingLocation(assignmentId) ? Icons.location_off : Icons.my_location), label: Text(vm.isSharingLocation(assignmentId) ? 'Stop live sharing' : 'Start live sharing')),
+            OutlinedButton.icon(onPressed: vm.isBusy ? null : () => vm.toggleLiveLocationSharing(context, assignmentId), icon: Icon(vm.isSharingLocation(assignmentId) ? Icons.location_off : Icons.my_location), label: Text(vm.isSharingLocation(assignmentId) ? 'Stop live sharing' : 'Start background GPS sharing')),
             FilledButton.tonal(onPressed: vm.isBusy ? null : () => vm.complete(context, assignmentId, cod > 0 && !collected), child: const Text('Mark delivered')),
           ],
         ]),
@@ -266,6 +268,17 @@ class DeliveryViewModel extends BaseViewModel {
     }
     setBusy(true); loadingError = null;
     try {
+      // Android 13+ needs notification permission for a visible foreground-service
+      // notification. The location service is started only after the rider taps this action.
+      if (Platform.isAndroid) {
+        final notificationStatus = await Permission.notification.status;
+        if (!notificationStatus.isGranted) {
+          final requestedStatus = await Permission.notification.request();
+          if (!requestedStatus.isGranted) {
+            throw Exception('Allow notifications so Android can show the active delivery location-sharing notice.');
+          }
+        }
+      }
       if (!await Geolocator.isLocationServiceEnabled()) {
         throw Exception('Please turn on device location/GPS.');
       }
@@ -274,11 +287,28 @@ class DeliveryViewModel extends BaseViewModel {
       if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
         throw Exception('Location permission is required for live delivery tracking.');
       }
+      // On Android, Geolocator runs this stream as a foreground location service.
+      // This keeps updates flowing when the app is minimized or the screen is locked,
+      // while the persistent notification makes sharing visible and easy to stop.
+      final LocationSettings locationSettings = Platform.isAndroid
+          ? AndroidSettings(
+              accuracy: LocationAccuracy.high,
+              distanceFilter: 10,
+              intervalDuration: const Duration(seconds: 10),
+              foregroundNotificationConfig: const ForegroundNotificationConfig(
+                notificationTitle: 'Urban Byte delivery tracking',
+                notificationText: 'Your live location is being shared for the active delivery.',
+                notificationChannelName: 'Active delivery location',
+                enableWakeLock: true,
+                setOngoing: true,
+              ),
+            )
+          : const LocationSettings(
+              accuracy: LocationAccuracy.high,
+              distanceFilter: 10,
+            );
       final subscription = Geolocator.getPositionStream(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          distanceFilter: 10,
-        ),
+        locationSettings: locationSettings,
       ).listen((position) async {
         if (_locationUpdatesInFlight.contains(assignmentId)) return;
         _locationUpdatesInFlight.add(assignmentId);
