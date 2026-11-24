@@ -41,6 +41,22 @@ async function drivers(restaurantId,user,filters={}) {
  const rows=await User.findAll({where,attributes:['id','name','phone'],include:[{model:Role,as:'roles',where:{slug:'delivery'},attributes:['slug'],through:{attributes:[]},required:true}],order:[['name','ASC']]});
  return rows.map(row=>({id:String(row.id),name:row.name,phone:row.phone}));
 }
+async function unassigned(restaurantId,user,filters={}) {
+ const where={restaurantId,orderType:'delivery',status:{[Op.in]:['placed','confirmed','preparing','ready']}};
+ if(filters.branchId) {
+  const branchId=id(filters.branchId);
+  assertBranch(user,branchId);
+  where.branchId=branchId;
+ } else if(!(user.roles||[]).includes('admin')) {
+  const branchIds=(user.branchIds||[]).map(Number).filter(n=>Number.isSafeInteger(n)&&n>0);
+  where.branchId={[Op.in]:branchIds.length?branchIds:[-1]};
+ }
+ const existing=await DeliveryAssignment.findAll({where:{restaurantId},attributes:['orderId']});
+ const assignedIds=existing.map(row=>Number(row.orderId));
+ if(assignedIds.length)where.id={[Op.notIn]:assignedIds};
+ const rows=await Order.findAll({where,attributes:['id','branchId','orderNumber','customerName','customerPhone','deliveryAddress','grandTotal','paymentMethod','paymentStatus','status','notes','placedAt'],order:[['placedAt','ASC']],limit:100});
+ return rows.map(row=>row.toJSON());
+}
 async function list(restaurantId,user,filters={}){
  const where={restaurantId};
  if(!user.permissions.includes('delivery.assignments.view_all'))where.deliveryUserId=id(user.id);
@@ -89,4 +105,4 @@ async function updateStatus(restaurantId,user,assignmentId,input={}){
   return DeliveryAssignment.findByPk(assignment.id,{include:[{model:Order,as:'order'}],transaction:t});
  });
 }
-module.exports={assign,list,drivers,updateStatus};
+module.exports={assign,list,drivers,unassigned,updateStatus};
