@@ -94,7 +94,7 @@ async function updateStatus(restaurantId,user,assignmentId,input={}){
      await PaymentEvent.create({paymentId:payment.id,eventType:'verified',actorUserId:user.id,notes:'COD collection verified at delivery.'},{transaction:t});
      await order.update({paymentStatus:'paid',paymentMethod:'cod'},{transaction:t});
     }
-    changes.codCollected=true;changes.codCollectedAt=now;
+    changes.codAmount=codDue.toFixed(2);changes.codCollected=true;changes.codCollectedAt=now;
    } else if(order.paymentStatus!=='paid') {
     throw fail('Verify full payment before marking this delivery complete.',409,'PAYMENT_REQUIRED');
    }
