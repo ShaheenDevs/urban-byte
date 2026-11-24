@@ -89,6 +89,7 @@ class DeliveryView extends StackedView<DeliveryViewModel> {
         Text('${order['customerName'] ?? 'Customer'} • ${order['customerPhone'] ?? 'No phone'}'),
         Text('${order['deliveryAddress'] ?? 'No delivery address'}'),
         Text('Total: PKR ${order['grandTotal'] ?? '0.00'}'),
+        Text('Delivery fee: PKR ${order['deliveryFee'] ?? 0} · Distance: ${order['deliveryDistanceKm'] ?? 0} km'),
         const SizedBox(height: 8),
         if (drivers.isEmpty)
           const Text('No active Delivery employee is assigned to this branch.')
@@ -131,6 +132,7 @@ class DeliveryView extends StackedView<DeliveryViewModel> {
         Text('${order['customerName'] ?? 'Customer'} • ${order['customerPhone'] ?? 'No phone'}'),
         Text('${order['deliveryAddress'] ?? 'No delivery address'}'),
         Text('Order total: PKR ${order['grandTotal'] ?? '0.00'}'),
+        Text('Delivery fee: PKR ${order['deliveryFee'] ?? 0} · Distance: ${order['deliveryDistanceKm'] ?? 0} km'),
         if (vm.canManage) Text('Rider: ${rider['name'] ?? 'Unknown'}'),
         if (cod > 0) Text('COD: PKR ${cod.toStringAsFixed(2)} • ${collected ? 'Collected' : 'Not collected'}'),
         if (canReassign && drivers.isNotEmpty) ...[
