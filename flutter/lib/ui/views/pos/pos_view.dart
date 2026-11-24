@@ -25,7 +25,6 @@ class _PosViewState extends State<PosView> {
   final _phone = TextEditingController();
   final _address = TextEditingController();
   final _deliveryDistance = TextEditingController(text: '0');
-  final _deliveryDistance = TextEditingController(text: '0');
   final _discount = TextEditingController(text: '0');
   List<RestaurantBranch> _branches = [];
   List<Map<String, dynamic>> _products = [];
