@@ -46,8 +46,8 @@ class _CashShiftViewState extends State<CashShiftView> {
             from: dateText(fromDate),
             to: dateText(today)),
       ]);
-      final shifts = results[0] as List<Map<String, dynamic>>;
-      final history = results[1] as List<Map<String, dynamic>>;
+      final shifts = results[0];
+      final history = results[1];
       if (!mounted) return;
       setState(() {
         _branches = branches;
