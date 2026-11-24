@@ -114,7 +114,7 @@ class OperationsService {
   Future<Map<String, dynamic>> deliveryPerformance({String? riderId, String? branchId, String? from, String? to}) async => Map<String, dynamic>.from(await _request('GET', _deliveryReportPath('/delivery/reports/performance', riderId: riderId, branchId: branchId, from: from, to: to)) as Map);
   String _deliveryReportPath(String path, {String? riderId, String? branchId, String? from, String? to}) {
     final query = <String, String>{if (riderId != null) 'riderId': riderId, if (branchId != null) 'branchId': branchId, if (from != null) 'from': from, if (to != null) 'to': to};
-    return query.isEmpty ? path : '$path?\u0024{Uri(queryParameters: query).query}';
+    return query.isEmpty ? path : path + '?' + Uri(queryParameters: query).query;
   }
 
   Future<void> assignDelivery(String orderId, String deliveryUserId) async {
