@@ -43,6 +43,8 @@ async function drivers(restaurantId,user,filters={}) {
 }
 async function unassigned(restaurantId,user,filters={}) {
  const where={restaurantId,orderType:'delivery',status:{[Op.in]:['placed','confirmed','preparing','ready']}};
+ const isWaiter=(user.roles||[]).includes('waiter')&&!(user.roles||[]).includes('admin')&&!(user.roles||[]).includes('supervisor');
+ if(isWaiter)where.createdByUserId=user.id;
  if(filters.branchId) {
   const branchId=id(filters.branchId);
   assertBranch(user,branchId);
