@@ -25,6 +25,8 @@ class _PosViewState extends State<PosView> {
   final _phone = TextEditingController();
   final _address = TextEditingController();
   final _deliveryDistance = TextEditingController(text: '0');
+  final _deliveryLatitude = TextEditingController();
+  final _deliveryLongitude = TextEditingController();
   final _discount = TextEditingController(text: '0');
   List<RestaurantBranch> _branches = [];
   List<Map<String, dynamic>> _products = [];
@@ -51,6 +53,8 @@ class _PosViewState extends State<PosView> {
     _phone.dispose();
     _address.dispose();
     _deliveryDistance.dispose();
+    _deliveryLatitude.dispose();
+    _deliveryLongitude.dispose();
     _discount.dispose();
     super.dispose();
   }
@@ -191,6 +195,8 @@ class _PosViewState extends State<PosView> {
             : null,
         deliveryAddress: _type == 'delivery' ? _address.text.trim() : null,
         deliveryDistanceKm: _type == 'delivery' ? (double.tryParse(_deliveryDistance.text.trim()) ?? 0) : null,
+        deliveryLatitude: _type == 'delivery' ? double.tryParse(_deliveryLatitude.text.trim()) : null,
+        deliveryLongitude: _type == 'delivery' ? double.tryParse(_deliveryLongitude.text.trim()) : null,
         customerName:
             _customer.text.trim().isEmpty ? null : _customer.text.trim(),
         customerPhone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
@@ -643,6 +649,14 @@ class _PosViewState extends State<PosView> {
               decoration: const InputDecoration(labelText: 'Delivery address')),
           const SizedBox(height: 8),
           TextField(controller: _deliveryDistance, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Delivery distance (km)', helperText: 'Enter approximate route distance; fee is calculated from Restaurant Settings.')),
+          const SizedBox(height: 8),
+          const Text('Customer map pin coordinates (optional)', style: TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 4),
+          Row(children: [
+            Expanded(child: TextField(controller: _deliveryLatitude, keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), decoration: const InputDecoration(labelText: 'Latitude', hintText: '31.1234567'))),
+            const SizedBox(width: 8),
+            Expanded(child: TextField(controller: _deliveryLongitude, keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), decoration: const InputDecoration(labelText: 'Longitude', hintText: '73.1234567'))),
+          ]),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
             value: _deliveryDrivers.any((d) => d['id'].toString() == _selectedDeliveryUserId)
