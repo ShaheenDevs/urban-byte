@@ -34,11 +34,17 @@ class DeliveryView extends StackedView<DeliveryViewModel> {
 
                 if (vm.performance.isNotEmpty) Card(child: ListTile(
                   title: const Text('Today rider performance'),
-                  subtitle: Text('Delivered: ' + '${vm.performance['delivered'] ?? 0}' + ' · Cancelled: ' + '${vm.performance['cancelled'] ?? 0}' + ' · Pending: ' + '${vm.performance['pending'] ?? 0}' + ' · Success: ' + '${vm.performance['deliverySuccessRate'] ?? 0}%' + ' · Avg minutes: ' + '${vm.performance['averageDeliveryMinutes'] ?? '-'}'),
+                  subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Delivered: ' + '${vm.performance['delivered'] ?? 0}' + ' · Cancelled: ' + '${vm.performance['cancelled'] ?? 0}' + ' · Pending: ' + '${vm.performance['pending'] ?? 0}' + ' · Success: ' + '${vm.performance['deliverySuccessRate'] ?? 0}%' + ' · Avg minutes: ' + '${vm.performance['averageDeliveryMinutes'] ?? '-'}'),
+                    ...((vm.performance['riders'] as List? ?? []).map((r) => Text('Rider ' + '${r['riderId']}: ${r['delivered']}/${r['total']} delivered · COD PKR ${r['codAmount']}'))),
+                  ]),
                 )),
                 if (vm.codReport.isNotEmpty) Card(child: ListTile(
                   title: const Text('Today COD collection'),
-                  subtitle: Text('PKR ' + '${vm.codReport['totalCollected'] ?? 0}' + ' · Orders: ' + '${vm.codReport['orders'] ?? 0}'),
+                  subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('PKR ' + '${vm.codReport['totalCollected'] ?? 0}' + ' · Orders: ' + '${vm.codReport['orders'] ?? 0}'),
+                    ...((vm.codReport['byRider'] as List? ?? []).map((r) => Text('${r['riderName'] ?? 'Rider'}: PKR ${r['amount'] ?? 0}'))),
+                  ]),
                 )),
                 if (vm.history.isNotEmpty) ...[
                   Text('Recent rider delivery history', style: Theme.of(context).textTheme.titleLarge),
