@@ -43,9 +43,35 @@ class DeliveryView extends StackedView<DeliveryViewModel> {
                   title: const Text('Today COD collection'),
                   subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text('PKR ' + '${vm.codReport['totalCollected'] ?? 0}' + ' · Orders: ' + '${vm.codReport['orders'] ?? 0}'),
-                    ...((vm.codReport['byRider'] as List? ?? []).map((r) => Text('${r['riderName'] ?? 'Rider'}: PKR ${r['amount'] ?? 0}'))),
+                    ...((vm.codReport['byRider'] as List? ?? []).map((r) => Text('\${r['riderName'] ?? 'Rider'}: Collected PKR \${r['amount'] ?? 0} · Approved PKR \${r['settledAmount'] ?? 0} · Pending approval PKR \${r['pendingAmount'] ?? 0} · Not handed over PKR \${r['unsettledAmount'] ?? 0}'))),
                   ]),
                 )),
+                if (!manager && vm.codPendingByBranch.isNotEmpty) ...[
+                  Text('COD cash handover', style: Theme.of(context).textTheme.titleLarge),
+                  ...vm.codPendingByBranch.entries.map((entry) => Card(child: ListTile(
+                    title: Text('Branch \${entry.key} · Pending cash PKR \${entry.value.toStringAsFixed(2)}'),
+                    subtitle: const Text('Submit collected COD cash to the cashier for manager approval.'),
+                    trailing: FilledButton(
+                      onPressed: vm.isBusy ? null : () => vm.submitCash(context, entry.key, entry.value),
+                      child: const Text('Hand over'),
+                    ),
+                  ))),
+                ],
+                if (manager && vm.pendingCodSettlements.isNotEmpty) ...[
+                  Text('COD handovers awaiting approval', style: Theme.of(context).textTheme.titleLarge),
+                  ...vm.pendingCodSettlements.map((settlement) => Card(child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('\${settlement['rider']?['name'] ?? 'Rider'} · \${settlement['settlementDate'] ?? ''}', style: Theme.of(context).textTheme.titleMedium),
+                      Text('Expected: PKR \${settlement['expectedAmount']} · Handed: PKR \${settlement['handedAmount']} · Variance: PKR \${settlement['variance']}'),
+                      if ((settlement['riderNote'] ?? '').toString().isNotEmpty) Text('Rider note: \${settlement['riderNote']}'),
+                      Wrap(spacing: 8, children: [
+                        FilledButton(onPressed: vm.isBusy ? null : () => vm.reviewCash(context, '\${settlement['id']}', true), child: const Text('Approve')),
+                        OutlinedButton(onPressed: vm.isBusy ? null : () => vm.reviewCash(context, '\${settlement['id']}', false), child: const Text('Reject')),
+                      ]),
+                    ]),
+                  ))),
+                ],
                 if (vm.history.isNotEmpty) ...[
                   Text('Recent rider delivery history', style: Theme.of(context).textTheme.titleLarge),
                   ...vm.history.take(10).map((h) {
@@ -173,7 +199,20 @@ class DeliveryViewModel extends BaseViewModel {
   Map<String, dynamic> performance = {};
   Map<String, dynamic> codReport = {};
   List<Map<String, dynamic>> history = [];
+  List<Map<String, dynamic>> codSettlements = [];
   bool loaded = false;
+
+  List<Map<String, dynamic>> get pendingCodSettlements => codSettlements.where((s) => s['status'] == 'pending_approval').toList();
+  Map<String, double> get codPendingByBranch {
+    final result = <String, double>{};
+    for (final a in assignments) {
+      if (a['codCollected'] == true && a['codSettlementId'] == null) {
+        final branch = '\${a['branchId']}';
+        result[branch] = (result[branch] ?? 0) + (double.tryParse('\${a['codAmount'] ?? 0}') ?? 0);
+      }
+    }
+    return result;
+  }
 
   List<Map<String, dynamic>> driversFor(String branchId) => _driversByBranch[branchId] ?? [];
   int count(String status) => assignments.where((a) => a['status'] == status).length;
@@ -192,6 +231,7 @@ class DeliveryViewModel extends BaseViewModel {
       history = reports[0] as List<Map<String, dynamic>>;
       performance = Map<String, dynamic>.from(reports[1] as Map);
       codReport = Map<String, dynamic>.from(reports[2] as Map);
+      codSettlements = await api.deliveryCodSettlements(status: canManage ? 'pending_approval' : null);
       if (canManage) {
         unassignedOrders = await api.unassignedDeliveryOrders();
         final branchIds = <String>{...assignments.map((a) => '${a['branchId']}'), ...unassignedOrders.map((o) => '${o['branchId']}')};
@@ -202,6 +242,64 @@ class DeliveryViewModel extends BaseViewModel {
       } else { unassignedOrders = []; }
       loaded = true;
     } catch (e) { loadingError = e.toString(); }
+    finally { setBusy(false); notifyListeners(); }
+  }
+
+
+  Future<void> submitCash(BuildContext context, String branchId, double expected) async {
+    final amount = TextEditingController(text: expected.toStringAsFixed(2));
+    final note = TextEditingController();
+    final result = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(
+      title: const Text('Submit COD cash handover'),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        Text('Expected COD: PKR \${expected.toStringAsFixed(2)}'),
+        TextField(controller: amount, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Cash handed over (PKR)')),
+        TextField(controller: note, decoration: const InputDecoration(labelText: 'Note (optional)')),
+      ]),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
+        FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Submit')),
+      ],
+    ));
+    final handed = double.tryParse(amount.text.trim());
+    final noteText = note.text;
+    amount.dispose(); note.dispose();
+    if (result != true) return;
+    if (handed == null || handed < 0) { loadingError = 'Enter a valid handed amount.'; notifyListeners(); return; }
+    setBusy(true); loadingError = null;
+    try { await api.submitDeliveryCodSettlement(branchId: branchId, date: DateTime.now().toIso8601String().substring(0, 10), handedAmount: handed, note: noteText); await load(); }
+    catch (e) { loadingError = e.toString(); }
+    finally { setBusy(false); notifyListeners(); }
+  }
+
+  Future<void> reviewCash(BuildContext context, String settlementId, bool approve) async {
+    final note = TextEditingController();
+    if (!approve) {
+      final result = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(
+        title: const Text('Reject COD handover'),
+        content: TextField(controller: note, maxLines: 3, decoration: const InputDecoration(labelText: 'Reason (required)')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Reject')),
+        ],
+      ));
+      if (result != true) { note.dispose(); return; }
+      if (note.text.trim().isEmpty) { note.dispose(); loadingError = 'Rejection reason is required.'; notifyListeners(); return; }
+    } else {
+      final result = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(
+        title: const Text('Approve COD handover'),
+        content: const Text('Confirm that the handed cash amount has been physically received and counted.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Approve')),
+        ],
+      ));
+      if (result != true) { note.dispose(); return; }
+    }
+    final noteText = note.text; note.dispose();
+    setBusy(true); loadingError = null;
+    try { await api.reviewDeliveryCodSettlement(settlementId, approve: approve, note: noteText); await load(); }
+    catch (e) { loadingError = e.toString(); }
     finally { setBusy(false); notifyListeners(); }
   }
 
