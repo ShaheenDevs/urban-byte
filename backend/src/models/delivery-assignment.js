@@ -12,8 +12,8 @@ module.exports=(s,D)=>{
   outForDeliveryAt:{type:D.DATE,allowNull:true,field:'out_for_delivery_at'},deliveredAt:{type:D.DATE,allowNull:true,field:'delivered_at'},
   codAmount:{type:D.DECIMAL(12,2),allowNull:false,defaultValue:0,field:'cod_amount'},
   codCollected:{type:D.BOOLEAN,allowNull:false,defaultValue:false,field:'cod_collected'},
-  codCollectedAt:{type:D.DATE,allowNull:true,field:'cod_collected_at'},deliveryNote:{type:D.STRING(500),allowNull:true,field:'delivery_note'}
+  codCollectedAt:{type:D.DATE,allowNull:true,field:'cod_collected_at'},codSettlementId:{type:D.BIGINT.UNSIGNED,allowNull:true,field:'cod_settlement_id'},deliveryNote:{type:D.STRING(500),allowNull:true,field:'delivery_note'}
  },{tableName:'delivery_assignments',underscored:true});
- M.associate=models=>{M.belongsTo(models.Order,{foreignKey:'orderId',as:'order'});M.belongsTo(models.User,{foreignKey:'deliveryUserId',as:'deliveryUser'});M.belongsTo(models.User,{foreignKey:'assignedByUserId',as:'assignedBy'});};
+ M.associate=models=>{M.belongsTo(models.Order,{foreignKey:'orderId',as:'order'});M.belongsTo(models.User,{foreignKey:'deliveryUserId',as:'deliveryUser'});M.belongsTo(models.User,{foreignKey:'assignedByUserId',as:'assignedBy'});M.belongsTo(models.DeliveryCashSettlement,{foreignKey:'codSettlementId',as:'codSettlement'});};
  return M;
 };
