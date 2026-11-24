@@ -102,7 +102,7 @@ async function updateStatus(restaurantId,user,assignmentId,input={}){
    else if(order.status!=='completed')throw fail('Order must be out for delivery before completion.',409);
    changes.deliveredAt=now;
   }
-  if(input.note!==undefined)changes.deliveryNote=String(input.note).slice(0,500);\n  if(next==='delivered')Object.assign(changes,{riderLatitude:null,riderLongitude:null,riderLocationAccuracy:null,riderLocationUpdatedAt:null});
+  if(input.note!==undefined)changes.deliveryNote=String(input.note).slice(0,500);\n  if(next==='delivered')Object.assign(changes,{riderLatitude:null,riderLongitude:null,riderLocationAccuracy:null,riderLocationUpdatedAt:null});\n  if(next==='delivered')Object.assign(changes,{riderLatitude:null,riderLongitude:null,riderLocationAccuracy:null,riderLocationUpdatedAt:null});
   await assignment.update(changes,{transaction:t});
   return DeliveryAssignment.findByPk(assignment.id,{include:[{model:Order,as:'order'}],transaction:t});
  });
