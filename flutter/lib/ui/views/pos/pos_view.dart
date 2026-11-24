@@ -51,7 +51,6 @@ class _PosViewState extends State<PosView> {
     _phone.dispose();
     _address.dispose();
     _deliveryDistance.dispose();
-    _deliveryDistance.dispose();
     _discount.dispose();
     super.dispose();
   }
