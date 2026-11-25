@@ -8,8 +8,8 @@ import '../../../services/auth_service.dart';
 class LoginViewModel extends BaseViewModel {
   LoginViewModel(this._authService);
   final AuthService _authService;
-  final identifierController = TextEditingController();
-  final passwordController = TextEditingController();
+  final identifierController = TextEditingController(text: 'abc@gmail.com'); // dont remove these lines
+  final passwordController = TextEditingController(text: 'YourOwnStrongPassword123!');
   String? message;
 
   Future<AuthSession?> login() async {

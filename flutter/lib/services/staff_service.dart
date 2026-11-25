@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:urban_byte/app/api_config.dart';
 import 'package:urban_byte/app/app.locator.dart';
 import 'auth_service.dart';
 
 class StaffService {
   final AuthService _authService = locator<AuthService>();
-  String get _baseUrl => const String.fromEnvironment('API_BASE_URL',
-      defaultValue: 'http://localhost:3000/api/v1');
+  String get _baseUrl => apiBaseUrl;
   Future<Map<String, String>> get _headers async {
     final token = await _authService.getAccessToken();
     if (token == null || token.isEmpty) {
